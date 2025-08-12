@@ -1,0 +1,468 @@
+openapi: 3.0.3
+info:
+  title: Retrouv’Tout API
+  version: 1.0.0
+  description: |
+    API REST pour l’application Retrouv’Tout (objets perdus et retrouvés).
+    Authentification JWT + OAuth2. Les réponses utilisent JSON UTF-8.
+servers:
+  - url: https://api.retrouvtout.example.com
+    description: Production
+  - url: http://localhost:8081
+    description: Développement
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/oauth/authorize
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            profile: Accès au profil
+            email: Accès à l’email
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        code: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        role: { type: string, enum: [retrouveur, proprietaire, mixte] }
+        createdAt: { type: string, format: date-time }
+    Listing:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        finderUserId: { type: string, format: uuid }
+        title: { type: string }
+        category: { type: string, enum: [cles, electronique, bagagerie, documents, autre] }
+        locationText: { type: string }
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+        foundAt: { type: string, format: date-time }
+        description: { type: string }
+        imageUrl: { type: string, format: uri, nullable: true }
+        status: { type: string, enum: [active, resolu] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ListingCreate:
+      type: object
+      required: [title, category, locationText, foundAt]
+      properties:
+        title: { type: string }
+        category: { type: string, enum: [cles, electronique, bagagerie, documents, autre] }
+        locationText: { type: string }
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+        foundAt: { type: string, format: date-time }
+        description: { type: string }
+        imageUrl: { type: string, format: uri, nullable: true }
+    ListingUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        category: { type: string }
+        locationText: { type: string }
+        latitude: { type: number, format: double }
+        longitude: { type: number, format: double }
+        foundAt: { type: string, format: date-time }
+        description: { type: string }
+        imageUrl: { type: string, format: uri }
+        status: { type: string, enum: [active, resolu] }
+    Thread:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        listingId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid }
+        finderUserId: { type: string, format: uuid }
+        status: { type: string, enum: [pending, approved, closed] }
+        approvedByOwner: { type: boolean }
+        approvedByFinder: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        threadId: { type: string, format: uuid }
+        senderUserId: { type: string, format: uuid }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+    Alert:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid }
+        q: { type: string, nullable: true }
+        category: { type: string, nullable: true }
+        locationText: { type: string, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+        radiusKm: { type: number, nullable: true }
+        dateFrom: { type: string, format: date, nullable: true }
+        dateTo: { type: string, format: date, nullable: true }
+        channels: { type: array, items: { type: string, enum: [email, sms, push] } }
+        active: { type: boolean }
+    Confirmation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        threadId: { type: string, format: uuid }
+        code: { type: string }
+        expiresAt: { type: string, format: date-time }
+        usedAt: { type: string, format: date-time, nullable: true }
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      summary: Inscription par email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '201': { description: Créé }
+        '400': { $ref: '#/components/schemas/Error' }
+  /auth/login:
+    post:
+      summary: Connexion par email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+  /auth/oauth/{provider}:
+    get:
+      summary: Démarre un flux OAuth2
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: { type: string, enum: [google, facebook] }
+      responses:
+        '302': { description: Redirection vers le provider }
+  /users/me:
+    get:
+      security: [ { BearerAuth: [] } ]
+      summary: Récupère mon profil
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+    put:
+      security: [ { BearerAuth: [] } ]
+      summary: Met à jour mon profil
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                phone: { type: string }
+                role: { type: string, enum: [retrouveur, proprietaire, mixte] }
+      responses:
+        '200': { description: OK }
+
+  /listings:
+    get:
+      summary: Recherche d’annonces
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: location
+          schema: { type: string }
+        - in: query
+          name: lat
+          schema: { type: number }
+        - in: query
+          name: lng
+          schema: { type: number }
+        - in: query
+          name: radius_km
+          schema: { type: number }
+        - in: query
+          name: date_from
+          schema: { type: string, format: date }
+        - in: query
+          name: date_to
+          schema: { type: string, format: date }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Listing' }
+                  total: { type: integer }
+    post:
+      security: [ { BearerAuth: [] } ]
+      summary: Publier une annonce
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingCreate' }
+      responses:
+        '201': { description: Créé }
+
+  /listings/{id}:
+    get:
+      summary: Détail d’une annonce
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Listing' } } } }
+    patch:
+      security: [ { BearerAuth: [] } ]
+      summary: Modifier une annonce
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingUpdate' }
+      responses:
+        '200': { description: OK }
+    delete:
+      security: [ { BearerAuth: [] } ]
+      summary: Supprimer une annonce
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Supprimé }
+
+  /threads:
+    get:
+      security: [ { BearerAuth: [] } ]
+      summary: Mes conversations
+      responses:
+        '200':
+          description: OK
+    post:
+      security: [ { BearerAuth: [] } ]
+      summary: Créer une conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [listingId, participantUserId]
+              properties:
+                listingId: { type: string, format: uuid }
+                participantUserId: { type: string, format: uuid }
+      responses:
+        '201': { description: Créé }
+
+  /threads/{id}:
+    get:
+      security: [ { BearerAuth: [] } ]
+      summary: Détail d’une conversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: OK }
+    patch:
+      security: [ { BearerAuth: [] } ]
+      summary: Mise à jour (approbations, statut)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                approvedByOwner: { type: boolean }
+                approvedByFinder: { type: boolean }
+                status: { type: string, enum: [pending, approved, closed] }
+      responses:
+        '200': { description: OK }
+
+  /threads/{id}/messages:
+    get:
+      security: [ { BearerAuth: [] } ]
+      summary: Liste des messages
+      responses:
+        '200': { description: OK }
+    post:
+      security: [ { BearerAuth: [] } ]
+      summary: Envoyer un message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string }
+      responses:
+        '201': { description: Créé }
+
+  /alerts:
+    get:
+      security: [ { BearerAuth: [] } ]
+      summary: Mes alertes
+      responses:
+        '200': { description: OK }
+    post:
+      security: [ { BearerAuth: [] } ]
+      summary: Créer une alerte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Alert' }
+      responses:
+        '201': { description: Créé }
+  /alerts/{id}:
+    patch:
+      security: [ { BearerAuth: [] } ]
+      summary: Mettre à jour une alerte
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active: { type: boolean }
+      responses:
+        '200': { description: OK }
+    delete:
+      security: [ { BearerAuth: [] } ]
+      summary: Supprimer une alerte
+      responses:
+        '204': { description: Supprimé }
+
+  /confirmations:
+    post:
+      security: [ { BearerAuth: [] } ]
+      summary: Générer un code de remise d’objet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [threadId]
+              properties:
+                threadId: { type: string, format: uuid }
+      responses:
+        '201': { description: Créé }
+  /confirmations/verify:
+    post:
+      security: [ { BearerAuth: [] } ]
+      summary: Vérifier le code de remise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [threadId, code]
+              properties:
+                threadId: { type: string, format: uuid }
+                code: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /moderation/flags:
+    get:
+      security: [ { BearerAuth: [] } ]
+      summary: Liste des contenus signalés (admin/modérateurs)
+      responses:
+        '200': { description: OK }
+    post:
+      security: [ { BearerAuth: [] } ]
+      summary: Signaler un contenu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entityType, entityId, reason]
+              properties:
+                entityType: { type: string, enum: [listing, message, user] }
+                entityId: { type: string }
+                reason: { type: string }
+      responses:
+        '201': { description: Créé }
+  /moderation/flags/{id}:
+    patch:
+      security: [ { BearerAuth: [] } ]
+      summary: Résoudre un signalement (admin/modérateurs)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [pending, approved, rejected] }
+      responses:
+        '200': { description: OK }
