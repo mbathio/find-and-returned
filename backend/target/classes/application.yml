@@ -1,0 +1,326 @@
+# Configuration principale application.yml
+server:
+  port: 8081
+  servlet:
+    context-path: /api
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: retrouvtout-backend
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  
+  # Configuration base de données
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/retrouvtout?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+  
+  # Configuration JPA/Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        use_sql_comments: false
+        jdbc:
+          time_zone: UTC
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+    open-in-view: false
+  
+  # Configuration Flyway pour les migrations
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    sql-migration-prefix: V
+    sql-migration-suffix: .sql
+  
+  # Configuration Redis pour le cache
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  
+  # Configuration cache
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # 10 minutes
+  
+  # Configuration email
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+    default-encoding: UTF-8
+  
+  # Configuration multipart (upload fichiers)
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 15MB
+      location: ${java.io.tmpdir}
+  
+  # Configuration sécurité
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - email
+              - profile
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID:}
+            client-secret: ${FACEBOOK_CLIENT_SECRET:}
+            scope:
+              - email
+              - public_profile
+  
+  # Configuration Jackson
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: NON_NULL
+    time-zone: UTC
+
+# Configuration logging
+logging:
+  level:
+    com.retrouvtout: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/retrouvtout.log
+    max-size: 10MB
+    max-history: 10
+
+# Configuration Management/Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Configuration OpenAPI/Swagger
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: false
+
+# Configuration application spécifique
+app:
+  # Configuration JWT
+  jwt:
+    secret: ${JWT_SECRET:mySecretKey}
+    expiration: 86400000 # 24 heures en millisecondes
+    refresh-expiration: 604800000 # 7 jours en millisecondes
+  
+  # Configuration CORS
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+    allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
+  
+  # Configuration upload
+  upload:
+    dir: ${UPLOAD_DIR:./uploads}
+    max-file-size: 10485760 # 10MB
+    allowed-extensions: jpg,jpeg,png,gif,webp
+  
+  # Configuration notifications
+  notifications:
+    email:
+      enabled: ${EMAIL_NOTIFICATIONS_ENABLED:true}
+      from: ${EMAIL_FROM:noreply@retrouvtout.com}
+      from-name: "Retrouv'Tout"
+    sms:
+      enabled: ${SMS_NOTIFICATIONS_ENABLED:false}
+      twilio:
+        account-sid: ${TWILIO_ACCOUNT_SID:}
+        auth-token: ${TWILIO_AUTH_TOKEN:}
+        from-number: ${TWILIO_FROM_NUMBER:}
+  
+  # Configuration modération
+  moderation:
+    auto-approve: ${AUTO_APPROVE_LISTINGS:true}
+    max-listings-per-day: ${MAX_LISTINGS_PER_DAY:10}
+    profanity-filter: ${PROFANITY_FILTER_ENABLED:true}
+  
+  # Configuration géolocalisation
+  geocoding:
+    enabled: ${GEOCODING_ENABLED:true}
+    provider: ${GEOCODING_PROVIDER:nominatim}
+    api-key: ${GEOCODING_API_KEY:}
+
+---
+# Configuration développement
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  # Base de données développement
+  datasource:
+    url: jdbc:mysql://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  
+  # JPA développement
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+  
+  # Cache développement
+  cache:
+    type: simple
+  
+  # Email développement (console)
+  mail:
+    host: localhost
+    port: 1025
+
+logging:
+  level:
+    com.retrouvtout: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+
+---
+# Configuration test
+spring:
+  config:
+    activate:
+      on-profile: test
+  
+  # Base de données test
+  datasource:
+    url: jdbc:mysql://localhost:3306/retrouvtout_test?useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  
+  # JPA test
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  
+  # Cache test
+  cache:
+    type: simple
+
+# Configuration app test
+app:
+  jwt:
+    secret: testSecretKey
+    expiration: 3600000 # 1 heure pour les tests
+  upload:
+    dir: ./test-uploads
+
+logging:
+  level:
+    com.retrouvtout: INFO
+
+---
+# Configuration production
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  # JPA production
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  
+  # Email production
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
+# Configuration sécurité production
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://retrouvtout.com}
+  
+  notifications:
+    email:
+      enabled: true
+    sms:
+      enabled: ${SMS_NOTIFICATIONS_ENABLED:true}
+
+logging:
+  level:
+    com.retrouvtout: INFO
+    org.springframework.security: WARN
+    org.hibernate: WARN
+  file:
+    name: /var/log/retrouvtout/application.log
