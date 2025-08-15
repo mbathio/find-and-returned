@@ -217,15 +217,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityHeaders(HttpSecurity http) throws Exception {
         http.headers(headers -> headers
-            .frameOptions().deny()
-            .contentTypeOptions().and()
-            .httpStrictTransportSecurity(hstsConfig -> hstsConfig
-                .maxAgeInSeconds(31536000)
-                .includeSubdomains(true))
-            .referrerPolicy().and()
-            .permissionsPolicy(permissions -> permissions
-                .policy("camera=(), microphone=(), geolocation=(self)"))
-        );
+    .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+    .contentTypeOptions(Customizer.withDefaults())
+    .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+        .maxAgeInSeconds(31536000)
+        .includeSubDomains(true)) // Corriger includeSubdomains -> includeSubDomains
+    .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+);
         
         return http.build();
     }

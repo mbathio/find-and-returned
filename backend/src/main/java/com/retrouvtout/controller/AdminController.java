@@ -1,7 +1,5 @@
 package com.retrouvtout.controller;
 
-public package com.retrouvtout.controller;
-
 import com.retrouvtout.dto.response.ApiResponse;
 import com.retrouvtout.dto.response.PagedResponse;
 import com.retrouvtout.dto.response.UserResponse;
