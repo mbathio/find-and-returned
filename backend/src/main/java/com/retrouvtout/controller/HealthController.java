@@ -102,31 +102,3 @@ public class HealthController implements HealthIndicator {
     }
 }
 
-// Configuration de sécurité pour les endpoints actuator
-package com.retrouvtout.config;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-
-/**
- * Configuration de sécurité pour les endpoints de monitoring
- */
-@Configuration
-public class ActuatorSecurityConfig {
-
-    @Bean
-    @Order(1)
-    public SecurityFilterChain actuatorFilterChain(HttpSecurity http) throws Exception {
-        return http
-            .securityMatcher("/actuator/**")
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/actuator/info").permitAll()
-                .requestMatchers("/actuator/**").hasRole("ADMIN")
-            )
-            .build();
-    }
-}
