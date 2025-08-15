@@ -1,4 +1,3 @@
-// AlertController.java
 package com.retrouvtout.controller;
 
 import com.retrouvtout.dto.request.CreateAlertRequest;
@@ -9,8 +8,6 @@ import com.retrouvtout.security.UserPrincipal;
 import com.retrouvtout.service.AlertService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -47,10 +44,10 @@ public class AlertController {
     @PostMapping
     @Operation(summary = "Créer une nouvelle alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "201", description = "Alerte créée avec succès"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Alerte créée avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<AlertResponse>> createAlert(
@@ -82,8 +79,8 @@ public class AlertController {
     @GetMapping
     @Operation(summary = "Obtenir mes alertes")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Liste des alertes")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Liste des alertes")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<PagedResponse<AlertResponse>>> getUserAlerts(
@@ -125,10 +122,10 @@ public class AlertController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir une alerte par son ID")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Alerte trouvée"),
-        @SwaggerApiResponse(responseCode = "404", description = "Alerte non trouvée"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alerte trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<AlertResponse>> getAlert(
@@ -162,11 +159,11 @@ public class AlertController {
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour une alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Alerte mise à jour"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "404", description = "Alerte non trouvée"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alerte mise à jour"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<AlertResponse>> updateAlert(
@@ -201,10 +198,10 @@ public class AlertController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Alerte supprimée"),
-        @SwaggerApiResponse(responseCode = "404", description = "Alerte non trouvée"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alerte supprimée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Void>> deleteAlert(
@@ -238,10 +235,10 @@ public class AlertController {
     @PatchMapping("/{id}/toggle")
     @Operation(summary = "Activer/désactiver une alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Statut de l'alerte modifié"),
-        @SwaggerApiResponse(responseCode = "404", description = "Alerte non trouvée"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Statut de l'alerte modifié"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<AlertResponse>> toggleAlert(

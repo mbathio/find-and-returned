@@ -10,7 +10,7 @@ import com.retrouvtout.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -48,7 +48,8 @@ public class UserController {
     @Operation(summary = "Obtenir mon profil")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Profil récupéré"),
+   @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Profil récupéré"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
@@ -71,7 +72,8 @@ public class UserController {
     @Operation(summary = "Mettre à jour mon profil")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Profil mis à jour"),
+     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Profil mis à jour"),
         @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
     })
@@ -113,7 +115,8 @@ public class UserController {
     @Operation(summary = "Changer mon mot de passe")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Mot de passe changé"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+ "Mot de passe changé"),
         @SwaggerApiResponse(responseCode = "400", description = "Ancien mot de passe incorrect"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
     })
@@ -150,7 +153,8 @@ public class UserController {
     @GetMapping("/{id}/public")
     @Operation(summary = "Obtenir le profil public d'un utilisateur")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Profil public récupéré"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+"Profil public récupéré"),
         @SwaggerApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
     public ResponseEntity<ApiResponse<UserResponse>> getPublicUser(

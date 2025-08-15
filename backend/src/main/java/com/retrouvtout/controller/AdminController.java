@@ -12,7 +12,7 @@ import com.retrouvtout.service.ThreadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +63,7 @@ public class AdminController {
     @Operation(summary = "Obtenir les statistiques du tableau de bord")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Statistiques récupérées")
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "...")
     })
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboard() {
         Map<String, Object> stats = new HashMap<>();

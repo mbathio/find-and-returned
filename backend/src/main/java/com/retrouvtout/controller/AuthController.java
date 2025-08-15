@@ -9,7 +9,7 @@ import com.retrouvtout.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -77,7 +77,8 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Connexion d'un utilisateur")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Connexion réussie"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+ "Connexion réussie"),
         @SwaggerApiResponse(responseCode = "401", description = "Identifiants invalides"),
         @SwaggerApiResponse(responseCode = "403", description = "Compte désactivé")
     })
@@ -116,7 +117,8 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "Rafraîchissement du token d'accès")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Token rafraîchi avec succès"),
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+ "Token rafraîchi avec succès"),
         @SwaggerApiResponse(responseCode = "401", description = "Token de rafraîchissement invalide")
     })
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
@@ -146,7 +148,8 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "Déconnexion de l'utilisateur")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Déconnexion réussie")
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Déconnexion réussie")
     })
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestHeader("Authorization") String authHeader) {
@@ -177,7 +180,8 @@ public class AuthController {
     @GetMapping("/validate")
     @Operation(summary = "Validation du token d'accès")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Token valide"),
+       @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+"Token valide"),
         @SwaggerApiResponse(responseCode = "401", description = "Token invalide")
     })
     public ResponseEntity<ApiResponse<Boolean>> validateToken(
@@ -230,7 +234,8 @@ public class AuthController {
     @GetMapping("/oauth2/callback/{provider}")
     @Operation(summary = "Callback OAuth2")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Authentification OAuth2 réussie"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+"Authentification OAuth2 réussie"),
         @SwaggerApiResponse(responseCode = "400", description = "Erreur d'authentification OAuth2")
     })
     public ResponseEntity<ApiResponse<AuthResponse>> oauth2Callback(
@@ -273,7 +278,8 @@ public class AuthController {
     @PostMapping("/forgot-password")
     @Operation(summary = "Demande de réinitialisation de mot de passe")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Email de réinitialisation envoyé"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Email de réinitialisation envoyé"),
         @SwaggerApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
     public ResponseEntity<ApiResponse<Void>> forgotPassword(
@@ -304,7 +310,8 @@ public class AuthController {
     @PostMapping("/reset-password")
     @Operation(summary = "Réinitialisation du mot de passe")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Mot de passe réinitialisé avec succès"),
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+ "Mot de passe réinitialisé avec succès"),
         @SwaggerApiResponse(responseCode = "400", description = "Token invalide ou expiré")
     })
     public ResponseEntity<ApiResponse<Void>> resetPassword(
@@ -337,7 +344,8 @@ public class AuthController {
     @GetMapping("/verify-email")
     @Operation(summary = "Vérification de l'email")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Email vérifié avec succès"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+ "Email vérifié avec succès"),
         @SwaggerApiResponse(responseCode = "400", description = "Token de vérification invalide")
     })
     public ResponseEntity<ApiResponse<Void>> verifyEmail(
@@ -368,7 +376,8 @@ public class AuthController {
     @PostMapping("/resend-verification")
     @Operation(summary = "Renvoyer l'email de vérification")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Email de vérification renvoyé")
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Email de vérification renvoyé")
     })
     public ResponseEntity<ApiResponse<Void>> resendVerificationEmail(
             @Parameter(description = "Email de l'utilisateur")

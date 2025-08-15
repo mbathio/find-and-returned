@@ -6,7 +6,7 @@ import com.retrouvtout.security.UserPrincipal;
 import com.retrouvtout.service.FileUploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +42,8 @@ public class UploadController {
     @Operation(summary = "Upload d'une image")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Image uploadée avec succès"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+ "Image uploadée avec succès"),
         @SwaggerApiResponse(responseCode = "400", description = "Fichier invalide"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
     })
@@ -82,7 +83,8 @@ public class UploadController {
     @PostMapping("/temp")
     @Operation(summary = "Upload temporaire d'une image")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Image uploadée temporairement"),
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+ "Image uploadée temporairement"),
         @SwaggerApiResponse(responseCode = "400", description = "Fichier invalide")
     })
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadTempImage(

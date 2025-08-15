@@ -7,7 +7,7 @@ import com.retrouvtout.service.ConfirmationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,7 +85,8 @@ public class ConfirmationController {
     @Operation(summary = "Valider un code de confirmation")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Code validé avec succès"),
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Code validé avec succès"),
         @SwaggerApiResponse(responseCode = "400", description = "Code invalide ou expiré"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
     })
@@ -121,7 +122,8 @@ public class ConfirmationController {
     @Operation(summary = "Obtenir la confirmation d'un thread")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Confirmation trouvée"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Confirmation trouvée"),
         @SwaggerApiResponse(responseCode = "404", description = "Confirmation non trouvée"),
         @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
     })

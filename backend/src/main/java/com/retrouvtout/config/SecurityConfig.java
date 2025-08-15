@@ -14,11 +14,14 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -203,28 +206,21 @@ public class SecurityConfig {
                 
                 // Tout le reste nécessite une authentification
                 .anyRequest().authenticated()
+            )
+            
+            // Configuration des en-têtes de sécurité
+            .headers(headers -> headers
+                .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                .contentTypeOptions(Customizer.withDefaults())
+                .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+                    .maxAgeInSeconds(31536000)
+                    .includeSubDomains(true))
+                .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
             );
 
         // Ajouter le filtre JWT avant le filtre d'authentification par nom d'utilisateur/mot de passe
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
-
-    /**
-     * Configuration des en-têtes de sécurité
-     */
-    @Bean
-    public SecurityFilterChain securityHeaders(HttpSecurity http) throws Exception {
-        http.headers(headers -> headers
-    .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
-    .contentTypeOptions(Customizer.withDefaults())
-    .httpStrictTransportSecurity(hstsConfig -> hstsConfig
-        .maxAgeInSeconds(31536000)
-        .includeSubDomains(true)) // Corriger includeSubdomains -> includeSubDomains
-    .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-);
-        
         return http.build();
     }
 }

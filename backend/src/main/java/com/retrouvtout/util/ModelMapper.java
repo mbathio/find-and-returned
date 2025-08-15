@@ -143,7 +143,7 @@ public class ModelMapper {
     /**
      * Mapper Thread vers ThreadResponse
      */
-    public ThreadResponse mapThreadToThreadResponse(Thread thread) {
+    public ThreadResponse mapThreadToThreadResponse(com.retrouvtout.entity.Thread thread) {
         if (thread == null) {
             return null;
         }

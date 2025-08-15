@@ -1,4 +1,3 @@
-// BaseIntegrationTest.java - Classe de base pour les tests d'intégration
 package com.retrouvtout.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,7 +15,6 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
 /**
  * Classe de base pour les tests d'intégration avec Testcontainers
  */

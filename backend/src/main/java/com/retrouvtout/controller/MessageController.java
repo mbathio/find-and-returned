@@ -9,7 +9,7 @@ import com.retrouvtout.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -90,7 +90,8 @@ public class MessageController {
     @Operation(summary = "Obtenir les messages d'un thread")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Messages récupérés"),
+ @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+ "Messages récupérés"),
         @SwaggerApiResponse(responseCode = "404", description = "Thread non trouvé"),
         @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
@@ -150,7 +151,8 @@ public class MessageController {
     @Operation(summary = "Marquer les messages d'un thread comme lus")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Messages marqués comme lus"),
+ @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+ "Messages marqués comme lus"),
         @SwaggerApiResponse(responseCode = "404", description = "Thread non trouvé"),
         @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
@@ -187,7 +189,8 @@ public class MessageController {
     @Operation(summary = "Obtenir le nombre de messages non lus")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Nombre de messages non lus")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Nombre de messages non lus")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(

@@ -11,7 +11,7 @@ import com.retrouvtout.service.ListingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -52,7 +52,8 @@ public class ListingController {
     @GetMapping
     @Operation(summary = "Rechercher des annonces d'objets retrouvés")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Liste des annonces trouvées")
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+ "Liste des annonces trouvées")
     })
     public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> searchListings(
             @Parameter(description = "Mot-clé de recherche")
@@ -128,7 +129,8 @@ public class ListingController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir une annonce par son ID")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Annonce trouvée"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Annonce trouvée"),
         @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
     })
     public ResponseEntity<ApiResponse<ListingResponse>> getListing(
@@ -190,7 +192,8 @@ public class ListingController {
     @Operation(summary = "Mettre à jour une annonce existante")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Annonce mise à jour avec succès"),
+       @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Annonce mise à jour avec succès"),
         @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
         @SwaggerApiResponse(responseCode = "403", description = "Non autorisé"),
@@ -230,7 +233,8 @@ public class ListingController {
     @Operation(summary = "Supprimer une annonce")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Annonce supprimée avec succès"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+ "Annonce supprimée avec succès"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
         @SwaggerApiResponse(responseCode = "403", description = "Non autorisé"),
         @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
@@ -268,7 +272,8 @@ public class ListingController {
     @Operation(summary = "Marquer une annonce comme résolue")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Annonce marquée comme résolue"),
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+"Annonce marquée comme résolue"),
         @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
         @SwaggerApiResponse(responseCode = "403", description = "Non autorisé"),
         @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
@@ -305,7 +310,8 @@ public class ListingController {
     @GetMapping("/user/{userId}")
     @Operation(summary = "Obtenir les annonces d'un utilisateur")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Liste des annonces de l'utilisateur")
+   @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+ "Liste des annonces de l'utilisateur")
     })
     public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> getUserListings(
             @Parameter(description = "ID de l'utilisateur")

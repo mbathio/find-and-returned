@@ -1,4 +1,5 @@
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\SecurityConfig.java
+C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\TypingMessage.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\controller\ConfirmationController.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\exception\OAuth2AuthenticationProcessingException.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\SwaggerConfig.java
@@ -19,6 +20,7 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\UserPresence.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\RegisterRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\controller\FileController.java
+C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\SwaggerApiResponse.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\security\oauth2\user\FacebookOAuth2UserInfo.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\RetrouvToutApplication.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\entity\User.java
@@ -38,6 +40,7 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\RefreshTokenRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\TestSecurityConfig.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\AlertService.java
+C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\ReadStatusMessage.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\WebSocketResponse.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\WebSocketConfig.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\WebSocketController.java
