@@ -1,18 +1,23 @@
 package com.retrouvtout.util;
 
-import com.retrouvtout.dto.response.AlertResponse;
-import com.retrouvtout.dto.response.ListingResponse;
-import com.retrouvtout.dto.response.UserResponse;
-import com.retrouvtout.entity.Alert;
-import com.retrouvtout.entity.Listing;
-import com.retrouvtout.entity.User;
+import com.retrouvtout.dto.response.*;
+import com.retrouvtout.entity.*;
+import com.retrouvtout.repository.MessageRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Utilitaire pour mapper les entités vers les DTOs de réponse
  */
 @Component
 public class ModelMapper {
+
+    @Autowired
+    private MessageRepository messageRepository;
 
     /**
      * Mapper User vers UserResponse
@@ -110,6 +115,118 @@ public class ModelMapper {
         response.setLastTriggeredAt(alert.getLastTriggeredAt());
         response.setCreatedAt(alert.getCreatedAt());
         response.setUpdatedAt(alert.getUpdatedAt());
+
+        return response;
+    }
+
+    /**
+     * Mapper Message vers MessageResponse
+     */
+    public MessageResponse mapMessageToMessageResponse(Message message) {
+        if (message == null) {
+            return null;
+        }
+
+        MessageResponse response = new MessageResponse();
+        response.setId(message.getId());
+        response.setThreadId(message.getThread().getId());
+        response.setSenderUser(mapUserToPublicUserResponse(message.getSenderUser()));
+        response.setBody(message.getBody());
+        response.setMessageType(message.getMessageType() != null ? message.getMessageType().getValue() : null);
+        response.setIsRead(message.getIsRead());
+        response.setReadAt(message.getReadAt());
+        response.setCreatedAt(message.getCreatedAt());
+
+        return response;
+    }
+
+    /**
+     * Mapper Thread vers ThreadResponse
+     */
+    public ThreadResponse mapThreadToThreadResponse(Thread thread) {
+        if (thread == null) {
+            return null;
+        }
+
+        ThreadResponse response = new ThreadResponse();
+        response.setId(thread.getId());
+        response.setListing(mapListingToListingResponse(thread.getListing()));
+        response.setOwnerUser(mapUserToPublicUserResponse(thread.getOwnerUser()));
+        response.setFinderUser(mapUserToPublicUserResponse(thread.getFinderUser()));
+        response.setStatus(thread.getStatus() != null ? thread.getStatus().getValue() : null);
+        response.setApprovedByOwner(thread.getApprovedByOwner());
+        response.setApprovedByFinder(thread.getApprovedByFinder());
+        response.setLastMessageAt(thread.getLastMessageAt());
+        response.setCreatedAt(thread.getCreatedAt());
+        response.setUpdatedAt(thread.getUpdatedAt());
+
+        // Ajouter le dernier message
+        try {
+            List<Message> lastMessages = messageRepository.findLastMessageInThread(
+                thread, PageRequest.of(0, 1));
+            if (!lastMessages.isEmpty()) {
+                response.setLastMessage(mapMessageToMessageResponse(lastMessages.get(0)));
+            }
+        } catch (Exception e) {
+            // Ignorer l'erreur si on ne peut pas récupérer le dernier message
+        }
+
+        return response;
+    }
+
+    /**
+     * Mapper Confirmation vers ConfirmationResponse
+     */
+    public ConfirmationResponse mapConfirmationToConfirmationResponse(Confirmation confirmation) {
+        if (confirmation == null) {
+            return null;
+        }
+
+        ConfirmationResponse response = new ConfirmationResponse();
+        response.setId(confirmation.getId());
+        response.setThreadId(confirmation.getThread().getId());
+        response.setCode(confirmation.getCode());
+        response.setExpiresAt(confirmation.getExpiresAt());
+        response.setUsedAt(confirmation.getUsedAt());
+        response.setCreatedAt(confirmation.getCreatedAt());
+        
+        // Calculer les statuts
+        response.setIsExpired(confirmation.isExpired());
+        response.setIsUsed(confirmation.isUsed());
+
+        if (confirmation.getUsedByUser() != null) {
+            response.setUsedByUser(mapUserToPublicUserResponse(confirmation.getUsedByUser()));
+        }
+
+        return response;
+    }
+
+    /**
+     * Mapper ModerationFlag vers ModerationFlagResponse
+     */
+    public ModerationFlagResponse mapModerationFlagToModerationFlagResponse(ModerationFlag flag) {
+        if (flag == null) {
+            return null;
+        }
+
+        ModerationFlagResponse response = new ModerationFlagResponse();
+        response.setId(flag.getId());
+        response.setEntityType(flag.getEntityType() != null ? flag.getEntityType().getValue() : null);
+        response.setEntityId(flag.getEntityId());
+        response.setReason(flag.getReason());
+        response.setDescription(flag.getDescription());
+        response.setStatus(flag.getStatus() != null ? flag.getStatus().getValue() : null);
+        response.setPriority(flag.getPriority() != null ? flag.getPriority().getValue() : null);
+        response.setCreatedAt(flag.getCreatedAt());
+        response.setReviewedAt(flag.getReviewedAt());
+
+        if (flag.getCreatedByUser() != null) {
+            response.setCreatedByUser(mapUserToPublicUserResponse(flag.getCreatedByUser()));
+        }
+
+        if (flag.getReviewedByUser() != null) {
+            response.setReviewedByUser(mapUserToPublicUserResponse(flag.getReviewedByUser()));
+        }
 
         return response;
     }
