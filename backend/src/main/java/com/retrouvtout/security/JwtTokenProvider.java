@@ -1,63 +1,179 @@
 package com.retrouvtout.security;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.util.StringUtils;
-import org.springframework.web.filter.OncePerRequestFilter;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import java.util.Date;
 
 /**
- * Filtre JWT pour l'authentification des requêtes
+ * Fournisseur de tokens JWT pour l'authentification
  */
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+@Component
+public class JwtTokenProvider {
 
-    @Autowired
-    private JwtTokenProvider tokenProvider;
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
 
-    @Autowired
-    private CustomUserDetailsService customUserDetailsService;
+    @Value("${app.jwt.expiration}")
+    private long jwtExpirationInMs;
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, 
-                                  HttpServletResponse response, 
-                                  FilterChain filterChain) throws ServletException, IOException {
-        
-        try {
-            String jwt = getJwtFromRequest(request);
+    @Value("${app.jwt.refresh-expiration}")
+    private long refreshTokenExpirationInMs;
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                String userId = tokenProvider.getUserIdFromToken(jwt);
+    private static final String ISSUER = "retrouvtout-api";
+    private static final String AUDIENCE = "retrouvtout-app";
 
-                UserDetails userDetails = customUserDetailsService.loadUserById(userId);
-                UsernamePasswordAuthenticationToken authentication = 
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+    /**
+     * Générer un token d'accès
+     */
+    public String generateToken(String userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-        } catch (Exception ex) {
-            logger.error("Impossible de définir l'authentification utilisateur dans le contexte de sécurité", ex);
-        }
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
 
-        filterChain.doFilter(request, response);
+        return JWT.create()
+                .withIssuer(ISSUER)
+                .withAudience(AUDIENCE)
+                .withSubject(userId)
+                .withIssuedAt(now)
+                .withExpiresAt(expiryDate)
+                .withClaim("type", "access")
+                .sign(algorithm);
     }
 
     /**
-     * Extrait le token JWT de la requête
+     * Générer un token de rafraîchissement
      */
-    private String getJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+    public String generateRefreshToken(String userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + refreshTokenExpirationInMs);
+
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+
+        return JWT.create()
+                .withIssuer(ISSUER)
+                .withAudience(AUDIENCE)
+                .withSubject(userId)
+                .withIssuedAt(now)
+                .withExpiresAt(expiryDate)
+                .withClaim("type", "refresh")
+                .sign(algorithm);
+    }
+
+    /**
+     * Générer un token de réinitialisation de mot de passe
+     */
+    public String generatePasswordResetToken(String userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + (60 * 60 * 1000)); // 1 heure
+
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+
+        return JWT.create()
+                .withIssuer(ISSUER)
+                .withAudience(AUDIENCE)
+                .withSubject(userId)
+                .withIssuedAt(now)
+                .withExpiresAt(expiryDate)
+                .withClaim("type", "password_reset")
+                .sign(algorithm);
+    }
+
+    /**
+     * Générer un token de vérification d'email
+     */
+    public String generateEmailVerificationToken(String userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 24 heures
+
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+
+        return JWT.create()
+                .withIssuer(ISSUER)
+                .withAudience(AUDIENCE)
+                .withSubject(userId)
+                .withIssuedAt(now)
+                .withExpiresAt(expiryDate)
+                .withClaim("type", "email_verification")
+                .sign(algorithm);
+    }
+
+    /**
+     * Extraire l'ID utilisateur du token
+     */
+    public String getUserIdFromToken(String token) {
+        try {
+            DecodedJWT decodedJWT = verifyToken(token);
+            return decodedJWT.getSubject();
+        } catch (JWTVerificationException e) {
+            throw new IllegalArgumentException("Token invalide", e);
         }
-        return null;
+    }
+
+    /**
+     * Obtenir la date d'expiration du token
+     */
+    public Date getExpirationFromToken(String token) {
+        try {
+            DecodedJWT decodedJWT = verifyToken(token);
+            return decodedJWT.getExpiresAt();
+        } catch (JWTVerificationException e) {
+            throw new IllegalArgumentException("Token invalide", e);
+        }
+    }
+
+    /**
+     * Valider un token
+     */
+    public boolean validateToken(String token) {
+        try {
+            verifyToken(token);
+            return true;
+        } catch (JWTVerificationException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Vérifier et décoder un token
+     */
+    private DecodedJWT verifyToken(String token) throws JWTVerificationException {
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+        JWTVerifier verifier = JWT.require(algorithm)
+                .withIssuer(ISSUER)
+                .withAudience(AUDIENCE)
+                .build();
+
+        return verifier.verify(token);
+    }
+
+    /**
+     * Obtenir le type de token
+     */
+    public String getTokenType(String token) {
+        try {
+            DecodedJWT decodedJWT = verifyToken(token);
+            return decodedJWT.getClaim("type").asString();
+        } catch (JWTVerificationException e) {
+            throw new IllegalArgumentException("Token invalide", e);
+        }
+    }
+
+    /**
+     * Vérifier si le token est du type spécifié
+     */
+    public boolean isTokenOfType(String token, String type) {
+        try {
+            String tokenType = getTokenType(token);
+            return type.equals(tokenType);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
