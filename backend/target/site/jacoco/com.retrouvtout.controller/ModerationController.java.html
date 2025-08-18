@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModerationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">ModerationController.java</span></div><h1>ModerationController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.dto.request.CreateModerationFlagRequest;
+import com.retrouvtout.dto.response.ApiResponse;
+import com.retrouvtout.dto.response.ModerationFlagResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.security.UserPrincipal;
+import com.retrouvtout.service.ModerationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import com.retrouvtout.dto.response.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Contrôleur pour la modération des contenus
+ */
+@RestController
+@RequestMapping(&quot;/moderation&quot;)
+@Tag(name = &quot;Moderation&quot;, description = &quot;API de modération des contenus&quot;)
+@CrossOrigin(origins = {&quot;${app.cors.allowed-origins}&quot;})
+public class ModerationController {
+
+    private final ModerationService moderationService;
+
+    @Autowired
+<span class="nc" id="L39">    public ModerationController(ModerationService moderationService) {</span>
+<span class="nc" id="L40">        this.moderationService = moderationService;</span>
+<span class="nc" id="L41">    }</span>
+
+    /**
+     * Signaler un contenu
+     */
+    @PostMapping(&quot;/flags&quot;)
+    @Operation(summary = &quot;Signaler un contenu&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;201&quot;, description = &quot;Signalement créé avec succès&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ModerationFlagResponse&gt;&gt; createFlag(
+            @Valid @RequestBody CreateModerationFlagRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L60">            ModerationFlagResponse flag = moderationService.createFlag(request, userPrincipal.getId());</span>
+            
+<span class="nc" id="L62">            return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L63">                .body(new ApiResponse&lt;&gt;(</span>
+                    true,
+                    &quot;Signalement créé avec succès&quot;,
+                    flag
+                ));
+<span class="nc" id="L68">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L69">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L70">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+<span class="nc" id="L72">                    e.getMessage(),</span>
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Obtenir les signalements (modérateurs/admins)
+     */
+    @GetMapping(&quot;/flags&quot;)
+    @Operation(summary = &quot;Obtenir les signalements&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = 
+&quot;Liste des signalements&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('MODERATOR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;PagedResponse&lt;ModerationFlagResponse&gt;&gt;&gt; getFlags(
+            @Parameter(description = &quot;Statut des signalements&quot;)
+            @RequestParam(required = false) String status,
+            
+            @Parameter(description = &quot;Priorité des signalements&quot;)
+            @RequestParam(required = false) String priority,
+            
+            @Parameter(description = &quot;Type d'entité&quot;)
+            @RequestParam(required = false) String entityType,
+            
+            @Parameter(description = &quot;Numéro de page&quot;)
+            @RequestParam(defaultValue = &quot;1&quot;) int page,
+            
+            @Parameter(description = &quot;Taille de la page&quot;)
+            @RequestParam(defaultValue = &quot;20&quot;) int pageSize) {
+
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        if (page &lt; 1) page = 1;</span>
+<span class="nc bnc" id="L106" title="All 4 branches missed.">        if (pageSize &lt; 1 || pageSize &gt; 100) pageSize = 20;</span>
+
+<span class="nc" id="L108">        Pageable pageable = PageRequest.of(page - 1, pageSize, </span>
+<span class="nc" id="L109">            Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;));</span>
+
+<span class="nc" id="L111">        Page&lt;ModerationFlagResponse&gt; flags = moderationService.getFlags(</span>
+            status, priority, entityType, pageable);
+
+<span class="nc" id="L114">        PagedResponse&lt;ModerationFlagResponse&gt; pagedResponse = new PagedResponse&lt;&gt;(</span>
+<span class="nc" id="L115">            flags.getContent(),</span>
+<span class="nc" id="L116">            flags.getNumber() + 1,</span>
+<span class="nc" id="L117">            flags.getSize(),</span>
+<span class="nc" id="L118">            flags.getTotalElements(),</span>
+<span class="nc" id="L119">            flags.getTotalPages(),</span>
+<span class="nc" id="L120">            flags.isLast()</span>
+        );
+
+<span class="nc" id="L123">        return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+            true,
+            &quot;Signalements récupérés avec succès&quot;,
+            pagedResponse
+        ));
+    }
+
+    /**
+     * Approuver un signalement
+     */
+    @PatchMapping(&quot;/flags/{id}/approve&quot;)
+    @Operation(summary = &quot;Approuver un signalement&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description =
+ &quot;Signalement approuvé&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Signalement non trouvé&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('MODERATOR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ModerationFlagResponse&gt;&gt; approveFlag(
+            @Parameter(description = &quot;ID du signalement&quot;)
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L148">            ModerationFlagResponse flag = moderationService.approveFlag(id, userPrincipal.getId());</span>
+            
+<span class="nc" id="L150">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Signalement approuvé avec succès&quot;,
+                flag
+            ));
+<span class="nc" id="L155">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L156">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    /**
+     * Rejeter un signalement
+     */
+    @PatchMapping(&quot;/flags/{id}/reject&quot;)
+    @Operation(summary = &quot;Rejeter un signalement&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description =
+&quot;Signalement rejeté&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Signalement non trouvé&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('MODERATOR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ModerationFlagResponse&gt;&gt; rejectFlag(
+            @Parameter(description = &quot;ID du signalement&quot;)
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L178">            ModerationFlagResponse flag = moderationService.rejectFlag(id, userPrincipal.getId());</span>
+            
+<span class="nc" id="L180">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Signalement rejeté avec succès&quot;,
+                flag
+            ));
+<span class="nc" id="L185">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L186">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    /**
+     * Obtenir les statistiques de modération
+     */
+    @GetMapping(&quot;/stats&quot;)
+    @Operation(summary = &quot;Obtenir les statistiques de modération&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = 
+&quot;Statistiques récupérées&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('MODERATOR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ModerationStatsResponse&gt;&gt; getModerationStats() {
+        
+<span class="nc" id="L203">        ModerationStatsResponse stats = moderationService.getModerationStats();</span>
+        
+<span class="nc" id="L205">        return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+            true,
+            &quot;Statistiques récupérées avec succès&quot;,
+            stats
+        ));
+    }
+
+    /**
+     * DTO pour les statistiques de modération
+     */
+    public static class ModerationStatsResponse {
+        private long pendingFlags;
+        private long approvedFlags;
+        private long rejectedFlags;
+        private long totalFlags;
+
+        // Constructeurs, getters et setters
+<span class="nc" id="L222">        public ModerationStatsResponse() {}</span>
+
+<span class="nc" id="L224">        public ModerationStatsResponse(long pendingFlags, long approvedFlags, long rejectedFlags, long totalFlags) {</span>
+<span class="nc" id="L225">            this.pendingFlags = pendingFlags;</span>
+<span class="nc" id="L226">            this.approvedFlags = approvedFlags;</span>
+<span class="nc" id="L227">            this.rejectedFlags = rejectedFlags;</span>
+<span class="nc" id="L228">            this.totalFlags = totalFlags;</span>
+<span class="nc" id="L229">        }</span>
+
+<span class="nc" id="L231">        public long getPendingFlags() { return pendingFlags; }</span>
+<span class="nc" id="L232">        public void setPendingFlags(long pendingFlags) { this.pendingFlags = pendingFlags; }</span>
+
+<span class="nc" id="L234">        public long getApprovedFlags() { return approvedFlags; }</span>
+<span class="nc" id="L235">        public void setApprovedFlags(long approvedFlags) { this.approvedFlags = approvedFlags; }</span>
+
+<span class="nc" id="L237">        public long getRejectedFlags() { return rejectedFlags; }</span>
+<span class="nc" id="L238">        public void setRejectedFlags(long rejectedFlags) { this.rejectedFlags = rejectedFlags; }</span>
+
+<span class="nc" id="L240">        public long getTotalFlags() { return totalFlags; }</span>
+<span class="nc" id="L241">        public void setTotalFlags(long totalFlags) { this.totalFlags = totalFlags; }</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

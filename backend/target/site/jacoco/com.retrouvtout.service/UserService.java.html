@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">UserService.java</span></div><h1>UserService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.dto.response.UserResponse;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.exception.ResourceNotFoundException;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.security.JwtTokenProvider;
+import com.retrouvtout.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+/**
+ * Service pour la gestion des utilisateurs
+ */
+@Service
+@Transactional
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider tokenProvider;
+    private final EmailService emailService;
+    private final ModelMapper modelMapper;
+
+    @Autowired
+    public UserService(UserRepository userRepository,
+                      PasswordEncoder passwordEncoder,
+                      JwtTokenProvider tokenProvider,
+                      EmailService emailService,
+<span class="nc" id="L37">                      ModelMapper modelMapper) {</span>
+<span class="nc" id="L38">        this.userRepository = userRepository;</span>
+<span class="nc" id="L39">        this.passwordEncoder = passwordEncoder;</span>
+<span class="nc" id="L40">        this.tokenProvider = tokenProvider;</span>
+<span class="nc" id="L41">        this.emailService = emailService;</span>
+<span class="nc" id="L42">        this.modelMapper = modelMapper;</span>
+<span class="nc" id="L43">    }</span>
+
+    /**
+     * Créer un nouvel utilisateur
+     */
+    public User createUser(String name, String email, String password, User.UserRole role) {
+        // Vérifier si l'email existe déjà
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (existsByEmail(email)) {</span>
+<span class="nc" id="L51">            throw new IllegalArgumentException(&quot;Un utilisateur avec cet email existe déjà&quot;);</span>
+        }
+
+<span class="nc" id="L54">        User user = new User();</span>
+<span class="nc" id="L55">        user.setId(java.util.UUID.randomUUID().toString());</span>
+<span class="nc" id="L56">        user.setName(name);</span>
+<span class="nc" id="L57">        user.setEmail(email);</span>
+<span class="nc" id="L58">        user.setPasswordHash(passwordEncoder.encode(password));</span>
+<span class="nc" id="L59">        user.setRole(role);</span>
+<span class="nc" id="L60">        user.setEmailVerified(false);</span>
+<span class="nc" id="L61">        user.setActive(true);</span>
+
+<span class="nc" id="L63">        User savedUser = userRepository.save(user);</span>
+
+        // Envoyer l'email de vérification
+        try {
+<span class="nc" id="L67">            emailService.sendEmailVerification(savedUser);</span>
+<span class="nc" id="L68">        } catch (Exception e) {</span>
+<span class="nc" id="L69">            System.err.println(&quot;Erreur lors de l'envoi de l'email de vérification: &quot; + e.getMessage());</span>
+<span class="nc" id="L70">        }</span>
+
+        // Envoyer l'email de bienvenue
+        try {
+<span class="nc" id="L74">            emailService.sendWelcomeEmail(savedUser);</span>
+<span class="nc" id="L75">        } catch (Exception e) {</span>
+<span class="nc" id="L76">            System.err.println(&quot;Erreur lors de l'envoi de l'email de bienvenue: &quot; + e.getMessage());</span>
+<span class="nc" id="L77">        }</span>
+
+<span class="nc" id="L79">        return savedUser;</span>
+    }
+
+    /**
+     * Obtenir un utilisateur par son ID
+     */
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(String id) {
+<span class="nc" id="L87">        User user = userRepository.findByIdAndActiveTrue(id)</span>
+<span class="nc" id="L88">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, id));</span>
+        
+<span class="nc" id="L90">        return modelMapper.mapUserToUserResponse(user);</span>
+    }
+
+    /**
+     * Obtenir un utilisateur par son email
+     */
+    @Transactional(readOnly = true)
+    public Optional&lt;User&gt; getUserByEmail(String email) {
+<span class="nc" id="L98">        return userRepository.findByEmailAndActiveTrue(email);</span>
+    }
+
+    /**
+     * Vérifier si un email existe
+     */
+    @Transactional(readOnly = true)
+    public boolean existsByEmail(String email) {
+<span class="nc" id="L106">        return userRepository.existsByEmailAndActiveTrue(email);</span>
+    }
+
+    /**
+     * Mettre à jour un utilisateur
+     */
+    public UserResponse updateUser(String id, String name, String phone, User.UserRole role) {
+<span class="nc" id="L113">        User user = userRepository.findByIdAndActiveTrue(id)</span>
+<span class="nc" id="L114">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc bnc" id="L116" title="All 4 branches missed.">        if (name != null &amp;&amp; !name.trim().isEmpty()) {</span>
+<span class="nc" id="L117">            user.setName(name.trim());</span>
+        }
+        
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (phone != null) {</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            user.setPhone(phone.trim().isEmpty() ? null : phone.trim());</span>
+        }
+        
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (role != null) {</span>
+<span class="nc" id="L125">            user.setRole(role);</span>
+        }
+
+<span class="nc" id="L128">        User updatedUser = userRepository.save(user);</span>
+<span class="nc" id="L129">        return modelMapper.mapUserToUserResponse(updatedUser);</span>
+    }
+
+    /**
+     * Changer le mot de passe d'un utilisateur
+     */
+    public void changePassword(String userId, String oldPassword, String newPassword) {
+<span class="nc" id="L136">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L137">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (user.getPasswordHash() == null) {</span>
+<span class="nc" id="L140">            throw new IllegalStateException(&quot;Ce compte n'a pas de mot de passe défini&quot;);</span>
+        }
+
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {</span>
+<span class="nc" id="L144">            throw new IllegalArgumentException(&quot;Ancien mot de passe incorrect&quot;);</span>
+        }
+
+<span class="nc" id="L147">        user.setPasswordHash(passwordEncoder.encode(newPassword));</span>
+<span class="nc" id="L148">        userRepository.save(user);</span>
+<span class="nc" id="L149">    }</span>
+
+    /**
+     * Vérifier l'email d'un utilisateur
+     */
+    public void verifyUserEmail(String userId) {
+<span class="nc" id="L155">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L156">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (user.getEmailVerified()) {</span>
+<span class="nc" id="L159">            throw new IllegalStateException(&quot;L'email est déjà vérifié&quot;);</span>
+        }
+
+<span class="nc" id="L162">        user.setEmailVerified(true);</span>
+<span class="nc" id="L163">        userRepository.save(user);</span>
+<span class="nc" id="L164">    }</span>
+
+    /**
+     * Mettre à jour la dernière connexion
+     */
+    public void updateLastLogin(String userId) {
+<span class="nc" id="L170">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L171">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+<span class="nc" id="L173">        user.setLastLoginAt(LocalDateTime.now());</span>
+<span class="nc" id="L174">        userRepository.save(user);</span>
+<span class="nc" id="L175">    }</span>
+
+    /**
+     * Désactiver un utilisateur
+     */
+    public void deactivateUser(String userId) {
+<span class="nc" id="L181">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L182">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+<span class="nc" id="L184">        user.setActive(false);</span>
+<span class="nc" id="L185">        userRepository.save(user);</span>
+<span class="nc" id="L186">    }</span>
+
+    /**
+     * Réactiver un utilisateur
+     */
+    public void reactivateUser(String userId) {
+<span class="nc" id="L192">        User user = userRepository.findById(userId)</span>
+<span class="nc" id="L193">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+<span class="nc" id="L195">        user.setActive(true);</span>
+<span class="nc" id="L196">        userRepository.save(user);</span>
+<span class="nc" id="L197">    }</span>
+
+    /**
+     * Obtenir tous les utilisateurs (pagination)
+     */
+    @Transactional(readOnly = true)
+    public Page&lt;UserResponse&gt; getAllUsers(Pageable pageable) {
+<span class="nc" id="L204">        Page&lt;User&gt; users = userRepository.findAllByActiveTrue(pageable);</span>
+<span class="nc" id="L205">        return users.map(modelMapper::mapUserToUserResponse);</span>
+    }
+
+    /**
+     * Rechercher des utilisateurs
+     */
+    @Transactional(readOnly = true)
+    public Page&lt;UserResponse&gt; searchUsers(String query, Pageable pageable) {
+<span class="nc" id="L213">        Page&lt;User&gt; users = userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseAndActiveTrue(</span>
+            query, query, pageable);
+<span class="nc" id="L215">        return users.map(modelMapper::mapUserToUserResponse);</span>
+    }
+
+    /**
+     * Obtenir les statistiques des utilisateurs
+     */
+    @Transactional(readOnly = true)
+    public long getTotalActiveUsers() {
+<span class="nc" id="L223">        return userRepository.countByActiveTrue();</span>
+    }
+
+    /**
+     * Obtenir les utilisateurs récents
+     */
+    @Transactional(readOnly = true)
+    public Page&lt;UserResponse&gt; getRecentUsers(Pageable pageable) {
+<span class="nc" id="L231">        Page&lt;User&gt; users = userRepository.findAllByActiveTrue(pageable);</span>
+<span class="nc" id="L232">        return users.map(modelMapper::mapUserToUserResponse);</span>
+    }
+
+    /**
+     * Obtenir un utilisateur par son ID (entity)
+     */
+    @Transactional(readOnly = true)
+    public User getUserEntityById(String id) {
+<span class="nc" id="L240">        return userRepository.findByIdAndActiveTrue(id)</span>
+<span class="nc" id="L241">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, id));</span>
+    }
+
+    /**
+     * Recherche avancée d'utilisateurs avec filtres
+     */
+    @Transactional(readOnly = true)
+    public Page&lt;UserResponse&gt; searchUsersWithFilters(String name, String email, 
+                                                     User.UserRole role, Boolean emailVerified, 
+                                                     Pageable pageable) {
+<span class="nc" id="L251">        Page&lt;User&gt; users = userRepository.findUsersWithFilters(name, email, role, emailVerified, pageable);</span>
+<span class="nc" id="L252">        return users.map(modelMapper::mapUserToUserResponse);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

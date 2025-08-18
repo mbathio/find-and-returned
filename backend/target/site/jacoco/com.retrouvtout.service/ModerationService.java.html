@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModerationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">ModerationService.java</span></div><h1>ModerationService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.controller.ModerationController.ModerationStatsResponse;
+import com.retrouvtout.dto.request.CreateModerationFlagRequest;
+import com.retrouvtout.dto.response.ModerationFlagResponse;
+import com.retrouvtout.entity.ModerationFlag;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.exception.ResourceNotFoundException;
+import com.retrouvtout.repository.ModerationFlagRepository;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+/**
+ * Service pour la modération des contenus
+ */
+@Service
+@Transactional
+public class ModerationService {
+
+    private final ModerationFlagRepository flagRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
+
+    @Autowired
+    public ModerationService(ModerationFlagRepository flagRepository,
+                           UserRepository userRepository,
+                           ModelMapper modelMapper,
+<span class="nc" id="L37">                           NotificationService notificationService) {</span>
+<span class="nc" id="L38">        this.flagRepository = flagRepository;</span>
+<span class="nc" id="L39">        this.userRepository = userRepository;</span>
+<span class="nc" id="L40">        this.modelMapper = modelMapper;</span>
+<span class="nc" id="L41">        this.notificationService = notificationService;</span>
+<span class="nc" id="L42">    }</span>
+
+    /**
+     * Créer un nouveau signalement
+     */
+    public ModerationFlagResponse createFlag(CreateModerationFlagRequest request, String userId) {
+<span class="nc" id="L48">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L49">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+        // Vérifier que le type d'entité est valide
+        ModerationFlag.EntityType entityType;
+        try {
+<span class="nc" id="L54">            entityType = ModerationFlag.EntityType.fromValue(request.getEntityType());</span>
+<span class="nc" id="L55">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L56">            throw new IllegalArgumentException(&quot;Type d'entité invalide: &quot; + request.getEntityType());</span>
+<span class="nc" id="L57">        }</span>
+
+        // Vérifier que la priorité est valide
+        ModerationFlag.FlagPriority priority;
+        try {
+<span class="nc" id="L62">            priority = ModerationFlag.FlagPriority.fromValue(request.getPriority());</span>
+<span class="nc" id="L63">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L64">            throw new IllegalArgumentException(&quot;Priorité invalide: &quot; + request.getPriority());</span>
+<span class="nc" id="L65">        }</span>
+
+        // Créer le signalement
+<span class="nc" id="L68">        ModerationFlag flag = new ModerationFlag();</span>
+<span class="nc" id="L69">        flag.setEntityType(entityType);</span>
+<span class="nc" id="L70">        flag.setEntityId(request.getEntityId());</span>
+<span class="nc" id="L71">        flag.setReason(request.getReason());</span>
+<span class="nc" id="L72">        flag.setDescription(request.getDescription());</span>
+<span class="nc" id="L73">        flag.setPriority(priority);</span>
+<span class="nc" id="L74">        flag.setStatus(ModerationFlag.FlagStatus.PENDING);</span>
+<span class="nc" id="L75">        flag.setCreatedByUser(user);</span>
+
+<span class="nc" id="L77">        ModerationFlag savedFlag = flagRepository.save(flag);</span>
+
+        // Notifier les modérateurs
+<span class="nc" id="L80">        notifyModerators(savedFlag);</span>
+
+<span class="nc" id="L82">        return modelMapper.mapModerationFlagToModerationFlagResponse(savedFlag);</span>
+    }
+
+    /**
+     * Obtenir les signalements avec filtres
+     */
+    @Transactional(readOnly = true)
+    public Page&lt;ModerationFlagResponse&gt; getFlags(String status, String priority, 
+                                               String entityType, Pageable pageable) {
+        
+<span class="nc" id="L92">        Specification&lt;ModerationFlag&gt; spec = Specification.where(null);</span>
+
+        // Filtre par statut
+<span class="nc bnc" id="L95" title="All 4 branches missed.">        if (status != null &amp;&amp; !status.trim().isEmpty()) {</span>
+<span class="nc" id="L96">            ModerationFlag.FlagStatus flagStatus = ModerationFlag.FlagStatus.fromValue(status);</span>
+<span class="nc" id="L97">            spec = spec.and((root, query, cb) -&gt; cb.equal(root.get(&quot;status&quot;), flagStatus));</span>
+        }
+
+        // Filtre par priorité
+<span class="nc bnc" id="L101" title="All 4 branches missed.">        if (priority != null &amp;&amp; !priority.trim().isEmpty()) {</span>
+<span class="nc" id="L102">            ModerationFlag.FlagPriority flagPriority = ModerationFlag.FlagPriority.fromValue(priority);</span>
+<span class="nc" id="L103">            spec = spec.and((root, query, cb) -&gt; cb.equal(root.get(&quot;priority&quot;), flagPriority));</span>
+        }
+
+        // Filtre par type d'entité
+<span class="nc bnc" id="L107" title="All 4 branches missed.">        if (entityType != null &amp;&amp; !entityType.trim().isEmpty()) {</span>
+<span class="nc" id="L108">            ModerationFlag.EntityType flagEntityType = ModerationFlag.EntityType.fromValue(entityType);</span>
+<span class="nc" id="L109">            spec = spec.and((root, query, cb) -&gt; cb.equal(root.get(&quot;entityType&quot;), flagEntityType));</span>
+        }
+
+<span class="nc" id="L112">        Page&lt;ModerationFlag&gt; flags = flagRepository.findAll(spec, pageable);</span>
+<span class="nc" id="L113">        return flags.map(modelMapper::mapModerationFlagToModerationFlagResponse);</span>
+    }
+
+    /**
+     * Approuver un signalement
+     */
+    public ModerationFlagResponse approveFlag(Long id, String moderatorId) {
+<span class="nc" id="L120">        ModerationFlag flag = flagRepository.findById(id)</span>
+<span class="nc" id="L121">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Signalement&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc" id="L123">        User moderator = userRepository.findByIdAndActiveTrue(moderatorId)</span>
+<span class="nc" id="L124">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, moderatorId));</span>
+
+<span class="nc" id="L126">        flag.setStatus(ModerationFlag.FlagStatus.APPROVED);</span>
+<span class="nc" id="L127">        flag.setReviewedByUser(moderator);</span>
+<span class="nc" id="L128">        flag.setReviewedAt(LocalDateTime.now());</span>
+
+<span class="nc" id="L130">        ModerationFlag updatedFlag = flagRepository.save(flag);</span>
+
+        // Appliquer les actions de modération selon le type d'entité
+<span class="nc" id="L133">        applyModerationAction(flag);</span>
+
+        // Notifier le créateur du signalement
+<span class="nc" id="L136">        notifyFlagCreator(flag, &quot;approved&quot;);</span>
+
+<span class="nc" id="L138">        return modelMapper.mapModerationFlagToModerationFlagResponse(updatedFlag);</span>
+    }
+
+    /**
+     * Rejeter un signalement
+     */
+    public ModerationFlagResponse rejectFlag(Long id, String moderatorId) {
+<span class="nc" id="L145">        ModerationFlag flag = flagRepository.findById(id)</span>
+<span class="nc" id="L146">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Signalement&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc" id="L148">        User moderator = userRepository.findByIdAndActiveTrue(moderatorId)</span>
+<span class="nc" id="L149">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, moderatorId));</span>
+
+<span class="nc" id="L151">        flag.setStatus(ModerationFlag.FlagStatus.REJECTED);</span>
+<span class="nc" id="L152">        flag.setReviewedByUser(moderator);</span>
+<span class="nc" id="L153">        flag.setReviewedAt(LocalDateTime.now());</span>
+
+<span class="nc" id="L155">        ModerationFlag updatedFlag = flagRepository.save(flag);</span>
+
+        // Notifier le créateur du signalement
+<span class="nc" id="L158">        notifyFlagCreator(flag, &quot;rejected&quot;);</span>
+
+<span class="nc" id="L160">        return modelMapper.mapModerationFlagToModerationFlagResponse(updatedFlag);</span>
+    }
+
+    /**
+     * Obtenir les statistiques de modération
+     */
+    @Transactional(readOnly = true)
+    public ModerationStatsResponse getModerationStats() {
+<span class="nc" id="L168">        long pendingFlags = flagRepository.countByStatus(ModerationFlag.FlagStatus.PENDING);</span>
+<span class="nc" id="L169">        long approvedFlags = flagRepository.countByStatus(ModerationFlag.FlagStatus.APPROVED);</span>
+<span class="nc" id="L170">        long rejectedFlags = flagRepository.countByStatus(ModerationFlag.FlagStatus.REJECTED);</span>
+<span class="nc" id="L171">        long totalFlags = flagRepository.count();</span>
+
+<span class="nc" id="L173">        return new ModerationStatsResponse(pendingFlags, approvedFlags, rejectedFlags, totalFlags);</span>
+    }
+
+    /**
+     * Notifier les modérateurs d'un nouveau signalement
+     */
+    private void notifyModerators(ModerationFlag flag) {
+        try {
+<span class="nc" id="L181">            String title = &quot;Nouveau signalement&quot;;</span>
+<span class="nc" id="L182">            String body = String.format(&quot;Nouveau signalement %s: %s&quot;, </span>
+<span class="nc" id="L183">                flag.getEntityType().getValue(), flag.getReason());</span>
+<span class="nc" id="L184">            String url = &quot;/moderation/flags/&quot; + flag.getId();</span>
+
+            // TODO: Récupérer la liste des modérateurs et leur envoyer des notifications
+            // Pour l'instant, on se contente d'un log
+<span class="nc" id="L188">            System.out.println(&quot;Nouveau signalement créé: &quot; + flag.getReason());</span>
+
+<span class="nc" id="L190">        } catch (Exception e) {</span>
+<span class="nc" id="L191">            System.err.println(&quot;Erreur lors de la notification des modérateurs: &quot; + e.getMessage());</span>
+<span class="nc" id="L192">        }</span>
+<span class="nc" id="L193">    }</span>
+
+    /**
+     * Appliquer l'action de modération selon le type d'entité
+     */
+    private void applyModerationAction(ModerationFlag flag) {
+        try {
+<span class="nc bnc" id="L200" title="All 4 branches missed.">            switch (flag.getEntityType()) {</span>
+                case LISTING:
+                    // Suspendre l'annonce
+                    // TODO: Implémenter la suspension d'annonce
+<span class="nc" id="L204">                    System.out.println(&quot;Suspension de l'annonce: &quot; + flag.getEntityId());</span>
+<span class="nc" id="L205">                    break;</span>
+                
+                case MESSAGE:
+                    // Supprimer le message
+                    // TODO: Implémenter la suppression de message
+<span class="nc" id="L210">                    System.out.println(&quot;Suppression du message: &quot; + flag.getEntityId());</span>
+<span class="nc" id="L211">                    break;</span>
+                
+                case USER:
+                    // Suspendre l'utilisateur
+                    // TODO: Implémenter la suspension d'utilisateur
+<span class="nc" id="L216">                    System.out.println(&quot;Suspension de l'utilisateur: &quot; + flag.getEntityId());</span>
+                    break;
+            }
+<span class="nc" id="L219">        } catch (Exception e) {</span>
+<span class="nc" id="L220">            System.err.println(&quot;Erreur lors de l'application de l'action de modération: &quot; + e.getMessage());</span>
+<span class="nc" id="L221">        }</span>
+<span class="nc" id="L222">    }</span>
+
+    /**
+     * Notifier le créateur du signalement du résultat
+     */
+    private void notifyFlagCreator(ModerationFlag flag, String action) {
+        try {
+<span class="nc bnc" id="L229" title="All 2 branches missed.">            if (flag.getCreatedByUser() != null) {</span>
+<span class="nc" id="L230">                String title = &quot;Signalement traité&quot;;</span>
+<span class="nc" id="L231">                String body = String.format(&quot;Votre signalement a été %s par la modération&quot;, </span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">                    &quot;approved&quot;.equals(action) ? &quot;approuvé&quot; : &quot;rejeté&quot;);</span>
+                
+<span class="nc" id="L234">                notificationService.sendPushNotification(</span>
+<span class="nc" id="L235">                    flag.getCreatedByUser().getId(), title, body, &quot;/profil&quot;);</span>
+            }
+<span class="nc" id="L237">        } catch (Exception e) {</span>
+<span class="nc" id="L238">            System.err.println(&quot;Erreur lors de la notification du créateur: &quot; + e.getMessage());</span>
+<span class="nc" id="L239">        }</span>
+<span class="nc" id="L240">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

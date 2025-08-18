@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Alert.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.entity</a> &gt; <span class="el_source">Alert.java</span></div><h1>Alert.java</h1><pre class="source lang-java linenums">package com.retrouvtout.entity;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Entité représentant une alerte d'objet perdu
+ */
+@Entity
+@Table(name = &quot;alerts&quot;, indexes = {
+    @Index(name = &quot;idx_alerts_owner&quot;, columnList = &quot;owner_user_id&quot;),
+    @Index(name = &quot;idx_alerts_active&quot;, columnList = &quot;active&quot;),
+    @Index(name = &quot;idx_alerts_category&quot;, columnList = &quot;category&quot;),
+    @Index(name = &quot;idx_alerts_location&quot;, columnList = &quot;latitude, longitude&quot;)
+})
+@EntityListeners(AuditingEntityListener.class)
+public class Alert {
+
+    @Id
+    @Column(name = &quot;id&quot;, length = 36)
+    private String id;
+
+    @NotNull(message = &quot;L'utilisateur propriétaire est obligatoire&quot;)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;owner_user_id&quot;, nullable = false)
+    private User ownerUser;
+
+    @NotNull(message = &quot;Le titre est obligatoire&quot;)
+    @Size(max = 180, message = &quot;Le titre ne peut pas dépasser 180 caractères&quot;)
+    @Column(name = &quot;title&quot;, nullable = false, length = 180)
+    private String title;
+
+    @Size(max = 255, message = &quot;Le texte de recherche ne peut pas dépasser 255 caractères&quot;)
+    @Column(name = &quot;query_text&quot;, length = 255)
+    private String queryText;
+
+    @Size(max = 40, message = &quot;La catégorie ne peut pas dépasser 40 caractères&quot;)
+    @Column(name = &quot;category&quot;, length = 40)
+    private String category;
+
+    @Size(max = 255, message = &quot;Le lieu ne peut pas dépasser 255 caractères&quot;)
+    @Column(name = &quot;location_text&quot;, length = 255)
+    private String locationText;
+
+    @Column(name = &quot;latitude&quot;, precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = &quot;longitude&quot;, precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+<span class="nc" id="L63">    @Column(name = &quot;radius_km&quot;, precision = 6, scale = 2)</span>
+<span class="nc" id="L64">    private BigDecimal radiusKm = BigDecimal.valueOf(10.0);</span>
+
+    @Column(name = &quot;date_from&quot;)
+    private LocalDate dateFrom;
+
+    @Column(name = &quot;date_to&quot;)
+    private LocalDate dateTo;
+
+    @Column(name = &quot;channels&quot;, columnDefinition = &quot;JSON&quot;)
+    private String channelsJson;
+
+<span class="nc" id="L75">    @Column(name = &quot;active&quot;, nullable = false)</span>
+<span class="nc" id="L76">    private Boolean active = true;</span>
+
+    @Column(name = &quot;last_triggered_at&quot;)
+    private LocalDateTime lastTriggeredAt;
+
+    @CreatedDate
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = &quot;updated_at&quot;, nullable = false)
+    private LocalDateTime updatedAt;
+
+    // Constructeurs
+<span class="nc" id="L90">    public Alert() {}</span>
+
+    // Getters et Setters
+<span class="nc" id="L93">    public String getId() { return id; }</span>
+<span class="nc" id="L94">    public void setId(String id) { this.id = id; }</span>
+
+<span class="nc" id="L96">    public User getOwnerUser() { return ownerUser; }</span>
+<span class="nc" id="L97">    public void setOwnerUser(User ownerUser) { this.ownerUser = ownerUser; }</span>
+
+<span class="nc" id="L99">    public String getTitle() { return title; }</span>
+<span class="nc" id="L100">    public void setTitle(String title) { this.title = title; }</span>
+
+<span class="nc" id="L102">    public String getQueryText() { return queryText; }</span>
+<span class="nc" id="L103">    public void setQueryText(String queryText) { this.queryText = queryText; }</span>
+
+<span class="nc" id="L105">    public String getCategory() { return category; }</span>
+<span class="nc" id="L106">    public void setCategory(String category) { this.category = category; }</span>
+
+<span class="nc" id="L108">    public String getLocationText() { return locationText; }</span>
+<span class="nc" id="L109">    public void setLocationText(String locationText) { this.locationText = locationText; }</span>
+
+<span class="nc" id="L111">    public BigDecimal getLatitude() { return latitude; }</span>
+<span class="nc" id="L112">    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }</span>
+
+<span class="nc" id="L114">    public BigDecimal getLongitude() { return longitude; }</span>
+<span class="nc" id="L115">    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }</span>
+
+<span class="nc" id="L117">    public BigDecimal getRadiusKm() { return radiusKm; }</span>
+<span class="nc" id="L118">    public void setRadiusKm(BigDecimal radiusKm) { this.radiusKm = radiusKm; }</span>
+
+<span class="nc" id="L120">    public LocalDate getDateFrom() { return dateFrom; }</span>
+<span class="nc" id="L121">    public void setDateFrom(LocalDate dateFrom) { this.dateFrom = dateFrom; }</span>
+
+<span class="nc" id="L123">    public LocalDate getDateTo() { return dateTo; }</span>
+<span class="nc" id="L124">    public void setDateTo(LocalDate dateTo) { this.dateTo = dateTo; }</span>
+
+<span class="nc" id="L126">    public Boolean getActive() { return active; }</span>
+<span class="nc" id="L127">    public void setActive(Boolean active) { this.active = active; }</span>
+
+<span class="nc" id="L129">    public LocalDateTime getLastTriggeredAt() { return lastTriggeredAt; }</span>
+<span class="nc" id="L130">    public void setLastTriggeredAt(LocalDateTime lastTriggeredAt) { this.lastTriggeredAt = lastTriggeredAt; }</span>
+
+<span class="nc" id="L132">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
+<span class="nc" id="L133">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
+
+<span class="nc" id="L135">    public LocalDateTime getUpdatedAt() { return updatedAt; }</span>
+<span class="nc" id="L136">    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }</span>
+
+    // Gestion des canaux JSON
+    public List&lt;String&gt; getChannels() {
+<span class="nc bnc" id="L140" title="All 4 branches missed.">        if (channelsJson == null || channelsJson.isEmpty()) {</span>
+<span class="nc" id="L141">            return new ArrayList&lt;&gt;();</span>
+        }
+        try {
+<span class="nc" id="L144">            ObjectMapper mapper = new ObjectMapper();</span>
+<span class="nc" id="L145">            return mapper.readValue(channelsJson, mapper.getTypeFactory().constructCollectionType(List.class, String.class));</span>
+<span class="nc" id="L146">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L147">            return new ArrayList&lt;&gt;();</span>
+        }
+    }
+
+    public void setChannels(List&lt;String&gt; channels) {
+        try {
+<span class="nc" id="L153">            ObjectMapper mapper = new ObjectMapper();</span>
+<span class="nc" id="L154">            this.channelsJson = mapper.writeValueAsString(channels);</span>
+<span class="nc" id="L155">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L156">            this.channelsJson = &quot;[]&quot;;</span>
+<span class="nc" id="L157">        }</span>
+<span class="nc" id="L158">    }</span>
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L163">            id = java.util.UUID.randomUUID().toString();</span>
+        }
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        if (createdAt == null) {</span>
+<span class="nc" id="L166">            createdAt = LocalDateTime.now();</span>
+        }
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        if (updatedAt == null) {</span>
+<span class="nc" id="L169">            updatedAt = LocalDateTime.now();</span>
+        }
+<span class="nc" id="L171">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L175">        updatedAt = LocalDateTime.now();</span>
+<span class="nc" id="L176">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

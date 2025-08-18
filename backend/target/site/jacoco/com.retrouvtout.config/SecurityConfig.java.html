@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.config</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package com.retrouvtout.config;
+
+import com.retrouvtout.security.JwtAuthenticationEntryPoint;
+import com.retrouvtout.security.JwtAuthenticationFilter;
+import com.retrouvtout.security.CustomUserDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Configuration de sécurité Spring Security
+ */
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
+
+    private final CustomUserDetailsService customUserDetailsService;
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
+
+    @Value(&quot;${app.cors.allowed-origins}&quot;)
+    private String allowedOrigins;
+
+    @Value(&quot;${app.cors.allowed-methods}&quot;)
+    private String allowedMethods;
+
+    @Value(&quot;${app.cors.allowed-headers}&quot;)
+    private String allowedHeaders;
+
+    @Value(&quot;${app.cors.allow-credentials}&quot;)
+    private boolean allowCredentials;
+
+    @Value(&quot;${app.cors.max-age}&quot;)
+    private long maxAge;
+
+    @Autowired
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService,
+<span class="nc" id="L60">                         JwtAuthenticationEntryPoint unauthorizedHandler) {</span>
+<span class="nc" id="L61">        this.customUserDetailsService = customUserDetailsService;</span>
+<span class="nc" id="L62">        this.unauthorizedHandler = unauthorizedHandler;</span>
+<span class="nc" id="L63">    }</span>
+
+    /**
+     * Configuration du filtre JWT
+     */
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+<span class="nc" id="L70">        return new JwtAuthenticationFilter();</span>
+    }
+
+    /**
+     * Configuration de l'encodeur de mots de passe
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+<span class="nc" id="L78">        return new BCryptPasswordEncoder(12);</span>
+    }
+
+    /**
+     * Configuration du gestionnaire d'authentification
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authConfig) throws Exception {
+<span class="nc" id="L87">        return authConfig.getAuthenticationManager();</span>
+    }
+
+    /**
+     * Configuration de CORS
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+<span class="nc" id="L95">        CorsConfiguration configuration = new CorsConfiguration();</span>
+        
+        // Origines autorisées
+<span class="nc" id="L98">        List&lt;String&gt; origins = Arrays.asList(allowedOrigins.split(&quot;,&quot;));</span>
+<span class="nc" id="L99">        configuration.setAllowedOriginPatterns(origins);</span>
+        
+        // Méthodes autorisées
+<span class="nc" id="L102">        List&lt;String&gt; methods = Arrays.asList(allowedMethods.split(&quot;,&quot;));</span>
+<span class="nc" id="L103">        configuration.setAllowedMethods(methods);</span>
+        
+        // Headers autorisés
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (&quot;*&quot;.equals(allowedHeaders)) {</span>
+<span class="nc" id="L107">            configuration.addAllowedHeader(&quot;*&quot;);</span>
+        } else {
+<span class="nc" id="L109">            List&lt;String&gt; headers = Arrays.asList(allowedHeaders.split(&quot;,&quot;));</span>
+<span class="nc" id="L110">            configuration.setAllowedHeaders(headers);</span>
+        }
+        
+        // Headers exposés
+<span class="nc" id="L114">        configuration.setExposedHeaders(Arrays.asList(</span>
+            &quot;Authorization&quot;, &quot;Cache-Control&quot;, &quot;Content-Type&quot;, 
+            &quot;X-Total-Count&quot;, &quot;X-Page-Number&quot;, &quot;X-Page-Size&quot;
+        ));
+        
+<span class="nc" id="L119">        configuration.setAllowCredentials(allowCredentials);</span>
+<span class="nc" id="L120">        configuration.setMaxAge(maxAge);</span>
+
+<span class="nc" id="L122">        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
+<span class="nc" id="L123">        source.registerCorsConfiguration(&quot;/**&quot;, configuration);</span>
+        
+<span class="nc" id="L125">        return source;</span>
+    }
+
+    /**
+     * Configuration de la chaîne de filtres de sécurité
+     */
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+<span class="nc" id="L133">        http</span>
+            // Configuration CORS
+<span class="nc" id="L135">            .cors(cors -&gt; cors.configurationSource(corsConfigurationSource()))</span>
+            
+            // Désactiver CSRF pour les API REST
+<span class="nc" id="L138">            .csrf(AbstractHttpConfigurer::disable)</span>
+            
+            // Point d'entrée pour les erreurs d'authentification
+<span class="nc" id="L141">            .exceptionHandling(exception -&gt; exception</span>
+<span class="nc" id="L142">                .authenticationEntryPoint(unauthorizedHandler))</span>
+            
+            // Gestion de session stateless
+<span class="nc" id="L145">            .sessionManagement(session -&gt; session</span>
+<span class="nc" id="L146">                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+            
+            // Configuration des autorisations
+<span class="nc" id="L149">            .authorizeHttpRequests(authz -&gt; authz</span>
+                // Endpoints publics
+<span class="nc" id="L151">                .requestMatchers(&quot;/&quot;).permitAll()</span>
+<span class="nc" id="L152">                .requestMatchers(&quot;/health&quot;).permitAll()</span>
+<span class="nc" id="L153">                .requestMatchers(&quot;/actuator/**&quot;).permitAll()</span>
+                
+                // Documentation API
+<span class="nc" id="L156">                .requestMatchers(&quot;/v3/api-docs/**&quot;).permitAll()</span>
+<span class="nc" id="L157">                .requestMatchers(&quot;/swagger-ui/**&quot;).permitAll()</span>
+<span class="nc" id="L158">                .requestMatchers(&quot;/swagger-ui.html&quot;).permitAll()</span>
+<span class="nc" id="L159">                .requestMatchers(&quot;/api-docs/**&quot;).permitAll()</span>
+                
+                // Authentification
+<span class="nc" id="L162">                .requestMatchers(&quot;/auth/**&quot;).permitAll()</span>
+                
+                // Endpoints publics pour les annonces (lecture seule)
+<span class="nc" id="L165">                .requestMatchers(HttpMethod.GET, &quot;/listings&quot;).permitAll()</span>
+<span class="nc" id="L166">                .requestMatchers(HttpMethod.GET, &quot;/listings/{id}&quot;).permitAll()</span>
+<span class="nc" id="L167">                .requestMatchers(HttpMethod.GET, &quot;/listings/user/{userId}&quot;).permitAll()</span>
+<span class="nc" id="L168">                .requestMatchers(HttpMethod.GET, &quot;/listings/{id}/similar&quot;).permitAll()</span>
+<span class="nc" id="L169">                .requestMatchers(HttpMethod.POST, &quot;/listings/{id}/view&quot;).permitAll()</span>
+                
+                // Upload public (pour la prévisualisation)
+<span class="nc" id="L172">                .requestMatchers(HttpMethod.POST, &quot;/upload/temp&quot;).permitAll()</span>
+                
+                // Profils publics
+<span class="nc" id="L175">                .requestMatchers(HttpMethod.GET, &quot;/users/{id}/public&quot;).permitAll()</span>
+                
+                // Websocket (sera géré séparément)
+<span class="nc" id="L178">                .requestMatchers(&quot;/ws/**&quot;).permitAll()</span>
+                
+                // Endpoints protégés - utilisateurs authentifiés
+<span class="nc" id="L181">                .requestMatchers(HttpMethod.POST, &quot;/listings&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L182">                .requestMatchers(HttpMethod.PUT, &quot;/listings/**&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L183">                .requestMatchers(HttpMethod.DELETE, &quot;/listings/**&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L184">                .requestMatchers(HttpMethod.PATCH, &quot;/listings/**&quot;).hasRole(&quot;USER&quot;)</span>
+                
+<span class="nc" id="L186">                .requestMatchers(&quot;/users/me&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L187">                .requestMatchers(HttpMethod.PUT, &quot;/users/me&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L188">                .requestMatchers(&quot;/users/me/stats&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L189">                .requestMatchers(&quot;/users/me/password&quot;).hasRole(&quot;USER&quot;)</span>
+                
+<span class="nc" id="L191">                .requestMatchers(&quot;/threads/**&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L192">                .requestMatchers(&quot;/messages/**&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L193">                .requestMatchers(&quot;/alerts/**&quot;).hasRole(&quot;USER&quot;)</span>
+<span class="nc" id="L194">                .requestMatchers(&quot;/confirmations/**&quot;).hasRole(&quot;USER&quot;)</span>
+                
+<span class="nc" id="L196">                .requestMatchers(HttpMethod.POST, &quot;/upload/**&quot;).hasRole(&quot;USER&quot;)</span>
+                
+                // Endpoints de modération - modérateurs
+<span class="nc" id="L199">                .requestMatchers(&quot;/moderation/**&quot;).hasRole(&quot;MODERATOR&quot;)</span>
+                
+                // Endpoints d'administration - administrateurs
+<span class="nc" id="L202">                .requestMatchers(&quot;/admin/**&quot;).hasRole(&quot;ADMIN&quot;)</span>
+<span class="nc" id="L203">                .requestMatchers(HttpMethod.GET, &quot;/users&quot;).hasRole(&quot;ADMIN&quot;)</span>
+<span class="nc" id="L204">                .requestMatchers(HttpMethod.GET, &quot;/users/search&quot;).hasRole(&quot;ADMIN&quot;)</span>
+<span class="nc" id="L205">                .requestMatchers(HttpMethod.DELETE, &quot;/users/**&quot;).hasRole(&quot;ADMIN&quot;)</span>
+                
+                // Tout le reste nécessite une authentification
+<span class="nc" id="L208">                .anyRequest().authenticated()</span>
+            )
+            
+            // Configuration des en-têtes de sécurité
+<span class="nc" id="L212">            .headers(headers -&gt; headers</span>
+<span class="nc" id="L213">                .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)</span>
+<span class="nc" id="L214">                .contentTypeOptions(Customizer.withDefaults())</span>
+<span class="nc" id="L215">                .httpStrictTransportSecurity(hstsConfig -&gt; hstsConfig</span>
+<span class="nc" id="L216">                    .maxAgeInSeconds(31536000)</span>
+<span class="nc" id="L217">                    .includeSubDomains(true))</span>
+<span class="nc" id="L218">                .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)</span>
+            );
+
+        // Ajouter le filtre JWT avant le filtre d'authentification par nom d'utilisateur/mot de passe
+<span class="nc" id="L222">        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);</span>
+
+<span class="nc" id="L224">        return http.build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

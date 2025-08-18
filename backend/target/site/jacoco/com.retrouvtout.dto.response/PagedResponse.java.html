@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PagedResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.dto.response</a> &gt; <span class="el_source">PagedResponse.java</span></div><h1>PagedResponse.java</h1><pre class="source lang-java linenums">// PagedResponse.java
+package com.retrouvtout.dto.response;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+
+public class PagedResponse&lt;T&gt; {
+    
+    private List&lt;T&gt; items;
+    private int page;
+    
+    @JsonProperty(&quot;page_size&quot;)
+    private int pageSize;
+    
+    @JsonProperty(&quot;total_elements&quot;)
+    private long totalElements;
+    
+    @JsonProperty(&quot;total_pages&quot;)
+    private int totalPages;
+    
+    @JsonProperty(&quot;is_last&quot;)
+    private boolean isLast;
+    
+    // Constructeurs
+<span class="nc" id="L26">    public PagedResponse() {}</span>
+    
+<span class="nc" id="L28">    public PagedResponse(List&lt;T&gt; items, int page, int pageSize, long totalElements, int totalPages, boolean isLast) {</span>
+<span class="nc" id="L29">        this.items = items;</span>
+<span class="nc" id="L30">        this.page = page;</span>
+<span class="nc" id="L31">        this.pageSize = pageSize;</span>
+<span class="nc" id="L32">        this.totalElements = totalElements;</span>
+<span class="nc" id="L33">        this.totalPages = totalPages;</span>
+<span class="nc" id="L34">        this.isLast = isLast;</span>
+<span class="nc" id="L35">    }</span>
+    
+    // Getters et Setters
+<span class="nc" id="L38">    public List&lt;T&gt; getItems() { return items; }</span>
+<span class="nc" id="L39">    public void setItems(List&lt;T&gt; items) { this.items = items; }</span>
+    
+<span class="nc" id="L41">    public int getPage() { return page; }</span>
+<span class="nc" id="L42">    public void setPage(int page) { this.page = page; }</span>
+    
+<span class="nc" id="L44">    public int getPageSize() { return pageSize; }</span>
+<span class="nc" id="L45">    public void setPageSize(int pageSize) { this.pageSize = pageSize; }</span>
+    
+<span class="nc" id="L47">    public long getTotalElements() { return totalElements; }</span>
+<span class="nc" id="L48">    public void setTotalElements(long totalElements) { this.totalElements = totalElements; }</span>
+    
+<span class="nc" id="L50">    public int getTotalPages() { return totalPages; }</span>
+<span class="nc" id="L51">    public void setTotalPages(int totalPages) { this.totalPages = totalPages; }</span>
+    
+<span class="nc" id="L53">    public boolean isLast() { return isLast; }</span>
+<span class="nc" id="L54">    public void setLast(boolean last) { isLast = last; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

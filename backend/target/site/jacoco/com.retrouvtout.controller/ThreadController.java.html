@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ThreadController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">ThreadController.java</span></div><h1>ThreadController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.dto.response.ApiResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.dto.response.ThreadResponse;
+import com.retrouvtout.security.UserPrincipal;
+import com.retrouvtout.service.ThreadService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import com.retrouvtout.dto.response.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Contrôleur pour la gestion des threads de conversation
+ */
+@RestController
+@RequestMapping(&quot;/threads&quot;)
+@Tag(name = &quot;Threads&quot;, description = &quot;API de gestion des conversations&quot;)
+@CrossOrigin(origins = {&quot;${app.cors.allowed-origins}&quot;})
+public class ThreadController {
+
+    private final ThreadService threadService;
+
+    @Autowired
+<span class="nc" id="L37">    public ThreadController(ThreadService threadService) {</span>
+<span class="nc" id="L38">        this.threadService = threadService;</span>
+<span class="nc" id="L39">    }</span>
+
+    /**
+     * Créer un nouveau thread de conversation
+     */
+    @PostMapping
+    @Operation(summary = &quot;Créer une nouvelle conversation&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;201&quot;, description = &quot;Conversation créée avec succès&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;409&quot;, description = &quot;Conversation déjà existante&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ThreadResponse&gt;&gt; createThread(
+            @Parameter(description = &quot;ID de l'annonce&quot;)
+            @RequestParam String listingId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L60">            ThreadResponse thread = threadService.createThread(listingId, userPrincipal.getId());</span>
+            
+<span class="nc" id="L62">            return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L63">                .body(new ApiResponse&lt;&gt;(</span>
+                    true,
+                    &quot;Conversation créée avec succès&quot;,
+                    thread
+                ));
+<span class="nc" id="L68">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L69">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L70">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+<span class="nc" id="L72">                    e.getMessage(),</span>
+                    null
+                ));
+<span class="nc" id="L75">        } catch (IllegalStateException e) {</span>
+<span class="nc" id="L76">            return ResponseEntity.status(HttpStatus.CONFLICT)</span>
+<span class="nc" id="L77">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+<span class="nc" id="L79">                    e.getMessage(),</span>
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Obtenir les threads de l'utilisateur connecté
+     */
+    @GetMapping
+    @Operation(summary = &quot;Obtenir mes conversations&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = 
+&quot;Liste des conversations&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;PagedResponse&lt;ThreadResponse&gt;&gt;&gt; getUserThreads(
+            @Parameter(description = &quot;Statut des conversations&quot;)
+            @RequestParam(required = false) String status,
+            
+            @Parameter(description = &quot;Numéro de page&quot;)
+            @RequestParam(defaultValue = &quot;1&quot;) int page,
+            
+            @Parameter(description = &quot;Taille de la page&quot;)
+            @RequestParam(defaultValue = &quot;20&quot;) int pageSize,
+            
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (page &lt; 1) page = 1;</span>
+<span class="nc bnc" id="L109" title="All 4 branches missed.">        if (pageSize &lt; 1 || pageSize &gt; 100) pageSize = 20;</span>
+
+<span class="nc" id="L111">        Pageable pageable = PageRequest.of(page - 1, pageSize, </span>
+<span class="nc" id="L112">            Sort.by(Sort.Direction.DESC, &quot;lastMessageAt&quot;));</span>
+
+<span class="nc" id="L114">        Page&lt;ThreadResponse&gt; threads = threadService.getUserThreads(</span>
+<span class="nc" id="L115">            userPrincipal.getId(), status, pageable);</span>
+
+<span class="nc" id="L117">        PagedResponse&lt;ThreadResponse&gt; pagedResponse = new PagedResponse&lt;&gt;(</span>
+<span class="nc" id="L118">            threads.getContent(),</span>
+<span class="nc" id="L119">            threads.getNumber() + 1,</span>
+<span class="nc" id="L120">            threads.getSize(),</span>
+<span class="nc" id="L121">            threads.getTotalElements(),</span>
+<span class="nc" id="L122">            threads.getTotalPages(),</span>
+<span class="nc" id="L123">            threads.isLast()</span>
+        );
+
+<span class="nc" id="L126">        return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+            true,
+            &quot;Conversations récupérées avec succès&quot;,
+            pagedResponse
+        ));
+    }
+
+    /**
+     * Obtenir un thread par son ID
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Obtenir une conversation par son ID&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = 
+&quot;Conversation trouvée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Conversation non trouvée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;403&quot;, description = &quot;Accès non autorisé&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ThreadResponse&gt;&gt; getThread(
+            @Parameter(description = &quot;ID de la conversation&quot;)
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L152">            ThreadResponse thread = threadService.getThreadById(id, userPrincipal.getId());</span>
+            
+<span class="nc" id="L154">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Conversation trouvée&quot;,
+                thread
+            ));
+<span class="nc" id="L159">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L160">            return ResponseEntity.notFound().build();</span>
+<span class="nc" id="L161">        } catch (SecurityException e) {</span>
+<span class="nc" id="L162">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L163">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+                    &quot;Vous n'êtes pas autorisé à accéder à cette conversation&quot;,
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Approuver une conversation (pour le propriétaire de l'objet)
+     */
+    @PatchMapping(&quot;/{id}/approve&quot;)
+    @Operation(summary = &quot;Approuver une conversation&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = 
+&quot;Conversation approuvée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Conversation non trouvée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;403&quot;, description = &quot;Accès non autorisé&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ThreadResponse&gt;&gt; approveThread(
+            @Parameter(description = &quot;ID de la conversation&quot;)
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L190">            ThreadResponse thread = threadService.approveThread(id, userPrincipal.getId());</span>
+            
+<span class="nc" id="L192">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Conversation approuvée avec succès&quot;,
+                thread
+            ));
+<span class="nc" id="L197">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L198">            return ResponseEntity.notFound().build();</span>
+<span class="nc" id="L199">        } catch (SecurityException e) {</span>
+<span class="nc" id="L200">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L201">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+                    &quot;Vous n'êtes pas autorisé à approuver cette conversation&quot;,
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Fermer une conversation
+     */
+    @PatchMapping(&quot;/{id}/close&quot;)
+    @Operation(summary = &quot;Fermer une conversation&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = 
+ &quot;Conversation fermée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Conversation non trouvée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;403&quot;, description = &quot;Accès non autorisé&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ThreadResponse&gt;&gt; closeThread(
+            @Parameter(description = &quot;ID de la conversation&quot;)
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L228">            ThreadResponse thread = threadService.closeThread(id, userPrincipal.getId());</span>
+            
+<span class="nc" id="L230">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Conversation fermée avec succès&quot;,
+                thread
+            ));
+<span class="nc" id="L235">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L236">            return ResponseEntity.notFound().build();</span>
+<span class="nc" id="L237">        } catch (SecurityException e) {</span>
+<span class="nc" id="L238">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L239">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+                    &quot;Vous n'êtes pas autorisé à fermer cette conversation&quot;,
+                    null
+                ));
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

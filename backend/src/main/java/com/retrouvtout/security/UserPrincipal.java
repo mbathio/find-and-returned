@@ -16,16 +16,19 @@ import java.util.Objects;
  */
 public class UserPrincipal implements UserDetails {
     
-    private String id;
-    private String name;
-    private String email;
+    protected String id;
+    protected String name;
+    protected String email;
     
     @JsonIgnore
-    private String password;
+    protected String password;
     
-    private Collection<? extends GrantedAuthority> authorities;
-    private boolean active;
-    private boolean emailVerified;
+    protected Collection<? extends GrantedAuthority> authorities;
+    protected boolean active;
+    protected boolean emailVerified;
+
+    // Constructeur par défaut protégé pour les sous-classes
+    protected UserPrincipal() {}
 
     public UserPrincipal(String id, String name, String email, String password, 
                         Collection<? extends GrantedAuthority> authorities, 

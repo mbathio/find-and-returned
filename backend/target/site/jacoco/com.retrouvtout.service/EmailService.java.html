@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmailService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">EmailService.java</span></div><h1>EmailService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.entity.User;
+import com.retrouvtout.security.JwtTokenProvider;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+
+import java.io.UnsupportedEncodingException;
+import java.util.Locale;
+
+/**
+ * Service pour l'envoi d'emails
+ */
+@Service
+public class EmailService {
+
+    private final JavaMailSender mailSender;
+    private final JwtTokenProvider tokenProvider;
+
+    @Value(&quot;${app.notifications.email.from:noreply@retrouvtout.com}&quot;)
+    private String fromEmail;
+
+    @Value(&quot;${app.notifications.email.from-name:Retrouv'Tout}&quot;)
+    private String fromName;
+
+    @Value(&quot;${app.frontend.url:http://localhost:3000}&quot;)
+    private String frontendUrl;
+
+    @Value(&quot;${app.notifications.email.enabled:true}&quot;)
+    private boolean emailNotificationsEnabled;
+
+    @Autowired
+<span class="nc" id="L41">    public EmailService(JavaMailSender mailSender, JwtTokenProvider tokenProvider) {</span>
+<span class="nc" id="L42">        this.mailSender = mailSender;</span>
+<span class="nc" id="L43">        this.tokenProvider = tokenProvider;</span>
+<span class="nc" id="L44">    }</span>
+
+    /**
+     * Envoyer un email de vérification d'adresse
+     */
+    @Async
+    public void sendEmailVerification(User user) {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (!emailNotificationsEnabled) {</span>
+<span class="nc" id="L52">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L56">            String verificationToken = tokenProvider.generateEmailVerificationToken(user.getId());</span>
+<span class="nc" id="L57">            String verificationUrl = frontendUrl + &quot;/auth/verify-email?token=&quot; + verificationToken;</span>
+
+<span class="nc" id="L59">            String subject = &quot;Vérifiez votre adresse email - Retrouv'Tout&quot;;</span>
+<span class="nc" id="L60">            String content = buildEmailVerificationContent(user.getName(), verificationUrl);</span>
+
+<span class="nc" id="L62">            sendHtmlEmail(user.getEmail(), subject, content);</span>
+<span class="nc" id="L63">        } catch (Exception e) {</span>
+<span class="nc" id="L64">            System.err.println(&quot;Erreur lors de l'envoi de l'email de vérification: &quot; + e.getMessage());</span>
+<span class="nc" id="L65">        }</span>
+<span class="nc" id="L66">    }</span>
+
+    /**
+     * Envoyer un email de réinitialisation de mot de passe
+     */
+    @Async
+    public void sendPasswordResetEmail(User user, String resetToken) {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (!emailNotificationsEnabled) {</span>
+<span class="nc" id="L74">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L78">            String resetUrl = frontendUrl + &quot;/auth/reset-password?token=&quot; + resetToken;</span>
+
+<span class="nc" id="L80">            String subject = &quot;Réinitialisation de votre mot de passe - Retrouv'Tout&quot;;</span>
+<span class="nc" id="L81">            String content = buildPasswordResetContent(user.getName(), resetUrl);</span>
+
+<span class="nc" id="L83">            sendHtmlEmail(user.getEmail(), subject, content);</span>
+<span class="nc" id="L84">        } catch (Exception e) {</span>
+<span class="nc" id="L85">            System.err.println(&quot;Erreur lors de l'envoi de l'email de réinitialisation: &quot; + e.getMessage());</span>
+<span class="nc" id="L86">        }</span>
+<span class="nc" id="L87">    }</span>
+
+    /**
+     * Envoyer une notification d'alerte
+     */
+    @Async
+    public void sendAlertNotification(User user, String alertTitle, String listingTitle, String listingUrl) {
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (!emailNotificationsEnabled) {</span>
+<span class="nc" id="L95">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L99">            String subject = &quot;Nouvel objet trouvé correspondant à votre alerte - Retrouv'Tout&quot;;</span>
+<span class="nc" id="L100">            String content = buildAlertNotificationContent(user.getName(), alertTitle, listingTitle, listingUrl);</span>
+
+<span class="nc" id="L102">            sendHtmlEmail(user.getEmail(), subject, content);</span>
+<span class="nc" id="L103">        } catch (Exception e) {</span>
+<span class="nc" id="L104">            System.err.println(&quot;Erreur lors de l'envoi de la notification d'alerte: &quot; + e.getMessage());</span>
+<span class="nc" id="L105">        }</span>
+<span class="nc" id="L106">    }</span>
+
+    /**
+     * Envoyer un email de bienvenue
+     */
+    @Async
+    public void sendWelcomeEmail(User user) {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (!emailNotificationsEnabled) {</span>
+<span class="nc" id="L114">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L118">            String subject = &quot;Bienvenue sur Retrouv'Tout !&quot;;</span>
+<span class="nc" id="L119">            String content = buildWelcomeContent(user.getName());</span>
+
+<span class="nc" id="L121">            sendHtmlEmail(user.getEmail(), subject, content);</span>
+<span class="nc" id="L122">        } catch (Exception e) {</span>
+<span class="nc" id="L123">            System.err.println(&quot;Erreur lors de l'envoi de l'email de bienvenue: &quot; + e.getMessage());</span>
+<span class="nc" id="L124">        }</span>
+<span class="nc" id="L125">    }</span>
+
+    /**
+     * Envoyer une notification de nouveau message
+     */
+    @Async
+    public void sendNewMessageNotification(User recipient, User sender, String threadSubject) {
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (!emailNotificationsEnabled) {</span>
+<span class="nc" id="L133">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L137">            String subject = &quot;Nouveau message reçu - Retrouv'Tout&quot;;</span>
+<span class="nc" id="L138">            String messagesUrl = frontendUrl + &quot;/messages&quot;;</span>
+<span class="nc" id="L139">            String content = buildNewMessageContent(recipient.getName(), sender.getName(), threadSubject, messagesUrl);</span>
+
+<span class="nc" id="L141">            sendHtmlEmail(recipient.getEmail(), subject, content);</span>
+<span class="nc" id="L142">        } catch (Exception e) {</span>
+<span class="nc" id="L143">            System.err.println(&quot;Erreur lors de l'envoi de la notification de message: &quot; + e.getMessage());</span>
+<span class="nc" id="L144">        }</span>
+<span class="nc" id="L145">    }</span>
+
+    /**
+     * Méthode générique pour envoyer un email HTML
+     */
+    private void sendHtmlEmail(String to, String subject, String content) throws MessagingException {
+        try {
+<span class="nc" id="L152">            MimeMessage message = mailSender.createMimeMessage();</span>
+<span class="nc" id="L153">            MimeMessageHelper helper = new MimeMessageHelper(message, true, &quot;UTF-8&quot;);</span>
+
+<span class="nc" id="L155">            helper.setFrom(fromEmail, fromName);</span>
+<span class="nc" id="L156">            helper.setTo(to);</span>
+<span class="nc" id="L157">            helper.setSubject(subject);</span>
+<span class="nc" id="L158">            helper.setText(content, true);</span>
+
+<span class="nc" id="L160">            mailSender.send(message);</span>
+<span class="nc" id="L161">        } catch (UnsupportedEncodingException e) {</span>
+            // Si on ne peut pas définir le nom de l'expéditeur, on utilise juste l'email
+<span class="nc" id="L163">            MimeMessage message = mailSender.createMimeMessage();</span>
+<span class="nc" id="L164">            MimeMessageHelper helper = new MimeMessageHelper(message, true, &quot;UTF-8&quot;);</span>
+
+<span class="nc" id="L166">            helper.setFrom(fromEmail);</span>
+<span class="nc" id="L167">            helper.setTo(to);</span>
+<span class="nc" id="L168">            helper.setSubject(subject);</span>
+<span class="nc" id="L169">            helper.setText(content, true);</span>
+
+<span class="nc" id="L171">            mailSender.send(message);</span>
+<span class="nc" id="L172">        }</span>
+<span class="nc" id="L173">    }</span>
+
+    /**
+     * Construire le contenu HTML pour la vérification d'email
+     */
+    private String buildEmailVerificationContent(String userName, String verificationUrl) {
+<span class="nc" id="L179">        return &quot;&lt;!DOCTYPE html&gt;&quot; +</span>
+               &quot;&lt;html&gt;&quot; +
+               &quot;&lt;head&gt;&lt;meta charset='UTF-8'&gt;&lt;title&gt;Vérification Email&lt;/title&gt;&lt;/head&gt;&quot; +
+               &quot;&lt;body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'&gt;&quot; +
+               &quot;&lt;div style='max-width: 600px; margin: 0 auto; padding: 20px;'&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin-bottom: 30px;'&gt;&quot; +
+               &quot;&lt;h1 style='color: #0891b2;'&gt;Retrouv'Tout&lt;/h1&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;h2&gt;Bonjour &quot; + userName + &quot;,&lt;/h2&gt;&quot; +
+               &quot;&lt;p&gt;Merci de vous être inscrit sur Retrouv'Tout !&lt;/p&gt;&quot; +
+               &quot;&lt;p&gt;Pour activer votre compte et commencer à utiliser la plateforme, veuillez cliquer sur le lien ci-dessous :&lt;/p&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;a href='&quot; + verificationUrl + &quot;' style='background-color: #0891b2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'&gt;Vérifier mon email&lt;/a&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;p&gt;Ce lien est valable pendant 24 heures.&lt;/p&gt;&quot; +
+               &quot;&lt;p&gt;Si vous n'avez pas créé de compte sur Retrouv'Tout, vous pouvez ignorer cet email.&lt;/p&gt;&quot; +
+               &quot;&lt;hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;p style='font-size: 12px; color: #666; text-align: center;'&gt;© 2024 Retrouv'Tout - Plateforme d'objets perdus et retrouvés&lt;/p&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;/body&gt;&quot; +
+               &quot;&lt;/html&gt;&quot;;
+    }
+
+    /**
+     * Construire le contenu HTML pour la réinitialisation de mot de passe
+     */
+    private String buildPasswordResetContent(String userName, String resetUrl) {
+<span class="nc" id="L206">        return &quot;&lt;!DOCTYPE html&gt;&quot; +</span>
+               &quot;&lt;html&gt;&quot; +
+               &quot;&lt;head&gt;&lt;meta charset='UTF-8'&gt;&lt;title&gt;Réinitialisation Mot de Passe&lt;/title&gt;&lt;/head&gt;&quot; +
+               &quot;&lt;body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'&gt;&quot; +
+               &quot;&lt;div style='max-width: 600px; margin: 0 auto; padding: 20px;'&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin-bottom: 30px;'&gt;&quot; +
+               &quot;&lt;h1 style='color: #0891b2;'&gt;Retrouv'Tout&lt;/h1&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;h2&gt;Bonjour &quot; + userName + &quot;,&lt;/h2&gt;&quot; +
+               &quot;&lt;p&gt;Vous avez demandé la réinitialisation de votre mot de passe.&lt;/p&gt;&quot; +
+               &quot;&lt;p&gt;Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :&lt;/p&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;a href='&quot; + resetUrl + &quot;' style='background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'&gt;Réinitialiser mon mot de passe&lt;/a&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;p&gt;Ce lien est valable pendant 1 heure pour des raisons de sécurité.&lt;/p&gt;&quot; +
+               &quot;&lt;p&gt;Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email en toute sécurité.&lt;/p&gt;&quot; +
+               &quot;&lt;hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;p style='font-size: 12px; color: #666; text-align: center;'&gt;© 2024 Retrouv'Tout - Plateforme d'objets perdus et retrouvés&lt;/p&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;/body&gt;&quot; +
+               &quot;&lt;/html&gt;&quot;;
+    }
+
+    /**
+     * Construire le contenu HTML pour les notifications d'alerte
+     */
+    private String buildAlertNotificationContent(String userName, String alertTitle, String listingTitle, String listingUrl) {
+<span class="nc" id="L233">        return &quot;&lt;!DOCTYPE html&gt;&quot; +</span>
+               &quot;&lt;html&gt;&quot; +
+               &quot;&lt;head&gt;&lt;meta charset='UTF-8'&gt;&lt;title&gt;Nouvelle correspondance trouvée&lt;/title&gt;&lt;/head&gt;&quot; +
+               &quot;&lt;body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'&gt;&quot; +
+               &quot;&lt;div style='max-width: 600px; margin: 0 auto; padding: 20px;'&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin-bottom: 30px;'&gt;&quot; +
+               &quot;&lt;h1 style='color: #0891b2;'&gt;Retrouv'Tout&lt;/h1&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;h2&gt;Bonjour &quot; + userName + &quot;,&lt;/h2&gt;&quot; +
+               &quot;&lt;p&gt;Bonne nouvelle ! Un objet correspondant à votre alerte &lt;strong&gt;\&quot;&quot; + alertTitle + &quot;\&quot;&lt;/strong&gt; vient d'être publié :&lt;/p&gt;&quot; +
+               &quot;&lt;div style='background-color: #f0f9ff; border-left: 4px solid #0891b2; padding: 15px; margin: 20px 0;'&gt;&quot; +
+               &quot;&lt;h3 style='margin: 0 0 10px 0; color: #0891b2;'&gt;&quot; + listingTitle + &quot;&lt;/h3&gt;&quot; +
+               &quot;&lt;p style='margin: 0;'&gt;Consultez les détails et contactez la personne qui l'a trouvé.&lt;/p&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;a href='&quot; + listingUrl + &quot;' style='background-color: #0891b2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'&gt;Voir l'annonce&lt;/a&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;p&gt;N'oubliez pas de vérifier que l'objet vous appartient bien avant de prendre contact.&lt;/p&gt;&quot; +
+               &quot;&lt;hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;p style='font-size: 12px; color: #666; text-align: center;'&gt;© 2024 Retrouv'Tout - Plateforme d'objets perdus et retrouvés&lt;/p&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;/body&gt;&quot; +
+               &quot;&lt;/html&gt;&quot;;
+    }
+
+    /**
+     * Construire le contenu HTML pour l'email de bienvenue
+     */
+    private String buildWelcomeContent(String userName) {
+<span class="nc" id="L262">        return &quot;&lt;!DOCTYPE html&gt;&quot; +</span>
+               &quot;&lt;html&gt;&quot; +
+               &quot;&lt;head&gt;&lt;meta charset='UTF-8'&gt;&lt;title&gt;Bienvenue sur Retrouv'Tout&lt;/title&gt;&lt;/head&gt;&quot; +
+               &quot;&lt;body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'&gt;&quot; +
+               &quot;&lt;div style='max-width: 600px; margin: 0 auto; padding: 20px;'&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin-bottom: 30px;'&gt;&quot; +
+               &quot;&lt;h1 style='color: #0891b2;'&gt;Retrouv'Tout&lt;/h1&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;h2&gt;Bienvenue &quot; + userName + &quot; !&lt;/h2&gt;&quot; +
+               &quot;&lt;p&gt;Nous sommes ravis de vous accueillir sur Retrouv'Tout, la plateforme qui facilite la retrouvaille d'objets perdus.&lt;/p&gt;&quot; +
+               &quot;&lt;h3&gt;Que pouvez-vous faire maintenant ?&lt;/h3&gt;&quot; +
+               &quot;&lt;ul&gt;&quot; +
+               &quot;&lt;li&gt;&lt;strong&gt;Publier des objets trouvés&lt;/strong&gt; pour aider d'autres personnes&lt;/li&gt;&quot; +
+               &quot;&lt;li&gt;&lt;strong&gt;Rechercher vos objets perdus&lt;/strong&gt; parmi les annonces existantes&lt;/li&gt;&quot; +
+               &quot;&lt;li&gt;&lt;strong&gt;Créer des alertes&lt;/strong&gt; pour être notifié automatiquement&lt;/li&gt;&quot; +
+               &quot;&lt;li&gt;&lt;strong&gt;Échanger en sécurité&lt;/strong&gt; via notre messagerie intégrée&lt;/li&gt;&quot; +
+               &quot;&lt;/ul&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;a href='&quot; + frontendUrl + &quot;' style='background-color: #0891b2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'&gt;Commencer&lt;/a&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;p&gt;Merci de contribuer à une communauté d'entraide !&lt;/p&gt;&quot; +
+               &quot;&lt;hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;p style='font-size: 12px; color: #666; text-align: center;'&gt;© 2024 Retrouv'Tout - Plateforme d'objets perdus et retrouvés&lt;/p&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;/body&gt;&quot; +
+               &quot;&lt;/html&gt;&quot;;
+    }
+
+    /**
+     * Construire le contenu HTML pour les notifications de nouveaux messages
+     */
+    private String buildNewMessageContent(String recipientName, String senderName, String threadSubject, String messagesUrl) {
+<span class="nc" id="L294">        return &quot;&lt;!DOCTYPE html&gt;&quot; +</span>
+               &quot;&lt;html&gt;&quot; +
+               &quot;&lt;head&gt;&lt;meta charset='UTF-8'&gt;&lt;title&gt;Nouveau message reçu&lt;/title&gt;&lt;/head&gt;&quot; +
+               &quot;&lt;body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'&gt;&quot; +
+               &quot;&lt;div style='max-width: 600px; margin: 0 auto; padding: 20px;'&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin-bottom: 30px;'&gt;&quot; +
+               &quot;&lt;h1 style='color: #0891b2;'&gt;Retrouv'Tout&lt;/h1&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;h2&gt;Bonjour &quot; + recipientName + &quot;,&lt;/h2&gt;&quot; +
+               &quot;&lt;p&gt;Vous avez reçu un nouveau message de &lt;strong&gt;&quot; + senderName + &quot;&lt;/strong&gt; concernant :&lt;/p&gt;&quot; +
+               &quot;&lt;div style='background-color: #f0f9ff; border-left: 4px solid #0891b2; padding: 15px; margin: 20px 0;'&gt;&quot; +
+               &quot;&lt;p style='margin: 0; font-weight: bold;'&gt;&quot; + threadSubject + &quot;&lt;/p&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;div style='text-align: center; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;a href='&quot; + messagesUrl + &quot;' style='background-color: #0891b2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'&gt;Lire le message&lt;/a&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;p&gt;Répondez rapidement pour faciliter la retrouvaille !&lt;/p&gt;&quot; +
+               &quot;&lt;hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'&gt;&quot; +
+               &quot;&lt;p style='font-size: 12px; color: #666; text-align: center;'&gt;© 2024 Retrouv'Tout - Plateforme d'objets perdus et retrouvés&lt;/p&gt;&quot; +
+               &quot;&lt;/div&gt;&quot; +
+               &quot;&lt;/body&gt;&quot; +
+               &quot;&lt;/html&gt;&quot;;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

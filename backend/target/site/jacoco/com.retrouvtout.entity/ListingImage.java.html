@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListingImage.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.entity</a> &gt; <span class="el_source">ListingImage.java</span></div><h1>ListingImage.java</h1><pre class="source lang-java linenums">// ListingImage.java
+package com.retrouvtout.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;listing_images&quot;, indexes = {
+    @Index(name = &quot;idx_images_listing&quot;, columnList = &quot;listing_id&quot;),
+    @Index(name = &quot;idx_images_primary&quot;, columnList = &quot;is_primary&quot;)
+})
+@EntityListeners(AuditingEntityListener.class)
+public class ListingImage {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;listing_id&quot;, nullable = false)
+    private Listing listing;
+
+    @NotNull
+    @Size(max = 512)
+    @Column(name = &quot;url&quot;, nullable = false, length = 512)
+    private String url;
+
+    @Size(max = 255)
+    @Column(name = &quot;alt_text&quot;, length = 255)
+    private String altText;
+
+    @Column(name = &quot;file_size&quot;)
+    private Long fileSize;
+
+    @Size(max = 50)
+    @Column(name = &quot;mime_type&quot;, length = 50)
+    private String mimeType;
+
+<span class="nc" id="L45">    @Column(name = &quot;is_primary&quot;, nullable = false)</span>
+<span class="nc" id="L46">    private Boolean isPrimary = false;</span>
+
+    @CreatedDate
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    // Constructeurs, getters et setters
+<span class="nc" id="L53">    public ListingImage() {}</span>
+
+<span class="nc" id="L55">    public Long getId() { return id; }</span>
+<span class="nc" id="L56">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="nc" id="L58">    public Listing getListing() { return listing; }</span>
+<span class="nc" id="L59">    public void setListing(Listing listing) { this.listing = listing; }</span>
+
+<span class="nc" id="L61">    public String getUrl() { return url; }</span>
+<span class="nc" id="L62">    public void setUrl(String url) { this.url = url; }</span>
+
+<span class="nc" id="L64">    public String getAltText() { return altText; }</span>
+<span class="nc" id="L65">    public void setAltText(String altText) { this.altText = altText; }</span>
+
+<span class="nc" id="L67">    public Long getFileSize() { return fileSize; }</span>
+<span class="nc" id="L68">    public void setFileSize(Long fileSize) { this.fileSize = fileSize; }</span>
+
+<span class="nc" id="L70">    public String getMimeType() { return mimeType; }</span>
+<span class="nc" id="L71">    public void setMimeType(String mimeType) { this.mimeType = mimeType; }</span>
+
+<span class="nc" id="L73">    public Boolean getIsPrimary() { return isPrimary; }</span>
+<span class="nc" id="L74">    public void setIsPrimary(Boolean isPrimary) { this.isPrimary = isPrimary; }</span>
+
+<span class="nc" id="L76">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
+<span class="nc" id="L77">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HealthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">HealthController.java</span></div><h1>HealthController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Contrôleur pour les vérifications de santé du système
+ */
+@RestController
+<span class="nc" id="L18">public class HealthController {</span>
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private RedisTemplate&lt;String, Object&gt; redisTemplate;
+
+    /**
+     * Endpoint de santé public simple
+     */
+    @GetMapping(&quot;/health&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; simpleHealth() {
+<span class="nc" id="L31">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L32">        response.put(&quot;status&quot;, &quot;UP&quot;);</span>
+<span class="nc" id="L33">        response.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
+<span class="nc" id="L34">        response.put(&quot;service&quot;, &quot;retrouvtout-api&quot;);</span>
+<span class="nc" id="L35">        response.put(&quot;version&quot;, &quot;1.0.0&quot;);</span>
+        
+<span class="nc" id="L37">        return ResponseEntity.ok(response);</span>
+    }
+
+    /**
+     * Vérification détaillée de la santé
+     */
+    @GetMapping(&quot;/health/detailed&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; detailedHealth() {
+<span class="nc" id="L45">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L46">        Map&lt;String, Object&gt; checks = new HashMap&lt;&gt;();</span>
+        
+<span class="nc" id="L48">        boolean isHealthy = true;</span>
+        
+        // Vérification base de données
+<span class="nc" id="L51">        try (Connection connection = dataSource.getConnection()) {</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            if (connection.isValid(5)) {</span>
+<span class="nc" id="L53">                checks.put(&quot;database&quot;, Map.of(&quot;status&quot;, &quot;UP&quot;));</span>
+            } else {
+<span class="nc" id="L55">                checks.put(&quot;database&quot;, Map.of(&quot;status&quot;, &quot;DOWN&quot;, &quot;error&quot;, &quot;Connection invalid&quot;));</span>
+<span class="nc" id="L56">                isHealthy = false;</span>
+            }
+<span class="nc" id="L58">        } catch (Exception e) {</span>
+<span class="nc" id="L59">            checks.put(&quot;database&quot;, Map.of(&quot;status&quot;, &quot;DOWN&quot;, &quot;error&quot;, e.getMessage()));</span>
+<span class="nc" id="L60">            isHealthy = false;</span>
+<span class="nc" id="L61">        }</span>
+
+        // Vérification Redis
+        try {
+<span class="nc" id="L65">            redisTemplate.opsForValue().set(&quot;health-check&quot;, &quot;test&quot;);</span>
+<span class="nc" id="L66">            String result = (String) redisTemplate.opsForValue().get(&quot;health-check&quot;);</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">            if (&quot;test&quot;.equals(result)) {</span>
+<span class="nc" id="L68">                checks.put(&quot;redis&quot;, Map.of(&quot;status&quot;, &quot;UP&quot;));</span>
+<span class="nc" id="L69">                redisTemplate.delete(&quot;health-check&quot;);</span>
+            } else {
+<span class="nc" id="L71">                checks.put(&quot;redis&quot;, Map.of(&quot;status&quot;, &quot;DOWN&quot;, &quot;error&quot;, &quot;Test failed&quot;));</span>
+<span class="nc" id="L72">                isHealthy = false;</span>
+            }
+<span class="nc" id="L74">        } catch (Exception e) {</span>
+<span class="nc" id="L75">            checks.put(&quot;redis&quot;, Map.of(&quot;status&quot;, &quot;DOWN&quot;, &quot;error&quot;, e.getMessage()));</span>
+<span class="nc" id="L76">            isHealthy = false;</span>
+<span class="nc" id="L77">        }</span>
+
+        // Informations système
+<span class="nc" id="L80">        Runtime runtime = Runtime.getRuntime();</span>
+<span class="nc" id="L81">        long maxMemory = runtime.maxMemory();</span>
+<span class="nc" id="L82">        long totalMemory = runtime.totalMemory();</span>
+<span class="nc" id="L83">        long freeMemory = runtime.freeMemory();</span>
+<span class="nc" id="L84">        long usedMemory = totalMemory - freeMemory;</span>
+
+<span class="nc" id="L86">        checks.put(&quot;memory&quot;, Map.of(</span>
+<span class="nc" id="L87">            &quot;max&quot;, formatBytes(maxMemory),</span>
+<span class="nc" id="L88">            &quot;total&quot;, formatBytes(totalMemory),</span>
+<span class="nc" id="L89">            &quot;used&quot;, formatBytes(usedMemory),</span>
+<span class="nc" id="L90">            &quot;free&quot;, formatBytes(freeMemory),</span>
+<span class="nc" id="L91">            &quot;usage&quot;, String.format(&quot;%.1f%%&quot;, (double) usedMemory / totalMemory * 100)</span>
+        ));
+
+<span class="nc" id="L94">        checks.put(&quot;disk&quot;, Map.of(</span>
+<span class="nc" id="L95">            &quot;free&quot;, formatBytes(new java.io.File(&quot;/&quot;).getFreeSpace()),</span>
+<span class="nc" id="L96">            &quot;total&quot;, formatBytes(new java.io.File(&quot;/&quot;).getTotalSpace())</span>
+        ));
+
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        response.put(&quot;status&quot;, isHealthy ? &quot;UP&quot; : &quot;DOWN&quot;);</span>
+<span class="nc" id="L100">        response.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
+<span class="nc" id="L101">        response.put(&quot;service&quot;, &quot;retrouvtout-api&quot;);</span>
+<span class="nc" id="L102">        response.put(&quot;version&quot;, &quot;1.0.0&quot;);</span>
+<span class="nc" id="L103">        response.put(&quot;checks&quot;, checks);</span>
+        
+<span class="nc" id="L105">        return ResponseEntity.ok(response);</span>
+    }
+
+    private String formatBytes(long bytes) {
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (bytes &lt; 1024) return bytes + &quot; B&quot;;</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (bytes &lt; 1024 * 1024) return String.format(&quot;%.1f KB&quot;, bytes / 1024.0);</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (bytes &lt; 1024 * 1024 * 1024) return String.format(&quot;%.1f MB&quot;, bytes / (1024.0 * 1024));</span>
+<span class="nc" id="L112">        return String.format(&quot;%.1f GB&quot;, bytes / (1024.0 * 1024 * 1024));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

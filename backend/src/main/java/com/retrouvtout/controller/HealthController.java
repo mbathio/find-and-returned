@@ -1,8 +1,6 @@
 package com.retrouvtout.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuator.health.Health;
-import org.springframework.boot.actuator.health.HealthIndicator;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,7 +15,7 @@ import java.util.Map;
  * Contrôleur pour les vérifications de santé du système
  */
 @RestController
-public class HealthController implements HealthIndicator {
+public class HealthController {
 
     @Autowired
     private DataSource dataSource;
@@ -42,19 +40,24 @@ public class HealthController implements HealthIndicator {
     /**
      * Vérification détaillée de la santé
      */
-    @Override
-    public Health health() {
-        Health.Builder builder = Health.up();
+    @GetMapping("/health/detailed")
+    public ResponseEntity<Map<String, Object>> detailedHealth() {
+        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> checks = new HashMap<>();
+        
+        boolean isHealthy = true;
         
         // Vérification base de données
         try (Connection connection = dataSource.getConnection()) {
             if (connection.isValid(5)) {
-                builder.withDetail("database", "UP");
+                checks.put("database", Map.of("status", "UP"));
             } else {
-                builder.down().withDetail("database", "DOWN - Connection invalid");
+                checks.put("database", Map.of("status", "DOWN", "error", "Connection invalid"));
+                isHealthy = false;
             }
         } catch (Exception e) {
-            builder.down().withDetail("database", "DOWN - " + e.getMessage());
+            checks.put("database", Map.of("status", "DOWN", "error", e.getMessage()));
+            isHealthy = false;
         }
 
         // Vérification Redis
@@ -62,13 +65,15 @@ public class HealthController implements HealthIndicator {
             redisTemplate.opsForValue().set("health-check", "test");
             String result = (String) redisTemplate.opsForValue().get("health-check");
             if ("test".equals(result)) {
-                builder.withDetail("redis", "UP");
+                checks.put("redis", Map.of("status", "UP"));
                 redisTemplate.delete("health-check");
             } else {
-                builder.down().withDetail("redis", "DOWN - Test failed");
+                checks.put("redis", Map.of("status", "DOWN", "error", "Test failed"));
+                isHealthy = false;
             }
         } catch (Exception e) {
-            builder.down().withDetail("redis", "DOWN - " + e.getMessage());
+            checks.put("redis", Map.of("status", "DOWN", "error", e.getMessage()));
+            isHealthy = false;
         }
 
         // Informations système
@@ -78,7 +83,7 @@ public class HealthController implements HealthIndicator {
         long freeMemory = runtime.freeMemory();
         long usedMemory = totalMemory - freeMemory;
 
-        builder.withDetail("memory", Map.of(
+        checks.put("memory", Map.of(
             "max", formatBytes(maxMemory),
             "total", formatBytes(totalMemory),
             "used", formatBytes(usedMemory),
@@ -86,12 +91,18 @@ public class HealthController implements HealthIndicator {
             "usage", String.format("%.1f%%", (double) usedMemory / totalMemory * 100)
         ));
 
-        builder.withDetail("disk", Map.of(
+        checks.put("disk", Map.of(
             "free", formatBytes(new java.io.File("/").getFreeSpace()),
             "total", formatBytes(new java.io.File("/").getTotalSpace())
         ));
 
-        return builder.build();
+        response.put("status", isHealthy ? "UP" : "DOWN");
+        response.put("timestamp", System.currentTimeMillis());
+        response.put("service", "retrouvtout-api");
+        response.put("version", "1.0.0");
+        response.put("checks", checks);
+        
+        return ResponseEntity.ok(response);
     }
 
     private String formatBytes(long bytes) {
@@ -101,4 +112,3 @@ public class HealthController implements HealthIndicator {
         return String.format("%.1f GB", bytes / (1024.0 * 1024 * 1024));
     }
 }
-

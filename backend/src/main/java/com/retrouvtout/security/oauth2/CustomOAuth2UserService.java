@@ -68,7 +68,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user = registerNewUser(oAuth2UserRequest, oAuth2UserInfo);
         }
 
-        return UserPrincipal.create(user);
+        // Créer un UserPrincipal qui implémente OAuth2User
+        return new OAuth2UserPrincipal(UserPrincipal.create(user), oAuth2User.getAttributes());
     }
 
     private User registerNewUser(OAuth2UserRequest oAuth2UserRequest, OAuth2UserInfo oAuth2UserInfo) {
@@ -97,5 +98,28 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         existingUser.setName(oAuth2UserInfo.getName());
         return userRepository.save(existingUser);
     }
-}
 
+    /**
+     * Wrapper pour UserPrincipal qui implémente OAuth2User
+     */
+    public static class OAuth2UserPrincipal extends UserPrincipal implements OAuth2User {
+        private java.util.Map<String, Object> attributes;
+
+        public OAuth2UserPrincipal(UserPrincipal userPrincipal, java.util.Map<String, Object> attributes) {
+            super(userPrincipal.getId(), userPrincipal.getName(), userPrincipal.getEmail(), 
+                  userPrincipal.getPassword(), userPrincipal.getAuthorities(), 
+                  userPrincipal.isEnabled(), userPrincipal.isEmailVerified());
+            this.attributes = attributes;
+        }
+
+        @Override
+        public java.util.Map<String, Object> getAttributes() {
+            return attributes;
+        }
+
+        @Override
+        public String getName() {
+            return super.getName();
+        }
+    }
+}

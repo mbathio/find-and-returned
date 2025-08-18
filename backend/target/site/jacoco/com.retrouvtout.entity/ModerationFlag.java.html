@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModerationFlag.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.entity</a> &gt; <span class="el_source">ModerationFlag.java</span></div><h1>ModerationFlag.java</h1><pre class="source lang-java linenums">// ModerationFlag.java
+package com.retrouvtout.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;moderation_flags&quot;, indexes = {
+    @Index(name = &quot;idx_flags_entity&quot;, columnList = &quot;entity_type, entity_id&quot;),
+    @Index(name = &quot;idx_flags_status&quot;, columnList = &quot;status&quot;),
+    @Index(name = &quot;idx_flags_priority&quot;, columnList = &quot;priority&quot;),
+    @Index(name = &quot;idx_flags_created_at&quot;, columnList = &quot;created_at&quot;)
+})
+@EntityListeners(AuditingEntityListener.class)
+public class ModerationFlag {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;entity_type&quot;, nullable = false)
+    private EntityType entityType;
+
+    @NotNull
+    @Size(max = 64)
+    @Column(name = &quot;entity_id&quot;, nullable = false, length = 64)
+    private String entityId;
+
+    @NotNull
+    @Size(max = 255)
+    @Column(name = &quot;reason&quot;, nullable = false, length = 255)
+    private String reason;
+
+    @Column(name = &quot;description&quot;, columnDefinition = &quot;TEXT&quot;)
+    private String description;
+
+<span class="nc" id="L43">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;status&quot;, nullable = false)
+    private FlagStatus status = FlagStatus.PENDING;
+
+<span class="nc" id="L47">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;priority&quot;, nullable = false)
+    private FlagPriority priority = FlagPriority.MEDIUM;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;created_by_user_id&quot;)
+    private User createdByUser;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;reviewed_by_user_id&quot;)
+    private User reviewedByUser;
+
+    @CreatedDate
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = &quot;reviewed_at&quot;)
+    private LocalDateTime reviewedAt;
+
+<span class="nc" id="L66">    public enum EntityType {</span>
+<span class="nc" id="L67">        LISTING(&quot;listing&quot;),</span>
+<span class="nc" id="L68">        MESSAGE(&quot;message&quot;),</span>
+<span class="nc" id="L69">        USER(&quot;user&quot;);</span>
+
+        private final String value;
+
+<span class="nc" id="L73">        EntityType(String value) { this.value = value; }</span>
+<span class="nc" id="L74">        public String getValue() { return value; }</span>
+
+        public static EntityType fromValue(String value) {
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            for (EntityType type : EntityType.values()) {</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">                if (type.value.equals(value)) return type;</span>
+            }
+<span class="nc" id="L80">            throw new IllegalArgumentException(&quot;Type d'entité invalide: &quot; + value);</span>
+        }
+    }
+
+<span class="nc" id="L84">    public enum FlagStatus {</span>
+<span class="nc" id="L85">        PENDING(&quot;pending&quot;),</span>
+<span class="nc" id="L86">        APPROVED(&quot;approved&quot;),</span>
+<span class="nc" id="L87">        REJECTED(&quot;rejected&quot;);</span>
+
+        private final String value;
+
+<span class="nc" id="L91">        FlagStatus(String value) { this.value = value; }</span>
+<span class="nc" id="L92">        public String getValue() { return value; }</span>
+
+        public static FlagStatus fromValue(String value) {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            for (FlagStatus status : FlagStatus.values()) {</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                if (status.value.equals(value)) return status;</span>
+            }
+<span class="nc" id="L98">            throw new IllegalArgumentException(&quot;Statut de signalement invalide: &quot; + value);</span>
+        }
+    }
+
+<span class="nc" id="L102">    public enum FlagPriority {</span>
+<span class="nc" id="L103">        LOW(&quot;low&quot;),</span>
+<span class="nc" id="L104">        MEDIUM(&quot;medium&quot;),</span>
+<span class="nc" id="L105">        HIGH(&quot;high&quot;),</span>
+<span class="nc" id="L106">        URGENT(&quot;urgent&quot;);</span>
+
+        private final String value;
+
+<span class="nc" id="L110">        FlagPriority(String value) { this.value = value; }</span>
+<span class="nc" id="L111">        public String getValue() { return value; }</span>
+
+        public static FlagPriority fromValue(String value) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">            for (FlagPriority priority : FlagPriority.values()) {</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">                if (priority.value.equals(value)) return priority;</span>
+            }
+<span class="nc" id="L117">            throw new IllegalArgumentException(&quot;Priorité de signalement invalide: &quot; + value);</span>
+        }
+    }
+
+    // Constructeurs, getters et setters
+<span class="nc" id="L122">    public ModerationFlag() {}</span>
+
+<span class="nc" id="L124">    public Long getId() { return id; }</span>
+<span class="nc" id="L125">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="nc" id="L127">    public EntityType getEntityType() { return entityType; }</span>
+<span class="nc" id="L128">    public void setEntityType(EntityType entityType) { this.entityType = entityType; }</span>
+
+<span class="nc" id="L130">    public String getEntityId() { return entityId; }</span>
+<span class="nc" id="L131">    public void setEntityId(String entityId) { this.entityId = entityId; }</span>
+
+<span class="nc" id="L133">    public String getReason() { return reason; }</span>
+<span class="nc" id="L134">    public void setReason(String reason) { this.reason = reason; }</span>
+
+<span class="nc" id="L136">    public String getDescription() { return description; }</span>
+<span class="nc" id="L137">    public void setDescription(String description) { this.description = description; }</span>
+
+<span class="nc" id="L139">    public FlagStatus getStatus() { return status; }</span>
+<span class="nc" id="L140">    public void setStatus(FlagStatus status) { this.status = status; }</span>
+
+<span class="nc" id="L142">    public FlagPriority getPriority() { return priority; }</span>
+<span class="nc" id="L143">    public void setPriority(FlagPriority priority) { this.priority = priority; }</span>
+
+<span class="nc" id="L145">    public User getCreatedByUser() { return createdByUser; }</span>
+<span class="nc" id="L146">    public void setCreatedByUser(User createdByUser) { this.createdByUser = createdByUser; }</span>
+
+<span class="nc" id="L148">    public User getReviewedByUser() { return reviewedByUser; }</span>
+<span class="nc" id="L149">    public void setReviewedByUser(User reviewedByUser) { this.reviewedByUser = reviewedByUser; }</span>
+
+<span class="nc" id="L151">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
+<span class="nc" id="L152">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
+
+<span class="nc" id="L154">    public LocalDateTime getReviewedAt() { return reviewedAt; }</span>
+<span class="nc" id="L155">    public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

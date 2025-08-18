@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">// GlobalExceptionHandler.java
+package com.retrouvtout.exception;
+
+import com.retrouvtout.dto.response.ApiResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Gestionnaire global des exceptions
+ */
+@RestControllerAdvice
+<span class="nc" id="L22">public class GlobalExceptionHandler {</span>
+
+    /**
+     * Gestion des ressources non trouvées
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleResourceNotFoundException(
+            ResourceNotFoundException ex, WebRequest request) {
+        
+<span class="nc" id="L31">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L32">        return new ResponseEntity&lt;&gt;(response, HttpStatus.NOT_FOUND);</span>
+    }
+
+    /**
+     * Gestion des requêtes malformées
+     */
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleBadRequestException(
+            BadRequestException ex, WebRequest request) {
+        
+<span class="nc" id="L42">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L43">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Gestion des erreurs de validation
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        
+<span class="nc" id="L53">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L54">        ex.getBindingResult().getAllErrors().forEach((error) -&gt; {</span>
+<span class="nc" id="L55">            String fieldName = ((FieldError) error).getField();</span>
+<span class="nc" id="L56">            String errorMessage = error.getDefaultMessage();</span>
+<span class="nc" id="L57">            errors.put(fieldName, errorMessage);</span>
+<span class="nc" id="L58">        });</span>
+
+<span class="nc" id="L60">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, &quot;Erreurs de validation&quot;, errors);</span>
+<span class="nc" id="L61">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Gestion des erreurs d'authentification
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleAuthenticationException(
+            AuthenticationException ex, WebRequest request) {
+        
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        String message = ex instanceof BadCredentialsException ? </span>
+<span class="nc" id="L72">            &quot;Identifiants invalides&quot; : &quot;Erreur d'authentification&quot;;</span>
+        
+<span class="nc" id="L74">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, message, null);</span>
+<span class="nc" id="L75">        return new ResponseEntity&lt;&gt;(response, HttpStatus.UNAUTHORIZED);</span>
+    }
+
+    /**
+     * Gestion des erreurs d'autorisation
+     */
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleSecurityException(
+            SecurityException ex, WebRequest request) {
+        
+<span class="nc" id="L85">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L86">        return new ResponseEntity&lt;&gt;(response, HttpStatus.FORBIDDEN);</span>
+    }
+
+    /**
+     * Gestion des arguments illégaux
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleIllegalArgumentException(
+            IllegalArgumentException ex, WebRequest request) {
+        
+<span class="nc" id="L96">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L97">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Gestion des états illégaux
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleIllegalStateException(
+            IllegalStateException ex, WebRequest request) {
+        
+<span class="nc" id="L107">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L108">        return new ResponseEntity&lt;&gt;(response, HttpStatus.CONFLICT);</span>
+    }
+
+    /**
+     * Gestion des erreurs OAuth2
+     */
+    @ExceptionHandler(OAuth2AuthenticationProcessingException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleOAuth2AuthenticationProcessingException(
+            OAuth2AuthenticationProcessingException ex, WebRequest request) {
+        
+<span class="nc" id="L118">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L119">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Gestion des exceptions générales de l'application
+     */
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleAppException(
+            AppException ex, WebRequest request) {
+        
+<span class="nc" id="L129">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L130">        return new ResponseEntity&lt;&gt;(response, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+    }
+
+    /**
+     * Gestion de toutes les autres exceptions
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleGlobalException(
+            Exception ex, WebRequest request) {
+        
+        // Log l'erreur pour le débogage
+<span class="nc" id="L141">        System.err.println(&quot;Erreur non gérée: &quot; + ex.getMessage());</span>
+<span class="nc" id="L142">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L144">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(</span>
+            false, 
+            &quot;Une erreur interne s'est produite&quot;, 
+            null
+        );
+<span class="nc" id="L149">        return new ResponseEntity&lt;&gt;(response, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

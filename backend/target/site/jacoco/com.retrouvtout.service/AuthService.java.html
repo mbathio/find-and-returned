@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.dto.request.LoginRequest;
+import com.retrouvtout.dto.request.RegisterRequest;
+import com.retrouvtout.dto.response.AuthResponse;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.security.JwtTokenProvider;
+import com.retrouvtout.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Service pour l'authentification et l'autorisation
+ */
+@Service
+@Transactional
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider tokenProvider;
+    private final EmailService emailService;
+    private final RedisTemplate&lt;String, Object&gt; redisTemplate;
+    private final ModelMapper modelMapper;
+
+    @Value(&quot;${app.jwt.expiration}&quot;)
+    private long jwtExpirationInMs;
+
+    @Value(&quot;${app.jwt.refresh-expiration}&quot;)
+    private long refreshTokenExpirationInMs;
+
+    @Value(&quot;${app.frontend.url:http://localhost:3000}&quot;)
+    private String frontendUrl;
+
+    @Autowired
+    public AuthService(UserRepository userRepository,
+                      UserService userService,
+                      PasswordEncoder passwordEncoder,
+                      JwtTokenProvider tokenProvider,
+                      EmailService emailService,
+                      RedisTemplate&lt;String, Object&gt; redisTemplate,
+<span class="nc" id="L53">                      ModelMapper modelMapper) {</span>
+<span class="nc" id="L54">        this.userRepository = userRepository;</span>
+<span class="nc" id="L55">        this.userService = userService;</span>
+<span class="nc" id="L56">        this.passwordEncoder = passwordEncoder;</span>
+<span class="nc" id="L57">        this.tokenProvider = tokenProvider;</span>
+<span class="nc" id="L58">        this.emailService = emailService;</span>
+<span class="nc" id="L59">        this.redisTemplate = redisTemplate;</span>
+<span class="nc" id="L60">        this.modelMapper = modelMapper;</span>
+<span class="nc" id="L61">    }</span>
+
+    /**
+     * Inscription d'un nouvel utilisateur
+     */
+    public AuthResponse register(RegisterRequest request, String clientIp) {
+        // Validation des données
+<span class="nc" id="L68">        validateRegisterRequest(request);</span>
+
+        // Vérifier si l'email existe déjà
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (userService.existsByEmail(request.getEmail())) {</span>
+<span class="nc" id="L72">            throw new IllegalArgumentException(&quot;Un utilisateur avec cet email existe déjà&quot;);</span>
+        }
+
+        // Créer l'utilisateur
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        User.UserRole role = request.getRole() != null ? </span>
+<span class="nc" id="L77">            User.UserRole.fromValue(request.getRole()) : User.UserRole.MIXTE;</span>
+
+<span class="nc" id="L79">        User user = userService.createUser(</span>
+<span class="nc" id="L80">            request.getName(),</span>
+<span class="nc" id="L81">            request.getEmail(),</span>
+<span class="nc" id="L82">            request.getPassword(),</span>
+            role
+        );
+
+<span class="nc bnc" id="L86" title="All 4 branches missed.">        if (request.getPhone() != null &amp;&amp; !request.getPhone().trim().isEmpty()) {</span>
+<span class="nc" id="L87">            user.setPhone(request.getPhone().trim());</span>
+<span class="nc" id="L88">            userRepository.save(user);</span>
+        }
+
+        // Générer les tokens
+<span class="nc" id="L92">        String accessToken = tokenProvider.generateToken(user.getId());</span>
+<span class="nc" id="L93">        String refreshToken = tokenProvider.generateRefreshToken(user.getId());</span>
+
+        // Stocker le refresh token en cache
+<span class="nc" id="L96">        storeRefreshToken(user.getId(), refreshToken);</span>
+
+        // Logger la connexion
+<span class="nc" id="L99">        logAuthEvent(user.getId(), &quot;REGISTER&quot;, clientIp, true);</span>
+
+<span class="nc" id="L101">        return new AuthResponse(</span>
+            accessToken,
+            refreshToken,
+            &quot;Bearer&quot;,
+            jwtExpirationInMs / 1000,
+<span class="nc" id="L106">            modelMapper.mapUserToUserResponse(user)</span>
+        );
+    }
+
+    /**
+     * Connexion d'un utilisateur
+     */
+    public AuthResponse login(LoginRequest request, String clientIp) {
+        // Validation des données
+<span class="nc" id="L115">        validateLoginRequest(request);</span>
+
+        // Rechercher l'utilisateur
+<span class="nc" id="L118">        User user = userService.getUserByEmail(request.getEmail())</span>
+<span class="nc" id="L119">            .orElseThrow(() -&gt; new BadCredentialsException(&quot;Email ou mot de passe incorrect&quot;));</span>
+
+        // Vérifier si le compte est actif
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (!user.getActive()) {</span>
+<span class="nc" id="L123">            throw new IllegalStateException(&quot;Votre compte a été désactivé&quot;);</span>
+        }
+
+        // Vérifier le mot de passe
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (user.getPasswordHash() == null) {</span>
+<span class="nc" id="L128">            throw new BadCredentialsException(&quot;Ce compte n'a pas de mot de passe défini&quot;);</span>
+        }
+
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {</span>
+            // Logger la tentative de connexion échouée
+<span class="nc" id="L133">            logAuthEvent(user.getId(), &quot;LOGIN_FAILED&quot;, clientIp, false);</span>
+<span class="nc" id="L134">            throw new BadCredentialsException(&quot;Email ou mot de passe incorrect&quot;);</span>
+        }
+
+        // Mettre à jour la dernière connexion
+<span class="nc" id="L138">        userService.updateLastLogin(user.getId());</span>
+
+        // Générer les tokens
+<span class="nc" id="L141">        String accessToken = tokenProvider.generateToken(user.getId());</span>
+<span class="nc" id="L142">        String refreshToken = tokenProvider.generateRefreshToken(user.getId());</span>
+
+        // Stocker le refresh token
+<span class="nc" id="L145">        storeRefreshToken(user.getId(), refreshToken);</span>
+
+        // Logger la connexion réussie
+<span class="nc" id="L148">        logAuthEvent(user.getId(), &quot;LOGIN_SUCCESS&quot;, clientIp, true);</span>
+
+<span class="nc" id="L150">        return new AuthResponse(</span>
+            accessToken,
+            refreshToken,
+            &quot;Bearer&quot;,
+            jwtExpirationInMs / 1000,
+<span class="nc" id="L155">            modelMapper.mapUserToUserResponse(user)</span>
+        );
+    }
+
+    /**
+     * Rafraîchissement du token d'accès
+     */
+    public AuthResponse refreshToken(String refreshToken) {
+        // Valider le refresh token
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        if (!tokenProvider.validateToken(refreshToken)) {</span>
+<span class="nc" id="L165">            throw new IllegalArgumentException(&quot;Token de rafraîchissement invalide&quot;);</span>
+        }
+
+        // Extraire l'ID utilisateur
+<span class="nc" id="L169">        String userId = tokenProvider.getUserIdFromToken(refreshToken);</span>
+
+        // Vérifier que le refresh token est stocké
+<span class="nc" id="L172">        String storedToken = getStoredRefreshToken(userId);</span>
+<span class="nc bnc" id="L173" title="All 4 branches missed.">        if (storedToken == null || !storedToken.equals(refreshToken)) {</span>
+<span class="nc" id="L174">            throw new IllegalArgumentException(&quot;Token de rafraîchissement non reconnu&quot;);</span>
+        }
+
+        // Vérifier que l'utilisateur existe et est actif
+<span class="nc" id="L178">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L179">            .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Utilisateur non trouvé ou inactif&quot;));</span>
+
+        // Générer un nouveau token d'accès
+<span class="nc" id="L182">        String newAccessToken = tokenProvider.generateToken(userId);</span>
+
+<span class="nc" id="L184">        return new AuthResponse(</span>
+            newAccessToken,
+            refreshToken, // Garder le même refresh token
+            &quot;Bearer&quot;,
+            jwtExpirationInMs / 1000,
+<span class="nc" id="L189">            modelMapper.mapUserToUserResponse(user)</span>
+        );
+    }
+
+    /**
+     * Déconnexion de l'utilisateur
+     */
+    public void logout(String accessToken) {
+        try {
+            // Extraire l'ID utilisateur du token
+<span class="nc" id="L199">            String userId = tokenProvider.getUserIdFromToken(accessToken);</span>
+
+            // Supprimer le refresh token du cache
+<span class="nc" id="L202">            removeRefreshToken(userId);</span>
+
+            // Blacklister le token d'accès
+<span class="nc" id="L205">            blacklistToken(accessToken);</span>
+
+            // Logger la déconnexion
+<span class="nc" id="L208">            logAuthEvent(userId, &quot;LOGOUT&quot;, null, true);</span>
+<span class="nc" id="L209">        } catch (Exception e) {</span>
+            // Ignore les erreurs lors de la déconnexion
+<span class="nc" id="L211">        }</span>
+<span class="nc" id="L212">    }</span>
+
+    /**
+     * Validation du token d'accès
+     */
+    public boolean validateToken(String token) {
+        try {
+            // Vérifier si le token est blacklisté
+<span class="nc bnc" id="L220" title="All 2 branches missed.">            if (isTokenBlacklisted(token)) {</span>
+<span class="nc" id="L221">                return false;</span>
+            }
+
+<span class="nc" id="L224">            return tokenProvider.validateToken(token);</span>
+<span class="nc" id="L225">        } catch (Exception e) {</span>
+<span class="nc" id="L226">            return false;</span>
+        }
+    }
+
+    /**
+     * Initier la réinitialisation du mot de passe
+     */
+    public void initiatePasswordReset(String email) {
+<span class="nc" id="L234">        Optional&lt;User&gt; userOpt = userService.getUserByEmail(email);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        if (userOpt.isEmpty()) {</span>
+            // Ne pas révéler que l'email n'existe pas
+<span class="nc" id="L237">            return;</span>
+        }
+
+<span class="nc" id="L240">        User user = userOpt.get();</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        if (!user.getActive()) {</span>
+<span class="nc" id="L242">            return;</span>
+        }
+
+        // Générer un token de réinitialisation
+<span class="nc" id="L246">        String resetToken = tokenProvider.generatePasswordResetToken(user.getId());</span>
+
+        // Stocker le token avec une expiration
+<span class="nc" id="L249">        storePasswordResetToken(user.getId(), resetToken);</span>
+
+        // Envoyer l'email de réinitialisation
+        try {
+<span class="nc" id="L253">            emailService.sendPasswordResetEmail(user, resetToken);</span>
+<span class="nc" id="L254">        } catch (Exception e) {</span>
+<span class="nc" id="L255">            System.err.println(&quot;Erreur lors de l'envoi de l'email de réinitialisation: &quot; + e.getMessage());</span>
+<span class="nc" id="L256">        }</span>
+<span class="nc" id="L257">    }</span>
+
+    /**
+     * Réinitialiser le mot de passe
+     */
+    public void resetPassword(String resetToken, String newPassword) {
+        // Valider le token
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (!tokenProvider.validateToken(resetToken)) {</span>
+<span class="nc" id="L265">            throw new IllegalArgumentException(&quot;Token de réinitialisation invalide ou expiré&quot;);</span>
+        }
+
+        // Extraire l'ID utilisateur
+<span class="nc" id="L269">        String userId = tokenProvider.getUserIdFromToken(resetToken);</span>
+
+        // Vérifier que le token est stocké
+<span class="nc" id="L272">        String storedToken = getStoredPasswordResetToken(userId);</span>
+<span class="nc bnc" id="L273" title="All 4 branches missed.">        if (storedToken == null || !storedToken.equals(resetToken)) {</span>
+<span class="nc" id="L274">            throw new IllegalArgumentException(&quot;Token de réinitialisation non reconnu&quot;);</span>
+        }
+
+        // Réinitialiser le mot de passe
+<span class="nc" id="L278">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L279">            .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Utilisateur non trouvé&quot;));</span>
+
+<span class="nc" id="L281">        user.setPasswordHash(passwordEncoder.encode(newPassword));</span>
+<span class="nc" id="L282">        userRepository.save(user);</span>
+
+        // Supprimer le token de réinitialisation
+<span class="nc" id="L285">        removePasswordResetToken(userId);</span>
+
+        // Supprimer tous les refresh tokens de l'utilisateur
+<span class="nc" id="L288">        removeRefreshToken(userId);</span>
+
+        // Logger l'événement
+<span class="nc" id="L291">        logAuthEvent(userId, &quot;PASSWORD_RESET&quot;, null, true);</span>
+<span class="nc" id="L292">    }</span>
+
+    /**
+     * Vérifier l'email d'un utilisateur
+     */
+    public void verifyEmail(String verificationToken) {
+        // Valider le token
+<span class="nc bnc" id="L299" title="All 2 branches missed.">        if (!tokenProvider.validateToken(verificationToken)) {</span>
+<span class="nc" id="L300">            throw new IllegalArgumentException(&quot;Token de vérification invalide ou expiré&quot;);</span>
+        }
+
+        // Extraire l'ID utilisateur
+<span class="nc" id="L304">        String userId = tokenProvider.getUserIdFromToken(verificationToken);</span>
+
+        // Vérifier l'email
+<span class="nc" id="L307">        userService.verifyUserEmail(userId);</span>
+
+        // Logger l'événement
+<span class="nc" id="L310">        logAuthEvent(userId, &quot;EMAIL_VERIFIED&quot;, null, true);</span>
+<span class="nc" id="L311">    }</span>
+
+    /**
+     * Renvoyer l'email de vérification
+     */
+    public void resendVerificationEmail(String email) {
+<span class="nc" id="L317">        Optional&lt;User&gt; userOpt = userService.getUserByEmail(email);</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">        if (userOpt.isEmpty()) {</span>
+<span class="nc" id="L319">            return; // Ne pas révéler que l'email n'existe pas</span>
+        }
+
+<span class="nc" id="L322">        User user = userOpt.get();</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">        if (user.getEmailVerified()) {</span>
+<span class="nc" id="L324">            return; // Email déjà vérifié</span>
+        }
+
+        try {
+<span class="nc" id="L328">            emailService.sendEmailVerification(user);</span>
+<span class="nc" id="L329">        } catch (Exception e) {</span>
+<span class="nc" id="L330">            System.err.println(&quot;Erreur lors de l'envoi de l'email de vérification: &quot; + e.getMessage());</span>
+<span class="nc" id="L331">        }</span>
+<span class="nc" id="L332">    }</span>
+
+    /**
+     * Obtenir l'URL d'authentification Google
+     */
+    public String getGoogleAuthUrl() {
+        // Implémentation pour générer l'URL OAuth2 Google
+<span class="nc" id="L339">        return frontendUrl + &quot;/auth/google&quot;;</span>
+    }
+
+    /**
+     * Obtenir l'URL d'authentification Facebook
+     */
+    public String getFacebookAuthUrl() {
+        // Implémentation pour générer l'URL OAuth2 Facebook
+<span class="nc" id="L347">        return frontendUrl + &quot;/auth/facebook&quot;;</span>
+    }
+
+    /**
+     * Traiter le callback OAuth2
+     */
+    public AuthResponse processOAuth2Callback(String provider, String code, String state, String clientIp) {
+        // Implémentation du traitement OAuth2
+        // Cette méthode devrait échanger le code contre un token et récupérer les infos utilisateur
+<span class="nc" id="L356">        throw new UnsupportedOperationException(&quot;OAuth2 callback processing not implemented yet&quot;);</span>
+    }
+
+    // Méthodes privées utilitaires
+
+    private void validateRegisterRequest(RegisterRequest request) {
+<span class="nc bnc" id="L362" title="All 4 branches missed.">        if (request.getName() == null || request.getName().trim().isEmpty()) {</span>
+<span class="nc" id="L363">            throw new IllegalArgumentException(&quot;Le nom est obligatoire&quot;);</span>
+        }
+<span class="nc bnc" id="L365" title="All 4 branches missed.">        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {</span>
+<span class="nc" id="L366">            throw new IllegalArgumentException(&quot;L'email est obligatoire&quot;);</span>
+        }
+<span class="nc bnc" id="L368" title="All 4 branches missed.">        if (request.getPassword() == null || request.getPassword().length() &lt; 8) {</span>
+<span class="nc" id="L369">            throw new IllegalArgumentException(&quot;Le mot de passe doit contenir au moins 8 caractères&quot;);</span>
+        }
+<span class="nc" id="L371">    }</span>
+
+    private void validateLoginRequest(LoginRequest request) {
+<span class="nc bnc" id="L374" title="All 4 branches missed.">        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {</span>
+<span class="nc" id="L375">            throw new IllegalArgumentException(&quot;L'email est obligatoire&quot;);</span>
+        }
+<span class="nc bnc" id="L377" title="All 4 branches missed.">        if (request.getPassword() == null || request.getPassword().isEmpty()) {</span>
+<span class="nc" id="L378">            throw new IllegalArgumentException(&quot;Le mot de passe est obligatoire&quot;);</span>
+        }
+<span class="nc" id="L380">    }</span>
+
+    private void storeRefreshToken(String userId, String refreshToken) {
+<span class="nc" id="L383">        String key = &quot;refresh_token:&quot; + userId;</span>
+<span class="nc" id="L384">        redisTemplate.opsForValue().set(key, refreshToken, </span>
+            refreshTokenExpirationInMs, TimeUnit.MILLISECONDS);
+<span class="nc" id="L386">    }</span>
+
+    private String getStoredRefreshToken(String userId) {
+<span class="nc" id="L389">        String key = &quot;refresh_token:&quot; + userId;</span>
+<span class="nc" id="L390">        return (String) redisTemplate.opsForValue().get(key);</span>
+    }
+
+    private void removeRefreshToken(String userId) {
+<span class="nc" id="L394">        String key = &quot;refresh_token:&quot; + userId;</span>
+<span class="nc" id="L395">        redisTemplate.delete(key);</span>
+<span class="nc" id="L396">    }</span>
+
+    private void storePasswordResetToken(String userId, String resetToken) {
+<span class="nc" id="L399">        String key = &quot;password_reset:&quot; + userId;</span>
+<span class="nc" id="L400">        redisTemplate.opsForValue().set(key, resetToken, 1, TimeUnit.HOURS);</span>
+<span class="nc" id="L401">    }</span>
+
+    private String getStoredPasswordResetToken(String userId) {
+<span class="nc" id="L404">        String key = &quot;password_reset:&quot; + userId;</span>
+<span class="nc" id="L405">        return (String) redisTemplate.opsForValue().get(key);</span>
+    }
+
+    private void removePasswordResetToken(String userId) {
+<span class="nc" id="L409">        String key = &quot;password_reset:&quot; + userId;</span>
+<span class="nc" id="L410">        redisTemplate.delete(key);</span>
+<span class="nc" id="L411">    }</span>
+
+    private void blacklistToken(String token) {
+<span class="nc" id="L414">        String key = &quot;blacklisted_token:&quot; + token;</span>
+<span class="nc" id="L415">        long expiration = tokenProvider.getExpirationFromToken(token).getTime() - System.currentTimeMillis();</span>
+<span class="nc bnc" id="L416" title="All 2 branches missed.">        if (expiration &gt; 0) {</span>
+<span class="nc" id="L417">            redisTemplate.opsForValue().set(key, &quot;blacklisted&quot;, expiration, TimeUnit.MILLISECONDS);</span>
+        }
+<span class="nc" id="L419">    }</span>
+
+    private boolean isTokenBlacklisted(String token) {
+<span class="nc" id="L422">        String key = &quot;blacklisted_token:&quot; + token;</span>
+<span class="nc" id="L423">        return redisTemplate.hasKey(key);</span>
+    }
+
+    private void logAuthEvent(String userId, String eventType, String clientIp, boolean success) {
+        // Implémentation du logging des événements d'authentification
+<span class="nc" id="L428">        System.out.println(String.format(</span>
+            &quot;Auth Event - User: %s, Type: %s, IP: %s, Success: %s, Time: %s&quot;,
+<span class="nc" id="L430">            userId, eventType, clientIp, success, LocalDateTime.now()</span>
+        ));
+<span class="nc" id="L432">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

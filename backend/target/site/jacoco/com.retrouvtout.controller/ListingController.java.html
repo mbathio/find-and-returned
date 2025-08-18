@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListingController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">ListingController.java</span></div><h1>ListingController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.dto.request.CreateListingRequest;
+import com.retrouvtout.dto.request.UpdateListingRequest;
+import com.retrouvtout.dto.response.ApiResponse;
+import com.retrouvtout.dto.response.ListingResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.entity.Listing;
+import com.retrouvtout.security.UserPrincipal;
+import com.retrouvtout.service.ListingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import com.retrouvtout.dto.response.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * Contrôleur pour la gestion des annonces d'objets retrouvés
+ */
+@RestController
+@RequestMapping(&quot;/listings&quot;)
+@Tag(name = &quot;Listings&quot;, description = &quot;API de gestion des annonces d'objets retrouvés&quot;)
+@CrossOrigin(origins = {&quot;${app.cors.allowed-origins}&quot;})
+public class ListingController {
+
+    private final ListingService listingService;
+
+    @Autowired
+<span class="nc" id="L45">    public ListingController(ListingService listingService) {</span>
+<span class="nc" id="L46">        this.listingService = listingService;</span>
+<span class="nc" id="L47">    }</span>
+
+    /**
+     * Recherche d'annonces avec filtres et pagination
+     */
+    @GetMapping
+    @Operation(summary = &quot;Rechercher des annonces d'objets retrouvés&quot;)
+    @ApiResponses(value = {
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Liste des annonces trouvées&quot;)
+    })
+    public ResponseEntity&lt;ApiResponse&lt;PagedResponse&lt;ListingResponse&gt;&gt;&gt; searchListings(
+            @Parameter(description = &quot;Mot-clé de recherche&quot;)
+            @RequestParam(required = false) String q,
+            
+            @Parameter(description = &quot;Catégorie d'objet&quot;)
+            @RequestParam(required = false) String category,
+            
+            @Parameter(description = &quot;Texte de localisation&quot;)
+            @RequestParam(required = false) String location,
+            
+            @Parameter(description = &quot;Latitude pour recherche géographique&quot;)
+            @RequestParam(required = false) BigDecimal lat,
+            
+            @Parameter(description = &quot;Longitude pour recherche géographique&quot;)
+            @RequestParam(required = false) BigDecimal lng,
+            
+            @Parameter(description = &quot;Rayon de recherche en kilomètres&quot;)
+            @RequestParam(required = false, defaultValue = &quot;10&quot;) Double radiusKm,
+            
+            @Parameter(description = &quot;Date de début pour la recherche&quot;)
+            @RequestParam(required = false) LocalDate dateFrom,
+            
+            @Parameter(description = &quot;Date de fin pour la recherche&quot;)
+            @RequestParam(required = false) LocalDate dateTo,
+            
+            @Parameter(description = &quot;Numéro de page (commence à 1)&quot;)
+            @RequestParam(defaultValue = &quot;1&quot;) int page,
+            
+            @Parameter(description = &quot;Taille de la page&quot;)
+            @RequestParam(defaultValue = &quot;20&quot;) int pageSize,
+            
+            @Parameter(description = &quot;Critère de tri&quot;)
+            @RequestParam(defaultValue = &quot;createdAt&quot;) String sortBy,
+            
+            @Parameter(description = &quot;Direction du tri (ASC/DESC)&quot;)
+            @RequestParam(defaultValue = &quot;DESC&quot;) String sortDir) {
+
+        // Validation des paramètres
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (page &lt; 1) page = 1;</span>
+<span class="nc bnc" id="L96" title="All 4 branches missed.">        if (pageSize &lt; 1 || pageSize &gt; 100) pageSize = 20;</span>
+
+        // Création du Pageable
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        Sort.Direction direction = sortDir.equalsIgnoreCase(&quot;ASC&quot;) ? </span>
+<span class="nc" id="L100">            Sort.Direction.ASC : Sort.Direction.DESC;</span>
+<span class="nc" id="L101">        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(direction, sortBy));</span>
+
+        // Recherche des annonces
+<span class="nc" id="L104">        Page&lt;ListingResponse&gt; listings = listingService.searchListings(</span>
+            q, category, location, lat, lng, radiusKm, 
+            dateFrom, dateTo, pageable
+        );
+
+<span class="nc" id="L109">        PagedResponse&lt;ListingResponse&gt; pagedResponse = new PagedResponse&lt;&gt;(</span>
+<span class="nc" id="L110">            listings.getContent(),</span>
+<span class="nc" id="L111">            listings.getNumber() + 1,</span>
+<span class="nc" id="L112">            listings.getSize(),</span>
+<span class="nc" id="L113">            listings.getTotalElements(),</span>
+<span class="nc" id="L114">            listings.getTotalPages(),</span>
+<span class="nc" id="L115">            listings.isLast()</span>
+        );
+
+<span class="nc" id="L118">        return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+            true,
+            &quot;Recherche effectuée avec succès&quot;,
+            pagedResponse
+        ));
+    }
+
+    /**
+     * Obtenir une annonce par son ID
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Obtenir une annonce par son ID&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description =
+&quot;Annonce trouvée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Annonce non trouvée&quot;)
+    })
+    public ResponseEntity&lt;ApiResponse&lt;ListingResponse&gt;&gt; getListing(
+            @Parameter(description = &quot;ID de l'annonce&quot;)
+            @PathVariable String id) {
+
+        try {
+<span class="nc" id="L140">            ListingResponse listing = listingService.getListingById(id);</span>
+            
+<span class="nc" id="L142">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Annonce trouvée&quot;,
+                listing
+            ));
+<span class="nc" id="L147">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L148">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    /**
+     * Créer une nouvelle annonce
+     */
+    @PostMapping
+    @Operation(summary = &quot;Créer une nouvelle annonce d'objet retrouvé&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;201&quot;, description = &quot;Annonce créée avec succès&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ListingResponse&gt;&gt; createListing(
+            @Valid @RequestBody CreateListingRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L169">            ListingResponse listing = listingService.createListing(request, userPrincipal.getId());</span>
+            
+<span class="nc" id="L171">            return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L172">                .body(new ApiResponse&lt;&gt;(</span>
+                    true,
+                    &quot;Annonce créée avec succès&quot;,
+                    listing
+                ));
+<span class="nc" id="L177">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L178">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L179">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+<span class="nc" id="L181">                    e.getMessage(),</span>
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Mettre à jour une annonce existante
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Mettre à jour une annonce existante&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description =
+&quot;Annonce mise à jour avec succès&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;403&quot;, description = &quot;Non autorisé&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Annonce non trouvée&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ListingResponse&gt;&gt; updateListing(
+            @Parameter(description = &quot;ID de l'annonce&quot;)
+            @PathVariable String id,
+            @Valid @RequestBody UpdateListingRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L209">            ListingResponse listing = listingService.updateListing(id, request, userPrincipal.getId());</span>
+            
+<span class="nc" id="L211">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Annonce mise à jour avec succès&quot;,
+                listing
+            ));
+<span class="nc" id="L216">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L217">            return ResponseEntity.notFound().build();</span>
+<span class="nc" id="L218">        } catch (SecurityException e) {</span>
+<span class="nc" id="L219">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L220">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+                    &quot;Vous n'êtes pas autorisé à modifier cette annonce&quot;,
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Supprimer une annonce
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Supprimer une annonce&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description =
+ &quot;Annonce supprimée avec succès&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;403&quot;, description = &quot;Non autorisé&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Annonce non trouvée&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; deleteListing(
+            @Parameter(description = &quot;ID de l'annonce&quot;)
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L248">            listingService.deleteListing(id, userPrincipal.getId());</span>
+            
+<span class="nc" id="L250">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Annonce supprimée avec succès&quot;,
+                null
+            ));
+<span class="nc" id="L255">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L256">            return ResponseEntity.notFound().build();</span>
+<span class="nc" id="L257">        } catch (SecurityException e) {</span>
+<span class="nc" id="L258">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L259">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+                    &quot;Vous n'êtes pas autorisé à supprimer cette annonce&quot;,
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Marquer une annonce comme résolue
+     */
+    @PatchMapping(&quot;/{id}/resolve&quot;)
+    @Operation(summary = &quot;Marquer une annonce comme résolue&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description =
+&quot;Annonce marquée comme résolue&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;403&quot;, description = &quot;Non autorisé&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Annonce non trouvée&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;ListingResponse&gt;&gt; resolveListing(
+            @Parameter(description = &quot;ID de l'annonce&quot;)
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L287">            ListingResponse listing = listingService.resolveListing(id, userPrincipal.getId());</span>
+            
+<span class="nc" id="L289">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Annonce marquée comme résolue&quot;,
+                listing
+            ));
+<span class="nc" id="L294">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L295">            return ResponseEntity.notFound().build();</span>
+<span class="nc" id="L296">        } catch (SecurityException e) {</span>
+<span class="nc" id="L297">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L298">                .body(new ApiResponse&lt;&gt;(</span>
+                    false,
+                    &quot;Vous n'êtes pas autorisé à modifier cette annonce&quot;,
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Obtenir les annonces d'un utilisateur
+     */
+    @GetMapping(&quot;/user/{userId}&quot;)
+    @Operation(summary = &quot;Obtenir les annonces d'un utilisateur&quot;)
+    @ApiResponses(value = {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = 
+ &quot;Liste des annonces de l'utilisateur&quot;)
+    })
+    public ResponseEntity&lt;ApiResponse&lt;PagedResponse&lt;ListingResponse&gt;&gt;&gt; getUserListings(
+            @Parameter(description = &quot;ID de l'utilisateur&quot;)
+            @PathVariable String userId,
+            
+            @Parameter(description = &quot;Statut des annonces (active, resolu)&quot;)
+            @RequestParam(required = false) String status,
+            
+            @Parameter(description = &quot;Numéro de page&quot;)
+            @RequestParam(defaultValue = &quot;1&quot;) int page,
+            
+            @Parameter(description = &quot;Taille de la page&quot;)
+            @RequestParam(defaultValue = &quot;20&quot;) int pageSize) {
+
+<span class="nc bnc" id="L328" title="All 2 branches missed.">        if (page &lt; 1) page = 1;</span>
+<span class="nc bnc" id="L329" title="All 4 branches missed.">        if (pageSize &lt; 1 || pageSize &gt; 100) pageSize = 20;</span>
+
+<span class="nc" id="L331">        Pageable pageable = PageRequest.of(page - 1, pageSize, </span>
+<span class="nc" id="L332">            Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;));</span>
+
+<span class="nc" id="L334">        Page&lt;ListingResponse&gt; listings = listingService.getUserListings(</span>
+            userId, status, pageable);
+
+<span class="nc" id="L337">        PagedResponse&lt;ListingResponse&gt; pagedResponse = new PagedResponse&lt;&gt;(</span>
+<span class="nc" id="L338">            listings.getContent(),</span>
+<span class="nc" id="L339">            listings.getNumber() + 1,</span>
+<span class="nc" id="L340">            listings.getSize(),</span>
+<span class="nc" id="L341">            listings.getTotalElements(),</span>
+<span class="nc" id="L342">            listings.getTotalPages(),</span>
+<span class="nc" id="L343">            listings.isLast()</span>
+        );
+
+<span class="nc" id="L346">        return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+            true,
+            &quot;Annonces de l'utilisateur récupérées&quot;,
+            pagedResponse
+        ));
+    }
+
+    /**
+     * Obtenir les annonces similaires
+     */
+    @GetMapping(&quot;/{id}/similar&quot;)
+    @Operation(summary = &quot;Obtenir des annonces similaires&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Liste des annonces similaires&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Annonce non trouvée&quot;)
+    })
+    public ResponseEntity&lt;ApiResponse&lt;List&lt;ListingResponse&gt;&gt;&gt; getSimilarListings(
+            @Parameter(description = &quot;ID de l'annonce de référence&quot;)
+            @PathVariable String id,
+            
+            @Parameter(description = &quot;Nombre maximum d'annonces similaires&quot;)
+            @RequestParam(defaultValue = &quot;5&quot;) int limit) {
+
+        try {
+<span class="nc" id="L370">            List&lt;ListingResponse&gt; similarListings = listingService.getSimilarListings(id, limit);</span>
+            
+<span class="nc" id="L372">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Annonces similaires trouvées&quot;,
+                similarListings
+            ));
+<span class="nc" id="L377">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L378">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    /**
+     * Incrémenter le compteur de vues d'une annonce
+     */
+    @PostMapping(&quot;/{id}/view&quot;)
+    @Operation(summary = &quot;Incrémenter le compteur de vues&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Vue comptabilisée&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Annonce non trouvée&quot;)
+    })
+    public ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; incrementViewCount(
+            @Parameter(description = &quot;ID de l'annonce&quot;)
+            @PathVariable String id) {
+
+        try {
+<span class="nc" id="L396">            listingService.incrementViewCount(id);</span>
+            
+<span class="nc" id="L398">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Vue comptabilisée&quot;,
+                null
+            ));
+<span class="nc" id="L403">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L404">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

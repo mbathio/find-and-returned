@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppConstants.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.util</a> &gt; <span class="el_source">AppConstants.java</span></div><h1>AppConstants.java</h1><pre class="source lang-java linenums">// AppConstants.java - Constantes de l'application
+package com.retrouvtout.util;
+
+/**
+ * Constantes de l'application
+ */
+public final class AppConstants {
+
+    // Configuration pagination
+    public static final int DEFAULT_PAGE_SIZE = 20;
+    public static final int MAX_PAGE_SIZE = 100;
+    public static final int MIN_PAGE_SIZE = 1;
+
+    // Configuration upload
+    public static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+<span class="nc" id="L16">    public static final String[] ALLOWED_IMAGE_TYPES = {&quot;image/jpeg&quot;, &quot;image/png&quot;, &quot;image/gif&quot;, &quot;image/webp&quot;};</span>
+<span class="nc" id="L17">    public static final String[] ALLOWED_IMAGE_EXTENSIONS = {&quot;jpg&quot;, &quot;jpeg&quot;, &quot;png&quot;, &quot;gif&quot;, &quot;webp&quot;};</span>
+
+    // Configuration cache
+    public static final String CACHE_LISTINGS = &quot;listings&quot;;
+    public static final String CACHE_USERS = &quot;users&quot;;
+    public static final String CACHE_THREADS = &quot;threads&quot;;
+    public static final long CACHE_TTL_MINUTES = 10;
+
+    // Configuration alerts
+    public static final double DEFAULT_RADIUS_KM = 10.0;
+    public static final double MAX_RADIUS_KM = 100.0;
+    public static final int MAX_ALERTS_PER_USER = 20;
+
+    // Configuration messages
+    public static final int MAX_MESSAGE_LENGTH = 2000;
+    public static final int MAX_THREAD_AGE_DAYS = 90;
+
+    // Configuration modération
+    public static final int MAX_LISTINGS_PER_DAY = 10;
+    public static final int MAX_MESSAGES_PER_HOUR = 50;
+
+    // Configuration notifications
+    public static final int NOTIFICATION_BATCH_SIZE = 100;
+    public static final long NOTIFICATION_RETRY_DELAY_MS = 5000;
+
+    // Patterns de validation
+    public static final String UUID_REGEX = &quot;^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$&quot;;
+    public static final String EMAIL_REGEX = &quot;^[a-zA-Z0-9_+&amp;*-]+(?:\\.[a-zA-Z0-9_+&amp;*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$&quot;;
+    public static final String PHONE_REGEX = &quot;^(?:\\+33|0)[1-9](?:[0-9]{8})$&quot;;
+
+    // Messages par défaut
+    public static final String DEFAULT_SUCCESS_MESSAGE = &quot;Opération réussie&quot;;
+    public static final String DEFAULT_ERROR_MESSAGE = &quot;Une erreur est survenue&quot;;
+    public static final String DEFAULT_NOT_FOUND_MESSAGE = &quot;Ressource non trouvée&quot;;
+    public static final String DEFAULT_UNAUTHORIZED_MESSAGE = &quot;Accès non autorisé&quot;;
+
+    // Catégories d'objets
+<span class="nc" id="L54">    public static final String[] LISTING_CATEGORIES = {</span>
+        &quot;cles&quot;, &quot;electronique&quot;, &quot;bagagerie&quot;, &quot;documents&quot;, &quot;autre&quot;
+    };
+
+    // Statuts d'annonce
+<span class="nc" id="L59">    public static final String[] LISTING_STATUSES = {</span>
+        &quot;active&quot;, &quot;resolu&quot;, &quot;suspendu&quot;, &quot;supprime&quot;
+    };
+
+    // Rôles utilisateur
+<span class="nc" id="L64">    public static final String[] USER_ROLES = {</span>
+        &quot;retrouveur&quot;, &quot;proprietaire&quot;, &quot;mixte&quot;
+    };
+
+    // Constructeur privé pour empêcher l'instanciation
+<span class="nc" id="L69">    private AppConstants() {</span>
+<span class="nc" id="L70">        throw new AssertionError(&quot;Utility class should not be instantiated&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

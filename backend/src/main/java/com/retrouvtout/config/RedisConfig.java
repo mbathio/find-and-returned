@@ -3,8 +3,7 @@ package com.retrouvtout.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.CollectionType;
-import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
@@ -68,16 +67,9 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // Configuration du sérialiseur JSON
+        // Configuration du sérialiseur JSON avec la nouvelle API
         Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = 
-            new Jackson2JsonRedisSerializer<>(Object.class);
-        
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
-        
-        jackson2JsonRedisSerializer.setObjectMapper(objectMapper);
+            new Jackson2JsonRedisSerializer<>(createObjectMapper(), Object.class);
 
         // Configuration des sérialiseurs
         StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
@@ -86,25 +78,6 @@ public class RedisConfig {
         template.setHashKeySerializer(stringRedisSerializer);
         template.setValueSerializer(jackson2JsonRedisSerializer);
         template.setHashValueSerializer(jackson2JsonRedisSerializer);
-        
-        template.afterPropertiesSet();
-        
-        return template;
-    }
-
-    /**
-     * Template Redis pour les chaînes de caractères
-     */
-    @Bean
-    public RedisTemplate<String, String> stringRedisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, String> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
-        
-        StringRedisSerializer stringSerializer = new StringRedisSerializer();
-        template.setKeySerializer(stringSerializer);
-        template.setValueSerializer(stringSerializer);
-        template.setHashKeySerializer(stringSerializer);
-        template.setHashValueSerializer(stringSerializer);
         
         template.afterPropertiesSet();
         
@@ -123,5 +96,24 @@ public class RedisConfig {
         return RedisCacheManager.builder(redisConnectionFactory)
             .cacheDefaults(config)
             .build();
+    }
+
+    /**
+     * Créer ObjectMapper configuré pour Redis
+     */
+    private ObjectMapper createObjectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        objectMapper.registerModule(new JavaTimeModule());
+        
+        // Nouvelle façon de configurer le typage polymorphique
+        objectMapper.activateDefaultTyping(
+            BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType(Object.class)
+                .build(),
+            ObjectMapper.DefaultTyping.NON_FINAL
+        );
+        
+        return objectMapper;
     }
 }

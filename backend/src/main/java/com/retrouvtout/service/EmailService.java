@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Locale;
 
 /**
@@ -147,15 +148,28 @@ public class EmailService {
      * Méthode générique pour envoyer un email HTML
      */
     private void sendHtmlEmail(String to, String subject, String content) throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setFrom(fromEmail, fromName);
-        helper.setTo(to);
-        helper.setSubject(subject);
-        helper.setText(content, true);
+            helper.setFrom(fromEmail, fromName);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(content, true);
 
-        mailSender.send(message);
+            mailSender.send(message);
+        } catch (UnsupportedEncodingException e) {
+            // Si on ne peut pas définir le nom de l'expéditeur, on utilise juste l'email
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(content, true);
+
+            mailSender.send(message);
+        }
     }
 
     /**

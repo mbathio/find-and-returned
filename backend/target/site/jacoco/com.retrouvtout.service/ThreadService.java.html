@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ThreadService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">ThreadService.java</span></div><h1>ThreadService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.dto.response.ThreadResponse;
+import com.retrouvtout.entity.Listing;
+import com.retrouvtout.entity.Thread;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.exception.ResourceNotFoundException;
+import com.retrouvtout.repository.ListingRepository;
+import com.retrouvtout.repository.ThreadRepository;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+/**
+ * Service pour la gestion des threads de conversation
+ */
+@Service
+@Transactional
+public class ThreadService {
+
+    private final ThreadRepository threadRepository;
+    private final ListingRepository listingRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
+
+    @Autowired
+    public ThreadService(ThreadRepository threadRepository,
+                        ListingRepository listingRepository,
+                        UserRepository userRepository,
+                        ModelMapper modelMapper,
+<span class="nc" id="L38">                        NotificationService notificationService) {</span>
+<span class="nc" id="L39">        this.threadRepository = threadRepository;</span>
+<span class="nc" id="L40">        this.listingRepository = listingRepository;</span>
+<span class="nc" id="L41">        this.userRepository = userRepository;</span>
+<span class="nc" id="L42">        this.modelMapper = modelMapper;</span>
+<span class="nc" id="L43">        this.notificationService = notificationService;</span>
+<span class="nc" id="L44">    }</span>
+
+    /**
+     * Créer un nouveau thread de conversation
+     */
+    public ThreadResponse createThread(String listingId, String ownerUserId) {
+<span class="nc" id="L50">        User ownerUser = userRepository.findByIdAndActiveTrue(ownerUserId)</span>
+<span class="nc" id="L51">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, ownerUserId));</span>
+
+<span class="nc" id="L53">        Listing listing = listingRepository.findById(listingId)</span>
+<span class="nc" id="L54">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Annonce&quot;, &quot;id&quot;, listingId));</span>
+
+        // Vérifier que l'utilisateur n'est pas le créateur de l'annonce
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (listing.getFinderUser().getId().equals(ownerUserId)) {</span>
+<span class="nc" id="L58">            throw new IllegalArgumentException(&quot;Vous ne pouvez pas créer une conversation avec vous-même&quot;);</span>
+        }
+
+        // Vérifier qu'une conversation n'existe pas déjà
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (threadRepository.findByListingAndOwnerUser(listing, ownerUser).isPresent()) {</span>
+<span class="nc" id="L63">            throw new IllegalStateException(&quot;Une conversation existe déjà pour cette annonce&quot;);</span>
+        }
+
+        // Créer le thread
+<span class="nc" id="L67">        Thread thread = new Thread();</span>
+<span class="nc" id="L68">        thread.setId(java.util.UUID.randomUUID().toString());</span>
+<span class="nc" id="L69">        thread.setListing(listing);</span>
+<span class="nc" id="L70">        thread.setOwnerUser(ownerUser);</span>
+<span class="nc" id="L71">        thread.setFinderUser(listing.getFinderUser());</span>
+<span class="nc" id="L72">        thread.setStatus(Thread.ThreadStatus.PENDING);</span>
+<span class="nc" id="L73">        thread.setApprovedByOwner(false);</span>
+<span class="nc" id="L74">        thread.setApprovedByFinder(false);</span>
+
+<span class="nc" id="L76">        Thread savedThread = threadRepository.save(thread);</span>
+
+        // Notifier le retrouveur
+        try {
+<span class="nc" id="L80">            String title = &quot;Nouvelle demande de contact&quot;;</span>
+<span class="nc" id="L81">            String body = String.format(&quot;Quelqu'un s'intéresse à votre annonce : %s&quot;, listing.getTitle());</span>
+<span class="nc" id="L82">            String url = &quot;/messages/&quot; + savedThread.getId();</span>
+
+<span class="nc" id="L84">            notificationService.sendPushNotification(</span>
+<span class="nc" id="L85">                listing.getFinderUser().getId(), title, body, url);</span>
+<span class="nc" id="L86">        } catch (Exception e) {</span>
+<span class="nc" id="L87">            System.err.println(&quot;Erreur lors de l'envoi de la notification: &quot; + e.getMessage());</span>
+<span class="nc" id="L88">        }</span>
+
+<span class="nc" id="L90">        return modelMapper.mapThreadToThreadResponse(savedThread);</span>
+    }
+
+    /**
+     * Obtenir les threads d'un utilisateur
+     */
+    @Transactional(readOnly = true)
+    public Page&lt;ThreadResponse&gt; getUserThreads(String userId, String status, Pageable pageable) {
+<span class="nc" id="L98">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L99">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+        Page&lt;Thread&gt; threads;
+        
+<span class="nc bnc" id="L103" title="All 4 branches missed.">        if (status != null &amp;&amp; !status.trim().isEmpty()) {</span>
+<span class="nc" id="L104">            Thread.ThreadStatus threadStatus = Thread.ThreadStatus.fromValue(status);</span>
+<span class="nc" id="L105">            threads = threadRepository.findByUserInvolvedAndStatus(user, threadStatus, pageable);</span>
+<span class="nc" id="L106">        } else {</span>
+<span class="nc" id="L107">            threads = threadRepository.findByUserInvolved(user, pageable);</span>
+        }
+
+<span class="nc" id="L110">        return threads.map(modelMapper::mapThreadToThreadResponse);</span>
+    }
+
+    /**
+     * Obtenir un thread par son ID
+     */
+    @Transactional(readOnly = true)
+    public ThreadResponse getThreadById(String id, String userId) {
+<span class="nc" id="L118">        Thread thread = threadRepository.findById(id)</span>
+<span class="nc" id="L119">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Thread&quot;, &quot;id&quot;, id));</span>
+
+        // Vérifier que l'utilisateur fait partie du thread
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (!thread.getOwnerUser().getId().equals(userId) &amp;&amp; </span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            !thread.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L124">            throw new SecurityException(&quot;Vous n'êtes pas autorisé à accéder à cette conversation&quot;);</span>
+        }
+
+<span class="nc" id="L127">        return modelMapper.mapThreadToThreadResponse(thread);</span>
+    }
+
+    /**
+     * Approuver un thread (par le retrouveur)
+     */
+    public ThreadResponse approveThread(String id, String userId) {
+<span class="nc" id="L134">        Thread thread = threadRepository.findById(id)</span>
+<span class="nc" id="L135">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Thread&quot;, &quot;id&quot;, id));</span>
+
+        // Seul le retrouveur peut approuver
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        if (!thread.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L139">            throw new SecurityException(&quot;Seul le retrouveur peut approuver cette conversation&quot;);</span>
+        }
+
+<span class="nc" id="L142">        thread.setApprovedByFinder(true);</span>
+        
+        // Si les deux parties ont approuvé, changer le statut
+<span class="nc bnc" id="L145" title="All 4 branches missed.">        if (thread.getApprovedByOwner() &amp;&amp; thread.getApprovedByFinder()) {</span>
+<span class="nc" id="L146">            thread.setStatus(Thread.ThreadStatus.APPROVED);</span>
+        }
+
+<span class="nc" id="L149">        Thread updatedThread = threadRepository.save(thread);</span>
+
+        // Notifier l'autre partie
+        try {
+<span class="nc" id="L153">            String title = &quot;Conversation approuvée&quot;;</span>
+<span class="nc" id="L154">            String body = &quot;Votre demande de contact a été acceptée&quot;;</span>
+<span class="nc" id="L155">            String url = &quot;/messages/&quot; + thread.getId();</span>
+
+<span class="nc" id="L157">            notificationService.sendPushNotification(</span>
+<span class="nc" id="L158">                thread.getOwnerUser().getId(), title, body, url);</span>
+<span class="nc" id="L159">        } catch (Exception e) {</span>
+<span class="nc" id="L160">            System.err.println(&quot;Erreur lors de l'envoi de la notification: &quot; + e.getMessage());</span>
+<span class="nc" id="L161">        }</span>
+
+<span class="nc" id="L163">        return modelMapper.mapThreadToThreadResponse(updatedThread);</span>
+    }
+
+    /**
+     * Fermer un thread
+     */
+    public ThreadResponse closeThread(String id, String userId) {
+<span class="nc" id="L170">        Thread thread = threadRepository.findById(id)</span>
+<span class="nc" id="L171">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Thread&quot;, &quot;id&quot;, id));</span>
+
+        // Vérifier que l'utilisateur fait partie du thread
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        if (!thread.getOwnerUser().getId().equals(userId) &amp;&amp; </span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">            !thread.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L176">            throw new SecurityException(&quot;Vous n'êtes pas autorisé à fermer cette conversation&quot;);</span>
+        }
+
+<span class="nc" id="L179">        thread.setStatus(Thread.ThreadStatus.CLOSED);</span>
+<span class="nc" id="L180">        Thread updatedThread = threadRepository.save(thread);</span>
+
+<span class="nc" id="L182">        return modelMapper.mapThreadToThreadResponse(updatedThread);</span>
+    }
+
+    /**
+     * Obtenir le nombre de conversations non lues pour un utilisateur
+     */
+    @Transactional(readOnly = true)
+    public long getUnreadThreadsCount(String userId) {
+<span class="nc" id="L190">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L191">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+<span class="nc" id="L193">        return threadRepository.countUnreadThreadsForUser(user);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
