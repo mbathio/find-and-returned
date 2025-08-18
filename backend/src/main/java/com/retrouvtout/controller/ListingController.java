@@ -52,8 +52,7 @@ public class ListingController {
     @GetMapping
     @Operation(summary = "Rechercher des annonces d'objets retrouvés")
     @ApiResponses(value = {
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
- "Liste des annonces trouvées")
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Liste des annonces trouvées")
     })
     public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> searchListings(
             @Parameter(description = "Mot-clé de recherche")
@@ -129,9 +128,9 @@ public class ListingController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir une annonce par son ID")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
 "Annonce trouvée"),
-        @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée")
     })
     public ResponseEntity<ApiResponse<ListingResponse>> getListing(
             @Parameter(description = "ID de l'annonce")
@@ -157,9 +156,9 @@ public class ListingController {
     @Operation(summary = "Créer une nouvelle annonce d'objet retrouvé")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "201", description = "Annonce créée avec succès"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Annonce créée avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ListingResponse>> createListing(
@@ -192,12 +191,12 @@ public class ListingController {
     @Operation(summary = "Mettre à jour une annonce existante")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-       @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
 "Annonce mise à jour avec succès"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
-        @SwaggerApiResponse(responseCode = "403", description = "Non autorisé"),
-        @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ListingResponse>> updateListing(
@@ -233,11 +232,11 @@ public class ListingController {
     @Operation(summary = "Supprimer une annonce")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
  "Annonce supprimée avec succès"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
-        @SwaggerApiResponse(responseCode = "403", description = "Non autorisé"),
-        @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Void>> deleteListing(
@@ -272,11 +271,11 @@ public class ListingController {
     @Operation(summary = "Marquer une annonce comme résolue")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
 "Annonce marquée comme résolue"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
-        @SwaggerApiResponse(responseCode = "403", description = "Non autorisé"),
-        @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ListingResponse>> resolveListing(
@@ -310,7 +309,7 @@ public class ListingController {
     @GetMapping("/user/{userId}")
     @Operation(summary = "Obtenir les annonces d'un utilisateur")
     @ApiResponses(value = {
-   @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
  "Liste des annonces de l'utilisateur")
     })
     public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> getUserListings(
@@ -357,8 +356,8 @@ public class ListingController {
     @GetMapping("/{id}/similar")
     @Operation(summary = "Obtenir des annonces similaires")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Liste des annonces similaires"),
-        @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Liste des annonces similaires"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée")
     })
     public ResponseEntity<ApiResponse<List<ListingResponse>>> getSimilarListings(
             @Parameter(description = "ID de l'annonce de référence")
@@ -386,8 +385,8 @@ public class ListingController {
     @PostMapping("/{id}/view")
     @Operation(summary = "Incrémenter le compteur de vues")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Vue comptabilisée"),
-        @SwaggerApiResponse(responseCode = "404", description = "Annonce non trouvée")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Vue comptabilisée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée")
     })
     public ResponseEntity<ApiResponse<Void>> incrementViewCount(
             @Parameter(description = "ID de l'annonce")

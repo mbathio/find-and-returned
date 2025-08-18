@@ -45,10 +45,10 @@ public class ThreadController {
     @Operation(summary = "Créer une nouvelle conversation")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "201", description = "Conversation créée avec succès"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
-        @SwaggerApiResponse(responseCode = "409", description = "Conversation déjà existante")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Conversation créée avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Conversation déjà existante")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ThreadResponse>> createThread(
@@ -89,7 +89,7 @@ public class ThreadController {
     @Operation(summary = "Obtenir mes conversations")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-   @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
 "Liste des conversations")
     })
     @PreAuthorize("hasRole('USER')")
@@ -137,10 +137,10 @@ public class ThreadController {
     @Operation(summary = "Obtenir une conversation par son ID")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-   @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
 "Conversation trouvée"),
-        @SwaggerApiResponse(responseCode = "404", description = "Conversation non trouvée"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Conversation non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ThreadResponse>> getThread(
@@ -175,10 +175,10 @@ public class ThreadController {
     @Operation(summary = "Approuver une conversation")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
 "Conversation approuvée"),
-        @SwaggerApiResponse(responseCode = "404", description = "Conversation non trouvée"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Conversation non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ThreadResponse>> approveThread(
@@ -213,10 +213,10 @@ public class ThreadController {
     @Operation(summary = "Fermer une conversation")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
  "Conversation fermée"),
-        @SwaggerApiResponse(responseCode = "404", description = "Conversation non trouvée"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Conversation non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ThreadResponse>> closeThread(

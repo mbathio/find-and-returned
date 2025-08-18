@@ -42,10 +42,9 @@ public class UploadController {
     @Operation(summary = "Upload d'une image")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
- "Image uploadée avec succès"),
-        @SwaggerApiResponse(responseCode = "400", description = "Fichier invalide"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Image uploadée avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Fichier invalide"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadImage(
@@ -83,9 +82,9 @@ public class UploadController {
     @PostMapping("/temp")
     @Operation(summary = "Upload temporaire d'une image")
     @ApiResponses(value = {
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
  "Image uploadée temporairement"),
-        @SwaggerApiResponse(responseCode = "400", description = "Fichier invalide")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Fichier invalide")
     })
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadTempImage(
             @RequestParam("file") MultipartFile file) {

@@ -48,9 +48,9 @@ public class UserController {
     @Operation(summary = "Obtenir mon profil")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-   @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
 "Profil récupéré"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(
@@ -72,10 +72,10 @@ public class UserController {
     @Operation(summary = "Mettre à jour mon profil")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
 "Profil mis à jour"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<UserResponse>> updateCurrentUser(
@@ -115,10 +115,10 @@ public class UserController {
     @Operation(summary = "Changer mon mot de passe")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
  "Mot de passe changé"),
-        @SwaggerApiResponse(responseCode = "400", description = "Ancien mot de passe incorrect"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ancien mot de passe incorrect"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Void>> changePassword(
@@ -153,9 +153,9 @@ public class UserController {
     @GetMapping("/{id}/public")
     @Operation(summary = "Obtenir le profil public d'un utilisateur")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
 "Profil public récupéré"),
-        @SwaggerApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
     })
     public ResponseEntity<ApiResponse<UserResponse>> getPublicUser(
             @Parameter(description = "ID de l'utilisateur")

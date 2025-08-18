@@ -63,8 +63,8 @@ public class AdminController {
     @Operation(summary = "Obtenir les statistiques du tableau de bord")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "...")
-    })
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "...")
+})
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboard() {
         Map<String, Object> stats = new HashMap<>();
 

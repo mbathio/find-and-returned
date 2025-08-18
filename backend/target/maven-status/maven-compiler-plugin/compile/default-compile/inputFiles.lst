@@ -20,7 +20,6 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\UserPresence.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\RegisterRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\controller\FileController.java
-C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\SwaggerApiResponse.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\security\oauth2\user\FacebookOAuth2UserInfo.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\RetrouvToutApplication.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\entity\User.java
@@ -57,7 +56,6 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\GeocodingService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\ModerationService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\security\oauth2\OAuth2AuthenticationFailureHandler.java
-C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\integration_disabled\BaseIntegrationTest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\UserService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\UpdateListingRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\util\StringUtils.java

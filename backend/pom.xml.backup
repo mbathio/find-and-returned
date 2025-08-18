@@ -195,8 +195,6 @@
             <artifactId>mysql</artifactId>
             <scope>test</scope>
         </dependency>
-
-        
         
         <!-- Development tools -->
         <dependency>

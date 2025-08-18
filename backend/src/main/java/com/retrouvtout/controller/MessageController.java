@@ -47,10 +47,10 @@ public class MessageController {
     @Operation(summary = "Envoyer un nouveau message")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "201", description = "Message envoyé avec succès"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié"),
-        @SwaggerApiResponse(responseCode = "403", description = "Non autorisé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Message envoyé avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<MessageResponse>> createMessage(
@@ -90,10 +90,10 @@ public class MessageController {
     @Operation(summary = "Obtenir les messages d'un thread")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
- @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
  "Messages récupérés"),
-        @SwaggerApiResponse(responseCode = "404", description = "Thread non trouvé"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Thread non trouvé"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<PagedResponse<MessageResponse>>> getThreadMessages(
@@ -151,10 +151,10 @@ public class MessageController {
     @Operation(summary = "Marquer les messages d'un thread comme lus")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
- @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
  "Messages marqués comme lus"),
-        @SwaggerApiResponse(responseCode = "404", description = "Thread non trouvé"),
-        @SwaggerApiResponse(responseCode = "403", description = "Accès non autorisé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Thread non trouvé"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Void>> markThreadAsRead(

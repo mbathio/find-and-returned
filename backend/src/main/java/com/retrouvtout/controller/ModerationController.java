@@ -47,9 +47,9 @@ public class ModerationController {
     @Operation(summary = "Signaler un contenu")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "201", description = "Signalement créé avec succès"),
-        @SwaggerApiResponse(responseCode = "400", description = "Données invalides"),
-        @SwaggerApiResponse(responseCode = "401", description = "Non authentifié")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Signalement créé avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<ModerationFlagResponse>> createFlag(
@@ -82,7 +82,7 @@ public class ModerationController {
     @Operation(summary = "Obtenir les signalements")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
- @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
 "Liste des signalements")
     })
     @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
@@ -134,9 +134,9 @@ public class ModerationController {
     @Operation(summary = "Approuver un signalement")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
  "Signalement approuvé"),
-        @SwaggerApiResponse(responseCode = "404", description = "Signalement non trouvé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Signalement non trouvé")
     })
     @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ModerationFlagResponse>> approveFlag(
@@ -164,9 +164,9 @@ public class ModerationController {
     @Operation(summary = "Rejeter un signalement")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
 "Signalement rejeté"),
-        @SwaggerApiResponse(responseCode = "404", description = "Signalement non trouvé")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Signalement non trouvé")
     })
     @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ModerationFlagResponse>> rejectFlag(
@@ -194,7 +194,7 @@ public class ModerationController {
     @Operation(summary = "Obtenir les statistiques de modération")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
 "Statistiques récupérées")
     })
     @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")

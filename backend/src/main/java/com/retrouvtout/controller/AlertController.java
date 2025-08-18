@@ -44,7 +44,7 @@ public class AlertController {
     @PostMapping
     @Operation(summary = "Créer une nouvelle alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Alerte créée avec succès"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
@@ -79,7 +79,7 @@ public class AlertController {
     @GetMapping
     @Operation(summary = "Obtenir mes alertes")
     @SecurityRequirement(name = "bearerAuth")
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Liste des alertes")
     })
     @PreAuthorize("hasRole('USER')")
@@ -122,7 +122,7 @@ public class AlertController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir une alerte par son ID")
     @SecurityRequirement(name = "bearerAuth")
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alerte trouvée"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
@@ -159,7 +159,7 @@ public class AlertController {
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour une alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alerte mise à jour"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
@@ -198,7 +198,7 @@ public class AlertController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alerte supprimée"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
@@ -235,7 +235,7 @@ public class AlertController {
     @PatchMapping("/{id}/toggle")
     @Operation(summary = "Activer/désactiver une alerte")
     @SecurityRequirement(name = "bearerAuth")
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Statut de l'alerte modifié"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alerte non trouvée"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
