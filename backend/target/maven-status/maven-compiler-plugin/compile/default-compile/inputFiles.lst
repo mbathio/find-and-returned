@@ -38,7 +38,6 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\EmailService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\util\ModelMapper.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\RefreshTokenRequest.java
-C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\TestSecurityConfig.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\AlertService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\ReadStatusMessage.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\WebSocketResponse.java
@@ -58,6 +57,7 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\GeocodingService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\ModerationService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\security\oauth2\OAuth2AuthenticationFailureHandler.java
+C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\integration_disabled\BaseIntegrationTest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\UserService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\UpdateListingRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\util\StringUtils.java
@@ -67,7 +67,6 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\response\AuthResponse.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\controller\AlertController.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\exception\ResourceNotFoundException.java
-C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\integration\BaseIntegrationTest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\entity\Alert.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\response\ThreadResponse.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\DatabaseConfig.java

@@ -14,5 +14,16 @@ public class CreateMessageRequest {
     
     private String messageType = "text";
     
-    // Constructeurs, getters et setters
+    // Constructeurs
+    public CreateMessageRequest() {}
+    
+    // Getters et setters
+    public String getThreadId() { return threadId; }
+    public void setThreadId(String threadId) { this.threadId = threadId; }
+    
+    public String getBody() { return body; }
+    public void setBody(String body) { this.body = body; }
+    
+    public String getMessageType() { return messageType; }
+    public void setMessageType(String messageType) { this.messageType = messageType; }
 }

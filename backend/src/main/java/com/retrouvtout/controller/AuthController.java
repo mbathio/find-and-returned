@@ -77,8 +77,7 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Connexion d'un utilisateur")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
- "Connexion réussie"),
+     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Connexion réussie"),
         @SwaggerApiResponse(responseCode = "401", description = "Identifiants invalides"),
         @SwaggerApiResponse(responseCode = "403", description = "Compte désactivé")
     })
