@@ -70,7 +70,7 @@ public interface ListingRepository extends JpaRepository<Listing, String>, JpaSp
                                            Pageable pageable);
 
     /**
-     * Trouver des annonces similaires
+     * Trouver des annonces similaires par catégorie uniquement (version simple)
      */
     @Query("SELECT l FROM Listing l WHERE " +
            "l.id != :excludeId AND " +
@@ -78,26 +78,31 @@ public interface ListingRepository extends JpaRepository<Listing, String>, JpaSp
            "l.status = com.retrouvtout.entity.Listing$ListingStatus.ACTIVE AND " +
            "l.isModerated = true " +
            "ORDER BY l.createdAt DESC")
-    List<Listing> findSimilarListings(@Param("excludeId") String excludeId,
-                                    @Param("category") Listing.ListingCategory category,
-                                    @Param("lat") BigDecimal lat,
-                                    @Param("lng") BigDecimal lng,
-                                    Pageable pageable);
+    List<Listing> findSimilarListingsByCategory(@Param("excludeId") String excludeId,
+                                               @Param("category") Listing.ListingCategory category,
+                                               Pageable pageable);
 
     /**
-     * Version simplifiée pour les annonces similaires
+     * Trouver des annonces similaires avec géolocalisation
      */
-    @Query("SELECT l FROM Listing l WHERE " +
-           "l.id != :excludeId AND " +
-           "l.category = :category AND " +
-           "l.status = com.retrouvtout.entity.Listing$ListingStatus.ACTIVE AND " +
-           "l.isModerated = true " +
-           "ORDER BY l.createdAt DESC")
-    List<Listing> findSimilarListings(@Param("excludeId") String excludeId,
-                                    @Param("category") Listing.ListingCategory category,
-                                    @Param("lat") BigDecimal lat,
-                                    @Param("lng") BigDecimal lng,
-                                    int limit);
+    @Query(value = "SELECT l.* FROM listings l WHERE " +
+                   "l.id != :excludeId AND " +
+                   "l.category = :category AND " +
+                   "l.status = 'active' AND " +
+                   "l.is_moderated = true AND " +
+                   "(:lat IS NULL OR :lng IS NULL OR " +
+                   "ST_Distance_Sphere(POINT(l.longitude, l.latitude), POINT(:lng, :lat)) <= 50000) " +
+                   "ORDER BY " +
+                   "CASE WHEN :lat IS NOT NULL AND :lng IS NOT NULL " +
+                   "THEN ST_Distance_Sphere(POINT(l.longitude, l.latitude), POINT(:lng, :lat)) " +
+                   "ELSE l.created_at END ASC " +
+                   "LIMIT :limitCount",
+           nativeQuery = true)
+    List<Listing> findSimilarListingsWithLocation(@Param("excludeId") String excludeId,
+                                                 @Param("category") String category,
+                                                 @Param("lat") BigDecimal lat,
+                                                 @Param("lng") BigDecimal lng,
+                                                 @Param("limitCount") int limitCount);
 
     /**
      * Compter les annonces par statut et modération

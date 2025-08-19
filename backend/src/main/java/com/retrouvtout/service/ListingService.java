@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -277,14 +278,25 @@ public class ListingService {
         Listing referenceListing = listingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Annonce", "id", id));
 
-        // Rechercher des annonces similaires par catégorie et proximité géographique
-        List<Listing> similarListings = listingRepository.findSimilarListings(
-            id, 
-            referenceListing.getCategory(),
-            referenceListing.getLatitude(),
-            referenceListing.getLongitude(),
-            limit
-        );
+        List<Listing> similarListings;
+        
+        // Si on a des coordonnées géographiques, utiliser la recherche avec géolocalisation
+        if (referenceListing.getLatitude() != null && referenceListing.getLongitude() != null) {
+            similarListings = listingRepository.findSimilarListingsWithLocation(
+                id, 
+                referenceListing.getCategory().getValue(),
+                referenceListing.getLatitude(),
+                referenceListing.getLongitude(),
+                limit
+            );
+        } else {
+            // Sinon, recherche simple par catégorie
+            similarListings = listingRepository.findSimilarListingsByCategory(
+                id, 
+                referenceListing.getCategory(),
+                PageRequest.of(0, limit)
+            );
+        }
 
         return similarListings.stream()
             .map(modelMapper::mapListingToListingResponse)
