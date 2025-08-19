@@ -17,12 +17,12 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   
-  # Configuration base de données
+  # Configuration base de données MariaDB
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/retrouvtout?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:retrouvtout}
+    password: ${DB_PASSWORD:password123}
+    driver-class-name: org.mariadb.jdbc.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -30,14 +30,14 @@ spring:
       connection-timeout: 20000
       max-lifetime: 1200000
   
-  # Configuration JPA/Hibernate
+  # Configuration JPA/Hibernate pour MariaDB
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: true
         use_sql_comments: false
         jdbc:
@@ -224,11 +224,11 @@ spring:
     activate:
       on-profile: dev
   
-  # Base de données développement
+  # Base de données développement MariaDB
   datasource:
-    url: jdbc:mysql://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:retrouvtout}
+    password: ${DB_PASSWORD:password123}
   
   # JPA développement
   jpa:
@@ -258,11 +258,11 @@ spring:
     activate:
       on-profile: test
   
-  # Base de données test
+  # Base de données test MariaDB
   datasource:
-    url: jdbc:mysql://localhost:3306/retrouvtout_test?useSSL=false&serverTimezone=UTC
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mariadb://localhost:3306/retrouvtout_test?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:retrouvtout}
+    password: ${DB_PASSWORD:password123}
   
   # JPA test
   jpa:
@@ -292,6 +292,12 @@ spring:
   config:
     activate:
       on-profile: prod
+  
+  # Base de données production MariaDB
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/retrouvtout_prod?useSSL=false&serverTimezone=UTC}
+    username: ${DB_USERNAME:retrouvtout}
+    password: ${DB_PASSWORD}
   
   # JPA production
   jpa:

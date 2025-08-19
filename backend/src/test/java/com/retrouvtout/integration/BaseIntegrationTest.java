@@ -11,12 +11,13 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
 /**
- * Classe de base pour les tests d'intégration avec Testcontainers
+ * Classe de base pour les tests d'intégration avec Testcontainers et MariaDB
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -27,7 +28,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public abstract class BaseIntegrationTest {
 
     @Container
-    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+    static MariaDBContainer<?> mariadb = new MariaDBContainer<>("mariadb:10.11")
             .withDatabaseName("retrouvtout_test")
             .withUsername("test")
             .withPassword("test");
@@ -38,10 +39,11 @@ public abstract class BaseIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Configuration MySQL
-        registry.add("spring.datasource.url", mysql::getJdbcUrl);
-        registry.add("spring.datasource.username", mysql::getUsername);
-        registry.add("spring.datasource.password", mysql::getPassword);
+        // Configuration MariaDB
+        registry.add("spring.datasource.url", mariadb::getJdbcUrl);
+        registry.add("spring.datasource.username", mariadb::getUsername);
+        registry.add("spring.datasource.password", mariadb::getPassword);
+        registry.add("spring.datasource.driver-class-name", () -> "org.mariadb.jdbc.Driver");
         
         // Configuration Redis
         registry.add("spring.data.redis.host", redis::getHost);
@@ -52,6 +54,11 @@ public abstract class BaseIntegrationTest {
         registry.add("app.upload.dir", () -> "./test-uploads");
         registry.add("app.notifications.email.enabled", () -> "false");
         registry.add("app.notifications.sms.enabled", () -> "false");
+        
+        // Configuration JPA pour les tests
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.show-sql", () -> "false");
+        registry.add("spring.flyway.enabled", () -> "false");
     }
 
     @Autowired
