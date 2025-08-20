@@ -1,6 +1,6 @@
-// src/lib/api.ts
+// src/lib/api.ts - VERSION CORRIGÉE
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+  import.meta.env.VITE_API_URL || "http://localhost:8081/api"; // ✅ Port corrigé 8081
 
 class ApiError extends Error {
   constructor(
@@ -39,6 +39,12 @@ class ApiClient {
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // Log pour debug en développement
+        if (import.meta.env.DEV) {
+          console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+        }
+        
         return config;
       },
       (error) => Promise.reject(error)
@@ -46,8 +52,19 @@ class ApiClient {
 
     // Response interceptor pour gérer les erreurs
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Log pour debug en développement
+        if (import.meta.env.DEV) {
+          console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+        }
+        return response;
+      },
       async (error) => {
+        // Log pour debug en développement
+        if (import.meta.env.DEV) {
+          console.error(`❌ API Error: ${error.response?.status || 'Network'} ${error.config?.url}`, error.message);
+        }
+
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -70,7 +87,7 @@ class ApiClient {
 
         throw new ApiError(
           error.response?.status || 500,
-          error.response?.data?.message || "Une erreur est survenue",
+          error.response?.data?.message || error.message || "Une erreur est survenue",
           error.response
         );
       }
@@ -130,6 +147,16 @@ class ApiClient {
     });
 
     return response.data;
+  }
+
+  // Méthode utilitaire pour tester la connexion
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.get('/actuator/health');
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
