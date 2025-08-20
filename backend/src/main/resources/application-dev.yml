@@ -1,28 +1,62 @@
-# Configuration développement sans base de données - application-dev.yml
+# Configuration développement avec MariaDB - application-dev.yml
 spring:
   config:
     activate:
       on-profile: dev
 
-  # ✅ DÉSACTIVER complètement JPA/Hibernate pour les tests
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.web.SpringDataWebAutoConfiguration
+  # Configuration base de données MariaDB
+  datasource:
+    url: jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8mb4&useUnicode=true
+    username: retrouvtout
+    password: password123
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+      connection-test-query: SELECT 1
 
-  # Configuration cache simple pour le développement
+  # Configuration JPA/Hibernate pour MariaDB
+  jpa:
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: true
+        use_sql_comments: false
+        jdbc:
+          time_zone: UTC
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        connection:
+          provider_disables_autocommit: true
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+    open-in-view: false
+
+  # Désactiver Flyway pour le développement
+  flyway:
+    enabled: false
+
+  # Configuration cache simple
   cache:
     type: simple
 
-  # Configuration Redis DÉSACTIVÉE
+  # Configuration Redis désactivée pour le développement
   data:
     redis:
       repositories:
         enabled: false
 
-  # Configuration email pour le développement (console/MailHog)
+  # Configuration email pour le développement
   mail:
     host: localhost
     port: 1025
@@ -61,8 +95,15 @@ spring:
   devtools:
     restart:
       enabled: true
+      exclude: static/**,public/**,templates/**
     livereload:
       enabled: true
+      port: 35729
+
+  # Configuration SQL
+  sql:
+    init:
+      mode: never
 
 # Configuration logging pour le développement
 logging:
@@ -71,19 +112,21 @@ logging:
     com.retrouvtout: DEBUG
     org.springframework.web: DEBUG
     org.springframework.security: DEBUG
-    # ✅ Réduire les logs de base de données
-    org.hibernate: ERROR
-    org.springframework.orm: ERROR
-    org.springframework.data: ERROR
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.mariadb.jdbc: INFO
+    org.springframework.data: DEBUG
+    org.springframework.orm: DEBUG
+    org.springframework.transaction: DEBUG
   pattern:
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
   file:
     name: logs/retrouvtout-dev.log
     max-size: 10MB
     max-history: 5
 
-# Configuration Management/Actuator pour le développement
+# Configuration Management/Actuator
 management:
   endpoints:
     web:
@@ -98,8 +141,17 @@ management:
       enabled: true
     env:
       enabled: true
+    configprops:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    build:
+      enabled: true
+    git:
+      enabled: true
 
-# Configuration OpenAPI/Swagger pour le développement
+# Configuration OpenAPI/Swagger
 springdoc:
   api-docs:
     path: /api-docs
@@ -111,58 +163,12 @@ springdoc:
     tags-sorter: alpha
     try-it-out-enabled: true
     display-request-duration: true
+    doc-expansion: none
+    default-model-expand-depth: 3
   show-actuator: true
+  packages-to-scan: com.retrouvtout.controller
 
-# Configuration application spécifique pour le développement
-app:
-  # Configuration frontend URL
-  frontend:
-    url: http://localhost:8080
-
-  # Configuration JWT
-  jwt:
-    secret: dev-secret-key-not-for-production-use-a-longer-and-more-secure-key
-    expiration: 86400000 # 24 heures en millisecondes
-    refresh-expiration: 604800000 # 7 jours en millisecondes
-
-  # Configuration CORS permissive pour le développement
-  cors:
-    allowed-origins: http://localhost:8080,http://localhost:3000,http://localhost:5173
-    allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
-    allowed-headers: "*"
-    allow-credentials: true
-    max-age: 3600
-
-  # Configuration upload pour le développement
-  upload:
-    dir: ./uploads-dev
-    max-file-size: 10485760 # 10MB
-    allowed-extensions: jpg,jpeg,png,gif,webp
-
-  # Configuration notifications désactivées pour le développement
-  notifications:
-    email:
-      enabled: false
-      from: dev@retrouvtout.com
-      from-name: "Retrouv'Tout Dev"
-    sms:
-      enabled: false
-    push:
-      enabled: false
-
-  # Configuration modération permissive pour le développement
-  moderation:
-    auto-approve: true
-    max-listings-per-day: 100
-    profanity-filter: false
-
-  # Configuration géolocalisation pour le développement
-  geocoding:
-    enabled: false
-    provider: nominatim
-    api-key:
-
-# Configuration serveur pour le développement
+# Configuration serveur
 server:
   port: 8081
   error:
@@ -172,3 +178,77 @@ server:
     include-exception: true
   compression:
     enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+  servlet:
+    context-path:
+    session:
+      timeout: 30m
+
+# Configuration application spécifique
+app:
+  frontend:
+    url: http://localhost:8080
+
+  jwt:
+    secret: dev-secret-key-not-for-production-use-a-longer-and-more-secure-key-for-development-only
+    expiration: 86400000
+    refresh-expiration: 604800000
+
+  cors:
+    allowed-origins: http://localhost:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:8080,http://127.0.0.1:3000,http://127.0.0.1:5173
+    allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS,HEAD
+    allowed-headers: "*"
+    exposed-headers: Authorization,Cache-Control,Content-Type,X-Total-Count,X-Page-Number,X-Page-Size
+    allow-credentials: true
+    max-age: 3600
+
+  upload:
+    dir: ./uploads-dev
+    max-file-size: 10485760
+    allowed-extensions: jpg,jpeg,png,gif,webp
+
+  notifications:
+    email:
+      enabled: false
+      from: dev@retrouvtout.com
+      from-name: "Retrouv'Tout Dev"
+    sms:
+      enabled: false
+      twilio:
+        account-sid:
+        auth-token:
+        from-number:
+    push:
+      enabled: false
+      vapid-public-key:
+      vapid-private-key:
+
+  moderation:
+    auto-approve: true
+    max-listings-per-day: 100
+    profanity-filter: false
+
+  geocoding:
+    enabled: false
+    provider: nominatim
+    api-key:
+
+  alerts:
+    max-per-user: 50
+    check-interval: 300000
+    enabled: true
+
+  security:
+    rate-limit:
+      enabled: false
+    password:
+      min-length: 6
+      require-special-chars: false
+
+# Variables d'environnement par défaut pour le développement
+DB_URL: jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+DB_USERNAME: retrouvtout
+DB_PASSWORD: password123
+JWT_SECRET: dev-secret-key-not-for-production
+FRONTEND_URL: http://localhost:8080
+UPLOAD_DIR: ./uploads-dev
