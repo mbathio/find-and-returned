@@ -1,4 +1,4 @@
-// src/main/java/com/retrouvtout/controller/ListingController.java
+// src/main/java/com/retrouvtout/controller/ListingController.java - VERSION CORRIGÉE
 package com.retrouvtout.controller;
 
 import org.springframework.web.bind.annotation.*;
@@ -11,8 +11,8 @@ import java.util.*;
  * Contrôleur simple pour les annonces - version de test
  */
 @RestController
-@RequestMapping("/listings")
-@CrossOrigin(origins = {"http://localhost:8080", "http://localhost:3000"})
+@RequestMapping("/api/listings")  // ✅ Garder le prefixe /api
+@CrossOrigin(origins = {"http://localhost:8080", "http://localhost:3000", "http://localhost:5173"})
 public class ListingController {
 
     // Données temporaires en mémoire pour les tests
@@ -60,7 +60,7 @@ public class ListingController {
     }
 
     /**
-     * GET /listings - Récupérer toutes les annonces
+     * GET /api/listings - Récupérer toutes les annonces
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllListings(
@@ -100,7 +100,7 @@ public class ListingController {
     }
 
     /**
-     * GET /listings/{id} - Récupérer une annonce par ID
+     * GET /api/listings/{id} - Récupérer une annonce par ID
      */
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getListingById(@PathVariable String id) {
@@ -123,7 +123,7 @@ public class ListingController {
     }
 
     /**
-     * POST /listings - Créer une nouvelle annonce
+     * POST /api/listings - Créer une nouvelle annonce
      */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createListing(@RequestBody Map<String, Object> listingData) {
@@ -145,7 +145,7 @@ public class ListingController {
     }
 
     /**
-     * GET /listings/stats - Statistiques simples
+     * GET /api/listings/stats - Statistiques simples
      */
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
