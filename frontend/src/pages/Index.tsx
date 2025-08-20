@@ -108,7 +108,7 @@ const Index = () => {
 
           <div className="relative">
             <img
-              src="/placeholder.svg"
+              src="/téléchargement.jpg"
               alt="Illustration Retrouv'Tout, objets perdus et retrouvés"
               loading="lazy"
               className="w-full h-auto rounded-lg border"

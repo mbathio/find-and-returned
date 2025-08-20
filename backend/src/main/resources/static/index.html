@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retrouv'Tout API</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+      .api-link {
+        display: inline-block;
+        margin: 10px;
+        padding: 12px 24px;
+        background: #0891b2;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+      }
+      .api-link:hover {
+        background: #0e7490;
+      }
+      .endpoint {
+        background: #f8f9fa;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        border-left: 4px solid #0891b2;
+      }
+      .method {
+        font-weight: bold;
+        color: #059669;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🔍 Retrouv'Tout API</h1>
+      <p>API REST pour la plateforme d'objets perdus et retrouvés</p>
+      <a href="/swagger-ui.html" class="api-link">📖 Documentation Swagger</a>
+      <a href="/actuator/health" class="api-link">💚 Santé de l'API</a>
+    </div>
+
+    <h2>🚀 Endpoints principaux</h2>
+
+    <div class="endpoint">
+      <span class="method">GET</span> <code>/api/test</code> - Test de
+      connectivité
+    </div>
+
+    <div class="endpoint">
+      <span class="method">GET</span> <code>/api/listings</code> - Liste des
+      annonces
+    </div>
+
+    <div class="endpoint">
+      <span class="method">POST</span> <code>/api/auth/login</code> - Connexion
+      utilisateur
+    </div>
+
+    <div class="endpoint">
+      <span class="method">GET</span> <code>/actuator/health</code> - État de
+      santé
+    </div>
+
+    <h2>📊 Statistiques</h2>
+    <div class="endpoint">
+      <p><strong>Version :</strong> 1.0.0</p>
+      <p>
+        <strong>Environnement :</strong> <span id="profile">Développement</span>
+      </p>
+      <p><strong>Base de données :</strong> MariaDB</p>
+    </div>
+
+    <script>
+      // Détection automatique du profil
+      fetch("/actuator/env")
+        .then((r) => r.json())
+        .then((data) => {
+          const profiles = data.activeProfiles || ["dev"];
+          document.getElementById("profile").textContent = profiles.join(", ");
+        })
+        .catch(() => {
+          document.getElementById("profile").textContent = "Développement";
+        });
+    </script>
+  </body>
+</html>
