@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -21,7 +23,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Configuration de sécurité Spring Security
+ * Configuration de sécurité Spring Security principale
  */
 @Configuration
 @EnableWebSecurity
@@ -40,19 +41,19 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
-    @Value("${app.cors.allowed-origins}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
-    @Value("${app.cors.allowed-methods}")
+    @Value("${app.cors.allowed-methods:GET,POST,PUT,DELETE,PATCH,OPTIONS}")
     private String allowedMethods;
 
-    @Value("${app.cors.allowed-headers}")
+    @Value("${app.cors.allowed-headers:*}")
     private String allowedHeaders;
 
-    @Value("${app.cors.allow-credentials}")
+    @Value("${app.cors.allow-credentials:true}")
     private boolean allowCredentials;
 
-    @Value("${app.cors.max-age}")
+    @Value("${app.cors.max-age:3600}")
     private long maxAge;
 
     @Autowired
@@ -126,10 +127,13 @@ public class SecurityConfig {
     }
 
     /**
-     * Configuration de la chaîne de filtres de sécurité
+     * Configuration de la chaîne de filtres de sécurité principale
+     * Ordre 100 pour s'assurer qu'elle ne conflicte pas avec les autres configurations
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(100)
+    @Profile("!dev")  // Pas en dev car on utilise la config permissive d'OAuth2Config
+    public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {
         http
             // Configuration CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -159,50 +163,50 @@ public class SecurityConfig {
                 .requestMatchers("/api-docs/**").permitAll()
                 
                 // Authentification
-                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
                 
                 // Endpoints publics pour les annonces (lecture seule)
-                .requestMatchers(HttpMethod.GET, "/listings").permitAll()
-                .requestMatchers(HttpMethod.GET, "/listings/{id}").permitAll()
-                .requestMatchers(HttpMethod.GET, "/listings/user/{userId}").permitAll()
-                .requestMatchers(HttpMethod.GET, "/listings/{id}/similar").permitAll()
-                .requestMatchers(HttpMethod.POST, "/listings/{id}/view").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/listings").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/listings/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/listings/user/{userId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/listings/{id}/similar").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/listings/{id}/view").permitAll()
                 
                 // Upload public (pour la prévisualisation)
-                .requestMatchers(HttpMethod.POST, "/upload/temp").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/upload/temp").permitAll()
                 
                 // Profils publics
-                .requestMatchers(HttpMethod.GET, "/users/{id}/public").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/{id}/public").permitAll()
                 
                 // Websocket (sera géré séparément)
                 .requestMatchers("/ws/**").permitAll()
                 
                 // Endpoints protégés - utilisateurs authentifiés
-                .requestMatchers(HttpMethod.POST, "/listings").hasRole("USER")
-                .requestMatchers(HttpMethod.PUT, "/listings/**").hasRole("USER")
-                .requestMatchers(HttpMethod.DELETE, "/listings/**").hasRole("USER")
-                .requestMatchers(HttpMethod.PATCH, "/listings/**").hasRole("USER")
+                .requestMatchers(HttpMethod.POST, "/api/listings").hasRole("USER")
+                .requestMatchers(HttpMethod.PUT, "/api/listings/**").hasRole("USER")
+                .requestMatchers(HttpMethod.DELETE, "/api/listings/**").hasRole("USER")
+                .requestMatchers(HttpMethod.PATCH, "/api/listings/**").hasRole("USER")
                 
-                .requestMatchers("/users/me").hasRole("USER")
-                .requestMatchers(HttpMethod.PUT, "/users/me").hasRole("USER")
-                .requestMatchers("/users/me/stats").hasRole("USER")
-                .requestMatchers("/users/me/password").hasRole("USER")
+                .requestMatchers("/api/users/me").hasRole("USER")
+                .requestMatchers(HttpMethod.PUT, "/api/users/me").hasRole("USER")
+                .requestMatchers("/api/users/me/stats").hasRole("USER")
+                .requestMatchers("/api/users/me/password").hasRole("USER")
                 
-                .requestMatchers("/threads/**").hasRole("USER")
-                .requestMatchers("/messages/**").hasRole("USER")
-                .requestMatchers("/alerts/**").hasRole("USER")
-                .requestMatchers("/confirmations/**").hasRole("USER")
+                .requestMatchers("/api/threads/**").hasRole("USER")
+                .requestMatchers("/api/messages/**").hasRole("USER")
+                .requestMatchers("/api/alerts/**").hasRole("USER")
+                .requestMatchers("/api/confirmations/**").hasRole("USER")
                 
-                .requestMatchers(HttpMethod.POST, "/upload/**").hasRole("USER")
+                .requestMatchers(HttpMethod.POST, "/api/upload/**").hasRole("USER")
                 
                 // Endpoints de modération - modérateurs
-                .requestMatchers("/moderation/**").hasRole("MODERATOR")
+                .requestMatchers("/api/moderation/**").hasRole("MODERATOR")
                 
                 // Endpoints d'administration - administrateurs
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/users/search").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
                 
                 // Tout le reste nécessite une authentification
                 .anyRequest().authenticated()
@@ -215,7 +219,9 @@ public class SecurityConfig {
                 .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                     .maxAgeInSeconds(31536000)
                     .includeSubDomains(true))
-                .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                // Configuration du referrer policy
+                .referrerPolicy(referrerPolicy -> referrerPolicy
+                    .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
             );
 
         // Ajouter le filtre JWT avant le filtre d'authentification par nom d'utilisateur/mot de passe

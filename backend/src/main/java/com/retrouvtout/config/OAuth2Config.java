@@ -8,9 +8,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.context.annotation.Bean;
 
+/**
+ * Configuration OAuth2 spécifique pour différents environnements
+ */
 @Configuration
-@EnableWebSecurity
-public class SecurityConfig {
+public class OAuth2Config {
 
     /**
      * Configuration de sécurité pour l'environnement de développement
@@ -18,10 +20,11 @@ public class SecurityConfig {
      */
     @Configuration
     @Profile({"dev", "test"})
-    public static class DevSecurityConfig {
+    @EnableWebSecurity
+    public static class DevOAuth2SecurityConfig {
 
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        @Bean("devSecurityFilterChain")
+        public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
             http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
@@ -46,10 +49,11 @@ public class SecurityConfig {
         name = "spring.security.oauth2.client.registration.google.client-id",
         matchIfMissing = false
     )
-    public static class ProdSecurityConfig {
+    @EnableWebSecurity
+    public static class ProdOAuth2SecurityConfig {
 
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        @Bean("prodOAuth2SecurityFilterChain")
+        public SecurityFilterChain prodOAuth2FilterChain(HttpSecurity http) throws Exception {
             http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
