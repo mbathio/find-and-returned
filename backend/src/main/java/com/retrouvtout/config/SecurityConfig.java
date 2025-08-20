@@ -31,11 +31,13 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Configuration de sécurité Spring Security principale
+ * Configuration de sécurité Spring Security pour PRODUCTION uniquement
+ * En développement, utiliser DevSecurityConfig.java
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@Profile("!dev")  // ✅ NE PAS utiliser en développement
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
@@ -89,13 +91,13 @@ public class SecurityConfig {
     }
 
     /**
-     * Configuration de CORS
+     * Configuration de CORS pour la production
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Origines autorisées
+        // Origines autorisées (strictes en production)
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         configuration.setAllowedOriginPatterns(origins);
         
@@ -127,12 +129,10 @@ public class SecurityConfig {
     }
 
     /**
-     * Configuration de la chaîne de filtres de sécurité principale
-     * Ordre 100 pour s'assurer qu'elle ne conflicte pas avec les autres configurations
+     * Configuration de la chaîne de filtres de sécurité pour PRODUCTION
      */
     @Bean
     @Order(100)
-    @Profile("!dev")  // Pas en dev car on utilise la config permissive d'OAuth2Config
     public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {
         http
             // Configuration CORS

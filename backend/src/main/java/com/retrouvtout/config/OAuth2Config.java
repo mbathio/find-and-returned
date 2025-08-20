@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
  * Configuration OAuth2 spécifique pour différents environnements
  */
 @Configuration
+@Profile("!dev")
 public class OAuth2Config {
 
     /**
