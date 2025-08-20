@@ -83,6 +83,7 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\websocket\WebSocketEventListener.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\security\JwtAuthenticationFilter.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\response\ListingResponse.java
+C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\OAuth2Config.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\LoginRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\repository\OAuthAccountRepository.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\controller\UploadController.java
