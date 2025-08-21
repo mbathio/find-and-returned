@@ -9,7 +9,6 @@ import com.retrouvtout.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,11 +22,13 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 
 /**
- * Contrôleur pour l'authentification et l'autorisation
+ * Contrôleur pour l'authentification
+ * Conforme au cahier des charges - Section 3.1
+ * Inscription/Connexion via email ou réseaux sociaux
  */
 @RestController
 @RequestMapping("/auth")
-@Tag(name = "Authentication", description = "API d'authentification et d'autorisation")
+@Tag(name = "Authentication", description = "API d'authentification - Email et réseaux sociaux")
 @CrossOrigin(origins = {"${app.cors.allowed-origins}"})
 public class AuthController {
 
@@ -39,7 +40,8 @@ public class AuthController {
     }
 
     /**
-     * Inscription d'un nouvel utilisateur
+     * Inscription - Cahier des charges 3.1
+     * Créer un compte via email
      */
     @PostMapping("/register")
     @Operation(summary = "Inscription d'un nouvel utilisateur")
@@ -72,7 +74,8 @@ public class AuthController {
     }
 
     /**
-     * Connexion d'un utilisateur
+     * Connexion - Cahier des charges 3.1
+     * Se connecter via email
      */
     @PostMapping("/login")
     @Operation(summary = "Connexion d'un utilisateur")
@@ -116,8 +119,7 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "Rafraîchissement du token d'accès")
     @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
- "Token rafraîchi avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token rafraîchi avec succès"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token de rafraîchissement invalide")
     })
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
@@ -142,13 +144,12 @@ public class AuthController {
     }
 
     /**
-     * Déconnexion de l'utilisateur
+     * Déconnexion
      */
     @PostMapping("/logout")
     @Operation(summary = "Déconnexion de l'utilisateur")
     @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
-"Déconnexion réussie")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Déconnexion réussie")
     })
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestHeader("Authorization") String authHeader) {
@@ -174,41 +175,8 @@ public class AuthController {
     }
 
     /**
-     * Validation du token d'accès
-     */
-    @GetMapping("/validate")
-    @Operation(summary = "Validation du token d'accès")
-    @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
-"Token valide"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token invalide")
-    })
-    public ResponseEntity<ApiResponse<Boolean>> validateToken(
-            @RequestHeader("Authorization") String authHeader) {
-        
-        try {
-            String token = authHeader.startsWith("Bearer ") ? 
-                authHeader.substring(7) : authHeader;
-            
-            boolean isValid = authService.validateToken(token);
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                isValid ? "Token valide" : "Token invalide",
-                isValid
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ApiResponse<>(
-                    false,
-                    "Token invalide",
-                    false
-                ));
-        }
-    }
-
-    /**
-     * Initiation de l'authentification OAuth2 Google
+     * Authentification OAuth2 Google - Cahier des charges 3.1
+     * Connexion via réseaux sociaux
      */
     @GetMapping("/oauth2/google")
     @Operation(summary = "Redirection vers l'authentification Google")
@@ -218,7 +186,8 @@ public class AuthController {
     }
 
     /**
-     * Initiation de l'authentification OAuth2 Facebook
+     * Authentification OAuth2 Facebook - Cahier des charges 3.1
+     * Connexion via réseaux sociaux
      */
     @GetMapping("/oauth2/facebook")
     @Operation(summary = "Redirection vers l'authentification Facebook")
@@ -233,8 +202,7 @@ public class AuthController {
     @GetMapping("/oauth2/callback/{provider}")
     @Operation(summary = "Callback OAuth2")
     @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
-"Authentification OAuth2 réussie"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Authentification OAuth2 réussie"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Erreur d'authentification OAuth2")
     })
     public ResponseEntity<ApiResponse<AuthResponse>> oauth2Callback(
@@ -268,135 +236,6 @@ public class AuthController {
                     "Erreur interne lors de l'authentification OAuth2",
                     null
                 ));
-        }
-    }
-
-    /**
-     * Demande de réinitialisation de mot de passe
-     */
-    @PostMapping("/forgot-password")
-    @Operation(summary = "Demande de réinitialisation de mot de passe")
-    @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
-"Email de réinitialisation envoyé"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Utilisateur non trouvé")
-    })
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(
-            @Parameter(description = "Email de l'utilisateur")
-            @RequestParam String email) {
-        
-        try {
-            authService.initiatePasswordReset(email);
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Si cet email existe, un lien de réinitialisation a été envoyé",
-                null
-            ));
-        } catch (Exception e) {
-            // Ne pas révéler si l'email existe ou non pour des raisons de sécurité
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Si cet email existe, un lien de réinitialisation a été envoyé",
-                null
-            ));
-        }
-    }
-
-    /**
-     * Réinitialisation du mot de passe
-     */
-    @PostMapping("/reset-password")
-    @Operation(summary = "Réinitialisation du mot de passe")
-    @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
- "Mot de passe réinitialisé avec succès"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Token invalide ou expiré")
-    })
-    public ResponseEntity<ApiResponse<Void>> resetPassword(
-            @Parameter(description = "Token de réinitialisation")
-            @RequestParam String token,
-            @Parameter(description = "Nouveau mot de passe")
-            @RequestParam String newPassword) {
-        
-        try {
-            authService.resetPassword(token, newPassword);
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Mot de passe réinitialisé avec succès",
-                null
-            ));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(
-                    false,
-                    e.getMessage(),
-                    null
-                ));
-        }
-    }
-
-    /**
-     * Vérification de l'email
-     */
-    @GetMapping("/verify-email")
-    @Operation(summary = "Vérification de l'email")
-    @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
- "Email vérifié avec succès"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Token de vérification invalide")
-    })
-    public ResponseEntity<ApiResponse<Void>> verifyEmail(
-            @Parameter(description = "Token de vérification")
-            @RequestParam String token) {
-        
-        try {
-            authService.verifyEmail(token);
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Email vérifié avec succès",
-                null
-            ));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(
-                    false,
-                    e.getMessage(),
-                    null
-                ));
-        }
-    }
-
-    /**
-     * Renvoyer l'email de vérification
-     */
-    @PostMapping("/resend-verification")
-    @Operation(summary = "Renvoyer l'email de vérification")
-    @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
-"Email de vérification renvoyé")
-    })
-    public ResponseEntity<ApiResponse<Void>> resendVerificationEmail(
-            @Parameter(description = "Email de l'utilisateur")
-            @RequestParam String email) {
-        
-        try {
-            authService.resendVerificationEmail(email);
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Email de vérification renvoyé",
-                null
-            ));
-        } catch (Exception e) {
-            // Ne pas révéler si l'email existe ou non
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Si cet email existe et n'est pas encore vérifié, un email a été renvoyé",
-                null
-            ));
         }
     }
 

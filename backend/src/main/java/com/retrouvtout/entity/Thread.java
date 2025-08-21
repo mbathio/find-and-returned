@@ -1,4 +1,3 @@
-// Thread.java
 package com.retrouvtout.entity;
 
 import jakarta.persistence.*;
@@ -10,6 +9,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Entité représentant une conversation
+ * Conforme au cahier des charges - Section 3.5 (Messagerie intégrée)
+ * Communication directe via la plateforme
+ */
 @Entity
 @Table(name = "threads", indexes = {
     @Index(name = "idx_threads_listing", columnList = "listing_id"),
@@ -29,25 +33,30 @@ public class Thread {
     @JoinColumn(name = "listing_id", nullable = false)
     private Listing listing;
 
+    /**
+     * Propriétaire de l'objet - Section 3.1
+     * Celui qui a perdu l'objet et contacte le retrouveur
+     */
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_user_id", nullable = false)
     private User ownerUser;
 
+    /**
+     * Retrouveur - Section 3.1
+     * Celui qui a trouvé l'objet et publié l'annonce
+     */
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "finder_user_id", nullable = false)
     private User finderUser;
 
+    /**
+     * Statut simple de la conversation
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ThreadStatus status = ThreadStatus.PENDING;
-
-    @Column(name = "approved_by_owner", nullable = false)
-    private Boolean approvedByOwner = false;
-
-    @Column(name = "approved_by_finder", nullable = false)
-    private Boolean approvedByFinder = false;
+    private ThreadStatus status = ThreadStatus.ACTIVE;
 
     @Column(name = "last_message_at")
     private LocalDateTime lastMessageAt;
@@ -63,16 +72,22 @@ public class Thread {
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Message> messages;
 
+    /**
+     * Statuts simplifiés conformes au cahier des charges
+     */
     public enum ThreadStatus {
-        PENDING("pending"),
-        APPROVED("approved"),
-        CLOSED("closed"),
-        CANCELLED("cancelled");
+        ACTIVE("active"),
+        CLOSED("closed");
 
         private final String value;
 
-        ThreadStatus(String value) { this.value = value; }
-        public String getValue() { return value; }
+        ThreadStatus(String value) { 
+            this.value = value; 
+        }
+
+        public String getValue() { 
+            return value; 
+        }
 
         public static ThreadStatus fromValue(String value) {
             for (ThreadStatus status : ThreadStatus.values()) {
@@ -82,10 +97,10 @@ public class Thread {
         }
     }
 
-    // Constructeurs, getters et setters
+    // Constructeurs
     public Thread() {}
 
-    // Getters et setters complets...
+    // Getters et setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -100,12 +115,6 @@ public class Thread {
 
     public ThreadStatus getStatus() { return status; }
     public void setStatus(ThreadStatus status) { this.status = status; }
-
-    public Boolean getApprovedByOwner() { return approvedByOwner; }
-    public void setApprovedByOwner(Boolean approvedByOwner) { this.approvedByOwner = approvedByOwner; }
-
-    public Boolean getApprovedByFinder() { return approvedByFinder; }
-    public void setApprovedByFinder(Boolean approvedByFinder) { this.approvedByFinder = approvedByFinder; }
 
     public LocalDateTime getLastMessageAt() { return lastMessageAt; }
     public void setLastMessageAt(LocalDateTime lastMessageAt) { this.lastMessageAt = lastMessageAt; }

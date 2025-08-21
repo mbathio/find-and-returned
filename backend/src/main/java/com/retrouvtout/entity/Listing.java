@@ -13,6 +13,8 @@ import java.util.List;
 
 /**
  * Entité représentant une annonce d'objet retrouvé
+ * Conforme au cahier des charges - Section 3.2
+ * Champs requis : type d'objet, lieu de découverte, date, photo, description, catégorie
  */
 @Entity
 @Table(name = "listings", indexes = {
@@ -35,34 +37,56 @@ public class Listing {
     @JoinColumn(name = "finder_user_id", nullable = false)
     private User finderUser;
 
-    @NotNull(message = "Le titre est obligatoire")
-    @Size(max = 180, message = "Le titre ne peut pas dépasser 180 caractères")
+    /**
+     * Type d'objet - Cahier des charges 3.2
+     */
+    @NotNull(message = "Le type d'objet est obligatoire")
+    @Size(max = 180, message = "Le type d'objet ne peut pas dépasser 180 caractères")
     @Column(name = "title", nullable = false, length = 180)
     private String title;
 
+    /**
+     * Catégorie - Cahier des charges 3.2
+     * Exemples : électronique, clés, vêtements
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false)
     private ListingCategory category;
 
-    @NotNull(message = "Le lieu est obligatoire")
+    /**
+     * Lieu de découverte - Cahier des charges 3.2
+     */
+    @NotNull(message = "Le lieu de découverte est obligatoire")
     @Size(max = 255, message = "Le lieu ne peut pas dépasser 255 caractères")
     @Column(name = "location_text", nullable = false, length = 255)
     private String locationText;
 
+    /**
+     * Coordonnées géographiques pour la recherche par lieu
+     */
     @Column(name = "latitude", precision = 9, scale = 6)
     private BigDecimal latitude;
 
     @Column(name = "longitude", precision = 9, scale = 6)
     private BigDecimal longitude;
 
+    /**
+     * Date de découverte - Cahier des charges 3.2
+     */
     @NotNull(message = "La date de découverte est obligatoire")
     @Column(name = "found_at", nullable = false)
     private LocalDateTime foundAt;
 
+    /**
+     * Description - Cahier des charges 3.2
+     */
     @NotNull(message = "La description est obligatoire")
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    /**
+     * Photo - Cahier des charges 3.2
+     */
     @Size(max = 512, message = "L'URL de l'image ne peut pas dépasser 512 caractères")
     @Column(name = "image_url", length = 512)
     private String imageUrl;
@@ -74,6 +98,9 @@ public class Listing {
     @Column(name = "views_count", nullable = false)
     private Long viewsCount = 0L;
 
+    /**
+     * Modération - Cahier des charges 3.4
+     */
     @Column(name = "is_moderated", nullable = false)
     private Boolean isModerated = false;
 
@@ -96,13 +123,15 @@ public class Listing {
     private List<Thread> threads;
 
     /**
-     * Énumération des catégories d'objets
+     * Catégories d'objets conformes au cahier des charges
+     * Section 3.2 : électronique, clés, vêtements
      */
     public enum ListingCategory {
-        CLES("cles"),
         ELECTRONIQUE("electronique"),
-        BAGAGERIE("bagagerie"),
+        CLES("cles"),
+        VETEMENTS("vetements"),
         DOCUMENTS("documents"),
+        BAGAGERIE("bagagerie"),
         AUTRE("autre");
 
         private final String value;
@@ -126,7 +155,7 @@ public class Listing {
     }
 
     /**
-     * Énumération des statuts d'annonce
+     * Statuts d'annonce
      */
     public enum ListingStatus {
         ACTIVE("active"),

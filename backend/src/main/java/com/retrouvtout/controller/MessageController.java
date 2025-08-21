@@ -9,7 +9,6 @@ import com.retrouvtout.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,11 +24,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Contrôleur pour la gestion des messages
+ * Contrôleur pour la messagerie intégrée
+ * Conforme au cahier des charges - Section 3.5
+ * Permet la communication directe via la plateforme avec masquage des informations personnelles
  */
 @RestController
 @RequestMapping("/messages")
-@Tag(name = "Messages", description = "API de gestion des messages privés")
+@Tag(name = "Messages", description = "API de messagerie intégrée sécurisée")
 @CrossOrigin(origins = {"${app.cors.allowed-origins}"})
 public class MessageController {
 
@@ -41,13 +42,14 @@ public class MessageController {
     }
 
     /**
-     * Créer un nouveau message
+     * Envoyer un message - Cahier des charges 3.5
+     * Communication directe via la plateforme
      */
     @PostMapping
-    @Operation(summary = "Envoyer un nouveau message")
+    @Operation(summary = "Envoyer un message via la messagerie intégrée")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Message envoyé avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Message envoyé"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé")
@@ -84,20 +86,20 @@ public class MessageController {
     }
 
     /**
-     * Obtenir les messages d'un thread
+     * Obtenir les messages d'une conversation
+     * Respect de la confidentialité - Section 3.4
      */
     @GetMapping("/thread/{threadId}")
-    @Operation(summary = "Obtenir les messages d'un thread")
+    @Operation(summary = "Obtenir les messages d'une conversation")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
- "Messages récupérés"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Thread non trouvé"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Messages récupérés"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Conversation non trouvée"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<PagedResponse<MessageResponse>>> getThreadMessages(
-            @Parameter(description = "ID du thread")
+            @Parameter(description = "ID de la conversation")
             @PathVariable String threadId,
             
             @Parameter(description = "Numéro de page")
@@ -115,22 +117,13 @@ public class MessageController {
             Pageable pageable = PageRequest.of(page - 1, pageSize, 
                 Sort.by(Sort.Direction.ASC, "createdAt"));
 
-            Page<MessageResponse> messages = messageService.getThreadMessages(
+            PagedResponse<MessageResponse> messages = messageService.getThreadMessages(
                 threadId, userPrincipal.getId(), pageable);
-
-            PagedResponse<MessageResponse> pagedResponse = new PagedResponse<>(
-                messages.getContent(),
-                messages.getNumber() + 1,
-                messages.getSize(),
-                messages.getTotalElements(),
-                messages.getTotalPages(),
-                messages.isLast()
-            );
 
             return ResponseEntity.ok(new ApiResponse<>(
                 true,
                 "Messages récupérés avec succès",
-                pagedResponse
+                messages
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -138,27 +131,26 @@ public class MessageController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(
                     false,
-                    "Vous n'êtes pas autorisé à accéder à ce thread",
+                    "Vous n'êtes pas autorisé à accéder à cette conversation",
                     null
                 ));
         }
     }
 
     /**
-     * Marquer les messages d'un thread comme lus
+     * Marquer les messages comme lus
      */
     @PatchMapping("/thread/{threadId}/read")
-    @Operation(summary = "Marquer les messages d'un thread comme lus")
+    @Operation(summary = "Marquer les messages d'une conversation comme lus")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = 
- "Messages marqués comme lus"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Thread non trouvé"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Messages marqués comme lus"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Conversation non trouvée"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Void>> markThreadAsRead(
-            @Parameter(description = "ID du thread")
+            @Parameter(description = "ID de la conversation")
             @PathVariable String threadId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
@@ -176,7 +168,7 @@ public class MessageController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(
                     false,
-                    "Vous n'êtes pas autorisé à accéder à ce thread",
+                    "Vous n'êtes pas autorisé à accéder à cette conversation",
                     null
                 ));
         }
@@ -189,8 +181,7 @@ public class MessageController {
     @Operation(summary = "Obtenir le nombre de messages non lus")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
-"Nombre de messages non lus")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Nombre de messages non lus")
     })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(
@@ -205,4 +196,3 @@ public class MessageController {
         ));
     }
 }
-

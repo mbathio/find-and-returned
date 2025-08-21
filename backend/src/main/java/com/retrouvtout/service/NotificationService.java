@@ -1,40 +1,73 @@
-// NotificationService.java
 package com.retrouvtout.service;
 
-import com.retrouvtout.entity.PushSubscription;
 import com.retrouvtout.entity.User;
-import com.retrouvtout.repository.PushSubscriptionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 /**
- * Service pour l'envoi de notifications push
+ * Service de notifications conforme au cahier des charges - Section 3.3
+ * Alertes email/SMS et notifications push
  */
 @Service
 public class NotificationService {
 
-    private final PushSubscriptionRepository pushSubscriptionRepository;
+    private final EmailService emailService;
+    private final SmsService smsService;
 
-    @Value("${app.notifications.push.enabled:true}")
+    @Value("${app.notifications.email.enabled:true}")
+    private boolean emailNotificationsEnabled;
+
+    @Value("${app.notifications.sms.enabled:false}")
+    private boolean smsNotificationsEnabled;
+
+    @Value("${app.notifications.push.enabled:false}")
     private boolean pushNotificationsEnabled;
 
-    @Value("${app.notifications.push.vapid-public-key:}")
-    private String vapidPublicKey;
-
-    @Value("${app.notifications.push.vapid-private-key:}")
-    private String vapidPrivateKey;
-
     @Autowired
-    public NotificationService(PushSubscriptionRepository pushSubscriptionRepository) {
-        this.pushSubscriptionRepository = pushSubscriptionRepository;
+    public NotificationService(EmailService emailService, SmsService smsService) {
+        this.emailService = emailService;
+        this.smsService = smsService;
     }
 
     /**
-     * Envoyer une notification push à un utilisateur
+     * Envoyer notification email - Cahier des charges 3.3
+     * Alertes email aux propriétaires
+     */
+    @Async
+    public void sendEmailNotification(User user, String subject, String message) {
+        if (!emailNotificationsEnabled || !user.getEmailVerified()) {
+            return;
+        }
+
+        try {
+            emailService.sendNotificationEmail(user, subject, message);
+        } catch (Exception e) {
+            System.err.println("Erreur lors de l'envoi de la notification email: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Envoyer notification SMS - Cahier des charges 3.3
+     * Alertes SMS aux propriétaires
+     */
+    @Async
+    public void sendSmsNotification(User user, String message) {
+        if (!smsNotificationsEnabled || user.getPhone() == null || user.getPhone().isEmpty()) {
+            return;
+        }
+
+        try {
+            smsService.sendSms(user.getPhone(), message);
+        } catch (Exception e) {
+            System.err.println("Erreur lors de l'envoi de la notification SMS: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Envoyer notification push - Cahier des charges 3.3
+     * Notifications push sur l'application
      */
     @Async
     public void sendPushNotification(String userId, String title, String body, String url) {
@@ -43,69 +76,62 @@ public class NotificationService {
         }
 
         try {
-            // Récupérer les abonnements de l'utilisateur
-            User user = new User();
-            user.setId(userId);
-            List<PushSubscription> subscriptions = pushSubscriptionRepository.findByUser(user);
-
-            for (PushSubscription subscription : subscriptions) {
-                sendPushToSubscription(subscription, title, body, url);
-            }
+            // Implémentation basique pour les notifications push
+            System.out.println(String.format(
+                "Notification Push pour %s: %s - %s (URL: %s)",
+                userId, title, body, url
+            ));
         } catch (Exception e) {
             System.err.println("Erreur lors de l'envoi de la notification push: " + e.getMessage());
         }
     }
 
     /**
-     * Envoyer une notification à un abonnement spécifique
+     * Notifier quand un objet correspondant est trouvé
+     * Conforme au cahier des charges 3.3
      */
-    private void sendPushToSubscription(PushSubscription subscription, String title, String body, String url) {
-        try {
-            // Ici, vous intégreriez une bibliothèque comme web-push pour Java
-            // ou un service comme Firebase Cloud Messaging
-            
-            // Exemple de payload
-            String payload = String.format(
-                "{\"title\":\"%s\",\"body\":\"%s\",\"url\":\"%s\",\"icon\":\"/icon-192x192.png\"}",
-                title, body, url
-            );
+    @Async
+    public void notifyObjectFound(User user, String objectTitle, String finderName) {
+        String emailSubject = "Objet correspondant trouvé - Retrouv'Tout";
+        String emailMessage = String.format(
+            "Bonjour %s,\n\nUn objet correspondant à votre recherche a été trouvé: %s\n\n" +
+            "Connectez-vous à votre compte pour contacter la personne qui l'a trouvé.\n\n" +
+            "Cordialement,\nL'équipe Retrouv'Tout",
+            user.getName(), objectTitle
+        );
 
-            // Simulation de l'envoi
-            System.out.println("Envoi notification push à: " + subscription.getEndpoint());
-            System.out.println("Payload: " + payload);
+        String smsMessage = String.format(
+            "Retrouv'Tout: Objet trouvé correspondant à votre recherche: %s. Connectez-vous pour plus d'infos.",
+            objectTitle
+        );
 
-            // Mettre à jour la dernière utilisation
-            subscription.updateLastUsed();
-            pushSubscriptionRepository.save(subscription);
-
-        } catch (Exception e) {
-            System.err.println("Erreur lors de l'envoi à l'abonnement " + subscription.getId() + ": " + e.getMessage());
-        }
+        // Envoyer notifications selon les préférences de l'utilisateur
+        sendEmailNotification(user, emailSubject, emailMessage);
+        sendSmsNotification(user, smsMessage);
+        sendPushNotification(user.getId(), "Objet trouvé !", 
+            "Un objet correspondant à votre recherche a été trouvé", "/annonces");
     }
 
     /**
-     * Ajouter un abonnement push pour un utilisateur
+     * Notifier d'un nouveau message
      */
-    public PushSubscription addPushSubscription(User user, String endpoint, String p256dhKey, String authKey, String userAgent) {
-        // Vérifier si l'abonnement existe déjà
-        return pushSubscriptionRepository.findByEndpoint(endpoint)
-            .orElseGet(() -> {
-                PushSubscription subscription = new PushSubscription();
-                subscription.setUser(user);
-                subscription.setEndpoint(endpoint);
-                subscription.setP256dhKey(p256dhKey);
-                subscription.setAuthKey(authKey);
-                subscription.setUserAgent(userAgent);
-                subscription.updateLastUsed();
-                return pushSubscriptionRepository.save(subscription);
-            });
-    }
+    @Async
+    public void notifyNewMessage(User recipient, User sender, String listingTitle) {
+        String emailSubject = "Nouveau message - Retrouv'Tout";
+        String emailMessage = String.format(
+            "Bonjour %s,\n\nVous avez reçu un nouveau message de %s concernant: %s\n\n" +
+            "Connectez-vous pour répondre.\n\nCordialement,\nL'équipe Retrouv'Tout",
+            recipient.getName(), sender.getName(), listingTitle
+        );
 
-    /**
-     * Supprimer un abonnement push
-     */
-    public void removePushSubscription(String endpoint) {
-        pushSubscriptionRepository.findByEndpoint(endpoint)
-            .ifPresent(pushSubscriptionRepository::delete);
+        String smsMessage = String.format(
+            "Retrouv'Tout: Nouveau message de %s concernant %s. Connectez-vous pour répondre.",
+            sender.getName(), listingTitle
+        );
+
+        sendEmailNotification(recipient, emailSubject, emailMessage);
+        sendSmsNotification(recipient, smsMessage);
+        sendPushNotification(recipient.getId(), "Nouveau message", 
+            String.format("Message de %s", sender.getName()), "/messages");
     }
 }

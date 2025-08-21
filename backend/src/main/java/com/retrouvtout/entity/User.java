@@ -13,6 +13,7 @@ import java.util.List;
 
 /**
  * Entité représentant un utilisateur
+ * Conforme au cahier des charges - Section 3.1
  */
 @Entity
 @Table(name = "users", indexes = {
@@ -45,9 +46,13 @@ public class User {
     @Column(name = "phone", length = 40)
     private String phone;
 
+    /**
+     * Rôles conformes au cahier des charges - Section 3.1
+     * Différenciation entre retrouveurs et propriétaires
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private UserRole role = UserRole.MIXTE;
+    private UserRole role = UserRole.RETROUVEUR;
 
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
@@ -70,19 +75,16 @@ public class User {
     @OneToMany(mappedBy = "finderUser", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Listing> listings;
 
-    @OneToMany(mappedBy = "ownerUser", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Alert> alerts;
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OAuthAccount> oauthAccounts;
 
     /**
-     * Énumération des rôles d'utilisateur
+     * Énumération des rôles conformes au cahier des charges
+     * Section 3.1 : Différenciation entre retrouveurs et propriétaires
      */
     public enum UserRole {
         RETROUVEUR("retrouveur"),
-        PROPRIETAIRE("proprietaire"),
-        MIXTE("mixte");
+        PROPRIETAIRE("proprietaire");
 
         private final String value;
 
@@ -151,9 +153,6 @@ public class User {
 
     public List<Listing> getListings() { return listings; }
     public void setListings(List<Listing> listings) { this.listings = listings; }
-
-    public List<Alert> getAlerts() { return alerts; }
-    public void setAlerts(List<Alert> alerts) { this.alerts = alerts; }
 
     public List<OAuthAccount> getOauthAccounts() { return oauthAccounts; }
     public void setOauthAccounts(List<OAuthAccount> oauthAccounts) { this.oauthAccounts = oauthAccounts; }

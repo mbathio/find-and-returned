@@ -1,4 +1,3 @@
-// Message.java
 package com.retrouvtout.entity;
 
 import jakarta.persistence.*;
@@ -8,6 +7,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entité représentant un message
+ * Conforme au cahier des charges - Section 3.5 (Messagerie intégrée)
+ * Protection des données - Section 3.4 (masquage des informations personnelles)
+ */
 @Entity
 @Table(name = "messages", indexes = {
     @Index(name = "idx_messages_thread", columnList = "thread_id"),
@@ -36,6 +40,9 @@ public class Message {
     @Column(name = "body", nullable = false, columnDefinition = "TEXT")
     private String body;
 
+    /**
+     * Type de message simplifié selon le cahier des charges
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "message_type", nullable = false)
     private MessageType messageType = MessageType.TEXT;
@@ -50,15 +57,23 @@ public class Message {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * Types de messages conformes au cahier des charges
+     * Section 3.5 - Communication directe via la plateforme
+     */
     public enum MessageType {
-        TEXT("text"),
-        IMAGE("image"),
-        SYSTEM("system");
+        TEXT("text"),      // Message texte standard
+        SYSTEM("system");  // Message système (notifications internes)
 
         private final String value;
 
-        MessageType(String value) { this.value = value; }
-        public String getValue() { return value; }
+        MessageType(String value) { 
+            this.value = value; 
+        }
+
+        public String getValue() { 
+            return value; 
+        }
 
         public static MessageType fromValue(String value) {
             for (MessageType type : MessageType.values()) {
@@ -68,9 +83,10 @@ public class Message {
         }
     }
 
-    // Constructeurs, getters et setters
+    // Constructeurs
     public Message() {}
 
+    // Getters et setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

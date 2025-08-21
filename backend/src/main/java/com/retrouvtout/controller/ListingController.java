@@ -1,170 +1,316 @@
-// src/main/java/com/retrouvtout/controller/ListingController.java - VERSION CORRIGÉE
 package com.retrouvtout.controller;
 
-import org.springframework.web.bind.annotation.*;
+import com.retrouvtout.dto.request.CreateListingRequest;
+import com.retrouvtout.dto.request.UpdateListingRequest;
+import com.retrouvtout.dto.response.ApiResponse;
+import com.retrouvtout.dto.response.ListingResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.security.UserPrincipal;
+import com.retrouvtout.service.ListingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
- * Contrôleur simple pour les annonces - version de test
+ * Contrôleur pour la gestion des annonces d'objets retrouvés
+ * Conforme au cahier des charges - Section 3.2
  */
 @RestController
-@RequestMapping("/api/listings")  // ✅ Garder le prefixe /api
-@CrossOrigin(origins = {"http://localhost:8080", "http://localhost:3000", "http://localhost:5173"})
+@RequestMapping("/listings")
+@Tag(name = "Listings", description = "API de gestion des annonces d'objets retrouvés")
+@CrossOrigin(origins = {"${app.cors.allowed-origins}"})
 public class ListingController {
 
-    // Données temporaires en mémoire pour les tests
-    private List<Map<String, Object>> mockListings = new ArrayList<>();
+    private final ListingService listingService;
 
-    public ListingController() {
-        // Initialiser avec quelques données de test
-        initializeMockData();
-    }
-
-    private void initializeMockData() {
-        Map<String, Object> listing1 = new HashMap<>();
-        listing1.put("id", "1");
-        listing1.put("title", "Trousseau de clés Opel");
-        listing1.put("category", "cles");
-        listing1.put("locationText", "Gare de Lyon");
-        listing1.put("foundAt", "2025-08-05T10:30:00");
-        listing1.put("description", "Trouvé près de la sortie 3, porte-clés jaune.");
-        listing1.put("status", "active");
-        listing1.put("createdAt", LocalDateTime.now().minusDays(2));
-
-        Map<String, Object> listing2 = new HashMap<>();
-        listing2.put("id", "2");
-        listing2.put("title", "Sac à dos noir");
-        listing2.put("category", "bagagerie");
-        listing2.put("locationText", "Université Paris Cité");
-        listing2.put("foundAt", "2025-08-06T14:15:00");
-        listing2.put("description", "Contient des cahiers, sans papiers d'identité visibles.");
-        listing2.put("status", "active");
-        listing2.put("createdAt", LocalDateTime.now().minusDays(1));
-
-        Map<String, Object> listing3 = new HashMap<>();
-        listing3.put("id", "3");
-        listing3.put("title", "iPhone 13 bleu");
-        listing3.put("category", "electronique");
-        listing3.put("locationText", "Tram T3a - Porte de Vincennes");
-        listing3.put("foundAt", "2025-08-07T16:45:00");
-        listing3.put("description", "Code verrouillé, coque transparente.");
-        listing3.put("status", "active");
-        listing3.put("createdAt", LocalDateTime.now());
-
-        mockListings.add(listing1);
-        mockListings.add(listing2);
-        mockListings.add(listing3);
+    @Autowired
+    public ListingController(ListingService listingService) {
+        this.listingService = listingService;
     }
 
     /**
-     * GET /api/listings - Récupérer toutes les annonces
+     * Poster une annonce - Cahier des charges 3.2
+     * Formulaire avec : type d'objet, lieu de découverte, date, photo, description, catégorie
+     */
+    @PostMapping
+    @Operation(summary = "Publier un objet retrouvé")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Annonce créée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
+    })
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<ListingResponse>> createListing(
+            @Valid @RequestBody CreateListingRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+            ListingResponse listing = listingService.createListing(request, userPrincipal.getId());
+            
+            return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(
+                    true,
+                    "Annonce publiée avec succès",
+                    listing
+                ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse<>(
+                    false,
+                    e.getMessage(),
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Rechercher des annonces - Cahier des charges 3.2
+     * Moteur de recherche avec filtres : catégorie, date, lieu
      */
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getAllListings(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+    @Operation(summary = "Rechercher des annonces d'objets retrouvés")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonces trouvées")
+    })
+    public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> searchListings(
+            @Parameter(description = "Mot-clé de recherche")
             @RequestParam(required = false) String q,
+            
+            @Parameter(description = "Catégorie (electronique, cles, vetements, etc.)")
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String location) {
+            
+            @Parameter(description = "Lieu de recherche")
+            @RequestParam(required = false) String location,
+            
+            @Parameter(description = "Latitude pour recherche géographique")
+            @RequestParam(required = false) BigDecimal lat,
+            
+            @Parameter(description = "Longitude pour recherche géographique")
+            @RequestParam(required = false) BigDecimal lng,
+            
+            @Parameter(description = "Rayon de recherche en km")
+            @RequestParam(required = false) Double radiusKm,
+            
+            @Parameter(description = "Date de début (format YYYY-MM-DD)")
+            @RequestParam(required = false) LocalDate dateFrom,
+            
+            @Parameter(description = "Date de fin (format YYYY-MM-DD)")
+            @RequestParam(required = false) LocalDate dateTo,
+            
+            @Parameter(description = "Numéro de page")
+            @RequestParam(defaultValue = "1") int page,
+            
+            @Parameter(description = "Taille de la page")
+            @RequestParam(defaultValue = "20") int pageSize) {
 
-        List<Map<String, Object>> filteredListings = new ArrayList<>(mockListings);
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
-        // Filtrage simple par catégorie
-        if (category != null && !category.isEmpty()) {
-            filteredListings = filteredListings.stream()
-                .filter(listing -> category.equals(listing.get("category")))
-                .toList();
-        }
+        Pageable pageable = PageRequest.of(page - 1, pageSize, 
+            Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // Filtrage simple par mot-clé
-        if (q != null && !q.isEmpty()) {
-            filteredListings = filteredListings.stream()
-                .filter(listing -> 
-                    listing.get("title").toString().toLowerCase().contains(q.toLowerCase()) ||
-                    listing.get("description").toString().toLowerCase().contains(q.toLowerCase()))
-                .toList();
-        }
+        PagedResponse<ListingResponse> listings = listingService.searchListings(
+            q, category, location, lat, lng, radiusKm, dateFrom, dateTo, pageable);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", filteredListings);
-        response.put("total", filteredListings.size());
-        response.put("page", page);
-        response.put("size", size);
-        response.put("message", "Listings récupérés avec succès");
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new ApiResponse<>(
+            true,
+            "Annonces récupérées avec succès",
+            listings
+        ));
     }
 
     /**
-     * GET /api/listings/{id} - Récupérer une annonce par ID
+     * Obtenir une annonce par son ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getListingById(@PathVariable String id) {
-        Optional<Map<String, Object>> listing = mockListings.stream()
-            .filter(l -> id.equals(l.get("id")))
-            .findFirst();
+    @Operation(summary = "Obtenir les détails d'une annonce")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonce trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée")
+    })
+    public ResponseEntity<ApiResponse<ListingResponse>> getListing(
+            @Parameter(description = "ID de l'annonce")
+            @PathVariable String id) {
 
-        if (listing.isPresent()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", listing.get());
-            response.put("message", "Annonce trouvée");
-            return ResponseEntity.ok(response);
-        } else {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "Annonce non trouvée");
+        try {
+            // Incrémenter le compteur de vues
+            listingService.incrementViewCount(id);
+            
+            ListingResponse listing = listingService.getListingById(id);
+            
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Annonce trouvée",
+                listing
+            ));
+        } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
     }
 
     /**
-     * POST /api/listings - Créer une nouvelle annonce
+     * Mettre à jour une annonce (pour le retrouveur uniquement)
      */
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createListing(@RequestBody Map<String, Object> listingData) {
-        // Générer un nouvel ID
-        String newId = String.valueOf(mockListings.size() + 1);
-        listingData.put("id", newId);
-        listingData.put("status", "active");
-        listingData.put("createdAt", LocalDateTime.now());
-        listingData.put("updatedAt", LocalDateTime.now());
+    @PutMapping("/{id}")
+    @Operation(summary = "Mettre à jour une annonce")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonce mise à jour"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé")
+    })
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<ListingResponse>> updateListing(
+            @Parameter(description = "ID de l'annonce")
+            @PathVariable String id,
+            @Valid @RequestBody UpdateListingRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        mockListings.add(listingData);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", listingData);
-        response.put("message", "Annonce créée avec succès");
-
-        return ResponseEntity.ok(response);
+        try {
+            ListingResponse listing = listingService.updateListing(id, request, userPrincipal.getId());
+            
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Annonce mise à jour avec succès",
+                listing
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiResponse<>(
+                    false,
+                    "Vous n'êtes pas autorisé à modifier cette annonce",
+                    null
+                ));
+        }
     }
 
     /**
-     * GET /api/listings/stats - Statistiques simples
+     * Supprimer une annonce (soft delete)
      */
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getStats() {
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("total", mockListings.size());
-        stats.put("active", mockListings.stream().mapToLong(l -> "active".equals(l.get("status")) ? 1 : 0).sum());
-        
-        Map<String, Long> categoryCounts = new HashMap<>();
-        mockListings.forEach(listing -> {
-            String cat = (String) listing.get("category");
-            categoryCounts.put(cat, categoryCounts.getOrDefault(cat, 0L) + 1);
-        });
-        stats.put("byCategory", categoryCounts);
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Supprimer une annonce")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonce supprimée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé")
+    })
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Void>> deleteListing(
+            @Parameter(description = "ID de l'annonce")
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", stats);
-        response.put("message", "Statistiques récupérées");
+        try {
+            listingService.deleteListing(id, userPrincipal.getId());
+            
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Annonce supprimée avec succès",
+                null
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiResponse<>(
+                    false,
+                    "Vous n'êtes pas autorisé à supprimer cette annonce",
+                    null
+                ));
+        }
+    }
 
-        return ResponseEntity.ok(response);
+    /**
+     * Marquer une annonce comme résolue
+     */
+    @PatchMapping("/{id}/resolve")
+    @Operation(summary = "Marquer une annonce comme résolue")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonce résolue"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé")
+    })
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<ListingResponse>> resolveListing(
+            @Parameter(description = "ID de l'annonce")
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+            ListingResponse listing = listingService.resolveListing(id, userPrincipal.getId());
+            
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Annonce marquée comme résolue",
+                listing
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiResponse<>(
+                    false,
+                    "Vous n'êtes pas autorisé à modifier cette annonce",
+                    null
+                ));
+        }
+    }
+
+    /**
+     * Obtenir les annonces d'un utilisateur
+     */
+    @GetMapping("/my")
+    @Operation(summary = "Obtenir mes annonces")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonces récupérées")
+    })
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> getUserListings(
+            @Parameter(description = "Statut des annonces (active, resolu, supprime)")
+            @RequestParam(required = false) String status,
+            
+            @Parameter(description = "Numéro de page")
+            @RequestParam(defaultValue = "1") int page,
+            
+            @Parameter(description = "Taille de la page")
+            @RequestParam(defaultValue = "20") int pageSize,
+            
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+        Pageable pageable = PageRequest.of(page - 1, pageSize, 
+            Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        PagedResponse<ListingResponse> listings = listingService.getUserListings(
+            userPrincipal.getId(), status, pageable);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+            true,
+            "Vos annonces récupérées avec succès",
+            listings
+        ));
     }
 }

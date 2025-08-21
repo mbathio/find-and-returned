@@ -6,7 +6,6 @@ import com.retrouvtout.dto.response.AuthResponse;
 import com.retrouvtout.entity.User;
 import com.retrouvtout.repository.UserRepository;
 import com.retrouvtout.security.JwtTokenProvider;
-import com.retrouvtout.util.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -32,7 +31,6 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ModelMapper modelMapper;
 
     @Value("${app.jwt.expiration}")
     private long jwtExpirationInMs;
@@ -50,14 +48,12 @@ public class AuthService {
                       JwtTokenProvider tokenProvider,
                       EmailService emailService,
                       RedisTemplate<String, Object> redisTemplate,
-                      ModelMapper modelMapper) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.emailService = emailService;
         this.redisTemplate = redisTemplate;
-        this.modelMapper = modelMapper;
     }
 
     /**
@@ -103,7 +99,7 @@ public class AuthService {
             refreshToken,
             "Bearer",
             jwtExpirationInMs / 1000,
-            modelMapper.mapUserToUserResponse(user)
+            
         );
     }
 
@@ -152,7 +148,6 @@ public class AuthService {
             refreshToken,
             "Bearer",
             jwtExpirationInMs / 1000,
-            modelMapper.mapUserToUserResponse(user)
         );
     }
 
@@ -186,7 +181,6 @@ public class AuthService {
             refreshToken, // Garder le même refresh token
             "Bearer",
             jwtExpirationInMs / 1000,
-            modelMapper.mapUserToUserResponse(user)
         );
     }
 

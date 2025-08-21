@@ -36,19 +36,16 @@ public class ListingService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final NotificationService notificationService;
-    private final AlertService alertService;
 
     @Autowired
     public ListingService(ListingRepository listingRepository,
                          UserRepository userRepository,
                          ModelMapper modelMapper,
-                         NotificationService notificationService,
-                         AlertService alertService) {
+                         NotificationService notificationService) {
         this.listingRepository = listingRepository;
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.notificationService = notificationService;
-        this.alertService = alertService;
     }
 
     /**
@@ -158,12 +155,10 @@ public class ListingService {
         listing.setIsModerated(true); // Auto-approuvé pour l'instant
 
         Listing savedListing = listingRepository.save(listing);
-
-        // Notifier les utilisateurs avec des alertes correspondantes
-        alertService.checkAndNotifyMatchingAlerts(savedListing);
-
         return modelMapper.mapListingToListingResponse(savedListing);
     }
+
+ 
 
     /**
      * Mettre à jour une annonce
