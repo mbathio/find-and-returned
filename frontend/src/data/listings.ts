@@ -1,13 +1,17 @@
+// Types conformes au cahier des charges avec fonctionnalités étendues conservées
 export interface Listing {
   id: string;
-  title: string;
-  category: string;
-  location: string;
-  date: string; // ISO string
-  description: string;
-  image?: string;
+  title: string; // type d'objet
+  category: string; // catégories étendues conservées
+  location: string; // lieu de découverte
+  date: string; // date de découverte (ISO string)
+  description: string; // description
+  image?: string; // photo
+  finderUserId?: string; // ID du retrouveur
+  status?: "active" | "resolu";
 }
 
+// Données d'exemple avec toutes les catégories originales conservées
 export const listings: Listing[] = [
   {
     id: "1",
@@ -24,7 +28,7 @@ export const listings: Listing[] = [
     category: "Bagagerie",
     location: "Université Paris Cité",
     date: "2025-08-06",
-    description: "Contient des cahiers, sans papiers d’identité visibles.",
+    description: "Contient des cahiers, sans papiers d'identité visibles.",
     image: "/Sac-à-dos-noir.jpg",
   },
   {

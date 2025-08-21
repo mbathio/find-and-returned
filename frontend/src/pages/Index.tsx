@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { KeyRound, MapPin, Search, Mail } from "lucide-react";
+import { Search, MapPin, KeyRound, Mail } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -22,21 +22,22 @@ const Index = () => {
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Recherche démo",
-      description:
-        "Connectez Supabase pour activer la recherche en temps réel.",
-    });
-    navigate("/annonces");
+    // Redirection vers la page de recherche avec les paramètres
+    const params = new URLSearchParams();
+    if (keyword) params.set("q", keyword);
+    if (location) params.set("location", location);
+    if (category) params.set("category", category);
+
+    navigate(`/annonces?${params.toString()}`);
   };
 
   return (
     <main>
       <Helmet>
-        <title>Retrouv'Tout — Objets perdus et retrouvés près de vous</title>
+        <title>Retrouv'Tout — Objets perdus et retrouvés</title>
         <meta
           name="description"
-          content="Publiez, recherchez et contactez en toute sécurité. Retrouv'Tout facilite la retrouvaille d'objets perdus."
+          content="Plateforme de mise en relation pour objets perdus et retrouvés. Publiez et recherchez facilement."
         />
         <link
           rel="canonical"
@@ -44,6 +45,7 @@ const Index = () => {
         />
       </Helmet>
 
+      {/* Section héro avec moteur de recherche principal */}
       <section className="relative overflow-hidden">
         <div className="container mx-auto grid gap-8 py-14 md:grid-cols-2">
           <div className="flex flex-col justify-center">
@@ -61,7 +63,7 @@ const Index = () => {
             >
               <div className="md:col-span-1">
                 <div className="flex items-center gap-2">
-                  <Search className="text-muted-foreground" />
+                  <Search className="text-muted-foreground" size={16} />
                   <Input
                     placeholder="Mot-clé (ex: portefeuille)"
                     value={keyword}
@@ -72,7 +74,7 @@ const Index = () => {
               </div>
               <div className="md:col-span-1">
                 <div className="flex items-center gap-2">
-                  <MapPin className="text-muted-foreground" />
+                  <MapPin className="text-muted-foreground" size={16} />
                   <Input
                     placeholder="Lieu (ville, arrêt...)"
                     value={location}
@@ -91,6 +93,7 @@ const Index = () => {
                     <SelectItem value="electronique">Électronique</SelectItem>
                     <SelectItem value="bagagerie">Bagagerie</SelectItem>
                     <SelectItem value="documents">Documents</SelectItem>
+                    <SelectItem value="vetements">Vêtements</SelectItem>
                     <SelectItem value="autre">Autre</SelectItem>
                   </SelectContent>
                 </Select>
@@ -118,11 +121,12 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Section fonctionnalités principales */}
       <section className="container mx-auto py-10 grid gap-6 md:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
             <div className="mb-2 flex items-center gap-2">
-              <KeyRound className="text-primary" />
+              <KeyRound className="text-primary" size={20} />
               <h2 className="text-xl font-semibold">Publiez en 1 minute</h2>
             </div>
             <p className="text-muted-foreground">
@@ -134,7 +138,7 @@ const Index = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="mb-2 flex items-center gap-2">
-              <Search className="text-primary" />
+              <Search className="text-primary" size={20} />
               <h2 className="text-xl font-semibold">Recherchez efficacement</h2>
             </div>
             <p className="text-muted-foreground">
@@ -146,7 +150,7 @@ const Index = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="mb-2 flex items-center gap-2">
-              <Mail className="text-primary" />
+              <Mail className="text-primary" size={20} />
               <h2 className="text-xl font-semibold">Échange sécurisé</h2>
             </div>
             <p className="text-muted-foreground">
@@ -157,6 +161,7 @@ const Index = () => {
         </Card>
       </section>
 
+      {/* CTA pour inscription et notifications */}
       <section className="container mx-auto pb-16">
         <div className="rounded-xl border p-6 md:p-8">
           <h2 className="text-2xl font-semibold mb-2">
