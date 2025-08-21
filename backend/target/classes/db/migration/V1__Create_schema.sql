@@ -1,9 +1,9 @@
--- Schema essentiel conforme au cahier des charges uniquement
--- Suppression de toutes les fonctionnalités non mentionnées
+-- Schema strictement conforme au cahier des charges
+-- UNIQUEMENT les fonctionnalités spécifiées
 
 -- Table des utilisateurs - Section 3.1 du cahier des charges
 -- Gestion des informations personnelles (nom, email, téléphone)
--- Rôles : retrouveurs vs propriétaires
+-- Rôles STRICTEMENT : retrouveur vs proprietaire
 CREATE TABLE users (
     id CHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
@@ -41,11 +41,12 @@ CREATE TABLE oauth_accounts (
 
 -- Table des annonces - Section 3.2 du cahier des charges
 -- Champs requis : type d'objet, lieu de découverte, date, photo, description, catégorie
+-- Catégories EXACTEMENT conformes au frontend : cles, electronique, bagagerie, documents, vetements, autre
 CREATE TABLE listings (
     id CHAR(36) NOT NULL PRIMARY KEY,
     finder_user_id CHAR(36) NOT NULL,
     title VARCHAR(180) NOT NULL, -- Type d'objet
-    category ENUM('electronique', 'cles', 'vetements', 'documents', 'bagagerie', 'autre') NOT NULL,
+    category ENUM('cles', 'electronique', 'bagagerie', 'documents', 'vetements', 'autre') NOT NULL,
     location_text VARCHAR(255) NOT NULL, -- Lieu de découverte
     latitude DECIMAL(9,6) NULL, -- Pour filtres géographiques
     longitude DECIMAL(9,6) NULL,
@@ -148,29 +149,6 @@ CREATE TABLE messages (
     CONSTRAINT fk_messages_sender 
         FOREIGN KEY (sender_user_id) REFERENCES users(id) 
         ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Table pour validation de récupération - Section 3.5
--- Système de validation via code ou système de vérification
-CREATE TABLE validations (
-    id CHAR(36) NOT NULL PRIMARY KEY,
-    thread_id CHAR(36) NOT NULL,
-    validation_code VARCHAR(12) NOT NULL,
-    expires_at DATETIME(3) NOT NULL,
-    validated_at DATETIME(3) NULL,
-    validated_by_user_id CHAR(36) NULL,
-    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    
-    UNIQUE KEY ux_validations_thread (thread_id),
-    INDEX idx_validations_code (validation_code),
-    INDEX idx_validations_expires (expires_at),
-    
-    CONSTRAINT fk_validations_thread 
-        FOREIGN KEY (thread_id) REFERENCES threads(id) 
-        ON DELETE CASCADE,
-    CONSTRAINT fk_validations_user 
-        FOREIGN KEY (validated_by_user_id) REFERENCES users(id) 
-        ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table pour logs de notifications - Section 3.3 du cahier des charges

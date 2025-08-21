@@ -2,6 +2,7 @@ package com.retrouvtout.service;
 
 import com.retrouvtout.dto.request.CreateMessageRequest;
 import com.retrouvtout.dto.response.MessageResponse;
+import com.retrouvtout.dto.response.PagedResponse;
 import com.retrouvtout.entity.Message;
 import com.retrouvtout.entity.Thread;
 import com.retrouvtout.entity.User;
@@ -18,9 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service pour la gestion des messages
+ * CORRIGÉ pour retourner PagedResponse au lieu de Page
  */
 @Service
 @Transactional
@@ -98,10 +102,10 @@ public class MessageService {
     }
 
     /**
-     * Obtenir les messages d'un thread
+     * Obtenir les messages d'un thread - CORRIGÉ pour retourner PagedResponse
      */
     @Transactional(readOnly = true)
-    public Page<MessageResponse> getThreadMessages(String threadId, String userId, Pageable pageable) {
+    public PagedResponse<MessageResponse> getThreadMessages(String threadId, String userId, Pageable pageable) {
         Thread thread = threadRepository.findById(threadId)
             .orElseThrow(() -> new ResourceNotFoundException("Thread", "id", threadId));
 
@@ -112,7 +116,18 @@ public class MessageService {
         }
 
         Page<Message> messages = messageRepository.findByThreadOrderByCreatedAtAsc(thread, pageable);
-        return messages.map(modelMapper::mapMessageToMessageResponse);
+        
+        // Conversion manuelle en PagedResponse
+        List<MessageResponse> messageResponses = messages.getContent().stream()
+            .map(modelMapper::mapMessageToMessageResponse)
+            .collect(Collectors.toList());
+
+        return modelMapper.createPagedResponse(
+            messageResponses,
+            pageable.getPageNumber() + 1,
+            pageable.getPageSize(),
+            messages.getTotalElements()
+        );
     }
 
     /**

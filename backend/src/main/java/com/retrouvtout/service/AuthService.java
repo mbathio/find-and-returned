@@ -16,11 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 /**
  * Service pour l'authentification conforme au cahier des charges
  * Section 3.1 - Inscription/Connexion via email ou réseaux sociaux
+ * Rôles STRICTEMENT conformes : retrouveur et proprietaire
  */
 @Service
 @Transactional
@@ -53,7 +53,7 @@ public class AuthService {
 
     /**
      * Inscription d'un nouvel utilisateur - Section 3.1
-     * Création de compte via email
+     * Rôles STRICTEMENT conformes au cahier des charges
      */
     public AuthResponse register(RegisterRequest request, String clientIp) {
         validateRegisterRequest(request);
@@ -62,10 +62,20 @@ public class AuthService {
             throw new IllegalArgumentException("Un utilisateur avec cet email existe déjà");
         }
 
-        // Créer l'utilisateur
-        User.UserRole role = request.getRole() != null ? 
-            User.UserRole.fromValue(request.getRole()) : User.UserRole.RETROUVEUR;
+        // Validation et conversion du rôle
+        User.UserRole role;
+        if (request.getRole() != null) {
+            try {
+                role = User.UserRole.fromValue(request.getRole());
+            } catch (IllegalArgumentException e) {
+                // Si le rôle n'est pas valide, utiliser retrouveur par défaut
+                role = User.UserRole.RETROUVEUR;
+            }
+        } else {
+            role = User.UserRole.RETROUVEUR; // Défaut
+        }
 
+        // Créer l'utilisateur
         User user = new User();
         user.setId(java.util.UUID.randomUUID().toString());
         user.setName(request.getName());
@@ -102,7 +112,6 @@ public class AuthService {
 
     /**
      * Connexion d'un utilisateur - Section 3.1
-     * Connexion via email
      */
     public AuthResponse login(LoginRequest request, String clientIp) {
         validateLoginRequest(request);
@@ -173,7 +182,6 @@ public class AuthService {
         // Implémentation simple - blacklister le token si nécessaire
         try {
             String userId = tokenProvider.getUserIdFromToken(accessToken);
-            // Log de déconnexion si nécessaire
             System.out.println("Utilisateur déconnecté: " + userId);
         } catch (Exception e) {
             // Ignore les erreurs lors de la déconnexion
@@ -184,7 +192,6 @@ public class AuthService {
      * Obtenir l'URL d'authentification Google - Section 3.1 (réseaux sociaux)
      */
     public String getGoogleAuthUrl() {
-        // URL de base OAuth2 Google - à implémenter selon la configuration OAuth2
         return "https://accounts.google.com/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=email%20profile&response_type=code";
     }
 
@@ -192,7 +199,6 @@ public class AuthService {
      * Obtenir l'URL d'authentification Facebook - Section 3.1 (réseaux sociaux)
      */
     public String getFacebookAuthUrl() {
-        // URL de base OAuth2 Facebook - à implémenter selon la configuration OAuth2
         return "https://www.facebook.com/v18.0/dialog/oauth?client_id=YOUR_APP_ID&redirect_uri=YOUR_REDIRECT_URI&scope=email";
     }
 
@@ -200,8 +206,6 @@ public class AuthService {
      * Traiter le callback OAuth2 - Section 3.1 (réseaux sociaux)
      */
     public AuthResponse processOAuth2Callback(String provider, String code, String state, String clientIp) {
-        // Implémentation simplifiée pour la démo
-        // En production, échanger le code contre un token et récupérer les infos utilisateur
         throw new UnsupportedOperationException("OAuth2 non encore implémenté - nécessite configuration spécifique");
     }
 

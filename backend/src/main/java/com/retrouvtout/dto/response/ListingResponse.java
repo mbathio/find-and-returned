@@ -1,4 +1,3 @@
-// ListingResponse.java
 package com.retrouvtout.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -6,42 +5,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * DTO de réponse pour les annonces
+ * Structure EXACTEMENT conforme au frontend Listing interface
+ */
 public class ListingResponse {
     
     private String id;
     private String title;
     private String category;
     
-    @JsonProperty("location_text")
+    @JsonProperty("locationText")
     private String locationText;
     
     private BigDecimal latitude;
     private BigDecimal longitude;
     
-    @JsonProperty("found_at")
-    private LocalDateTime foundAt;
+    @JsonProperty("foundAt")
+    private String foundAt; // ISO string format pour le frontend
     
     private String description;
     
-    @JsonProperty("image_url")
+    @JsonProperty("imageUrl")
     private String imageUrl;
     
-    private String status;
+    private String status; // "active" ou "resolved" pour correspondre au frontend
     
-    @JsonProperty("views_count")
-    private Long viewsCount;
+    @JsonProperty("finderUserId")
+    private String finderUserId; // ID simple pour correspondre au frontend
     
-    @JsonProperty("is_moderated")
-    private Boolean isModerated;
+    @JsonProperty("createdAt")
+    private String createdAt; // ISO string format
     
-    @JsonProperty("finder_user")
-    private UserResponse finderUser;
-    
-    @JsonProperty("created_at")
-    private LocalDateTime createdAt;
-    
-    @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    @JsonProperty("updatedAt")
+    private String updatedAt; // ISO string format
     
     // Constructeurs
     public ListingResponse() {}
@@ -65,8 +62,8 @@ public class ListingResponse {
     public BigDecimal getLongitude() { return longitude; }
     public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
     
-    public LocalDateTime getFoundAt() { return foundAt; }
-    public void setFoundAt(LocalDateTime foundAt) { this.foundAt = foundAt; }
+    public String getFoundAt() { return foundAt; }
+    public void setFoundAt(String foundAt) { this.foundAt = foundAt; }
     
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -77,18 +74,12 @@ public class ListingResponse {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     
-    public Long getViewsCount() { return viewsCount; }
-    public void setViewsCount(Long viewsCount) { this.viewsCount = viewsCount; }
+    public String getFinderUserId() { return finderUserId; }
+    public void setFinderUserId(String finderUserId) { this.finderUserId = finderUserId; }
     
-    public Boolean getIsModerated() { return isModerated; }
-    public void setIsModerated(Boolean isModerated) { this.isModerated = isModerated; }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
     
-    public UserResponse getFinderUser() { return finderUser; }
-    public void setFinderUser(UserResponse finderUser) { this.finderUser = finderUser; }
-    
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public String getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
 }

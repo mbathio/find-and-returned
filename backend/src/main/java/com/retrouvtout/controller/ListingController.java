@@ -29,6 +29,7 @@ import java.time.LocalDate;
 /**
  * Contrôleur pour la gestion des annonces conforme au cahier des charges
  * Section 3.2 - Gestion des annonces d'objets retrouvés
+ * API EXACTEMENT conforme au frontend (services/listings.ts)
  */
 @RestController
 @RequestMapping("/listings")
@@ -81,18 +82,18 @@ public class ListingController {
 
     /**
      * Rechercher des annonces - Section 3.2
-     * Moteur de recherche avec filtres : catégorie, date, lieu
+     * API EXACTEMENT conforme aux paramètres du frontend ListingsSearchParams
      */
     @GetMapping
     @Operation(summary = "Rechercher des annonces d'objets retrouvés")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonces trouvées")
     })
-    public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> searchListings(
+    public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> getListings(
             @Parameter(description = "Mot-clé de recherche")
             @RequestParam(required = false) String q,
             
-            @Parameter(description = "Catégorie (electronique, cles, vetements, etc.)")
+            @Parameter(description = "Catégorie (cles, electronique, bagagerie, documents, vetements, autre)")
             @RequestParam(required = false) String category,
             
             @Parameter(description = "Lieu de recherche")
@@ -137,6 +138,7 @@ public class ListingController {
 
     /**
      * Obtenir une annonce par son ID
+     * Format de réponse EXACTEMENT conforme au frontend
      */
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir les détails d'une annonce")
@@ -160,7 +162,12 @@ public class ListingController {
                 listing
             ));
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(
+                    false,
+                    "Annonce non trouvée",
+                    null
+                ));
         }
     }
 
@@ -191,7 +198,12 @@ public class ListingController {
                 listing
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(
+                    false,
+                    "Annonce non trouvée",
+                    null
+                ));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(
@@ -228,7 +240,12 @@ public class ListingController {
                 null
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(
+                    false,
+                    "Annonce non trouvée",
+                    null
+                ));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(
@@ -237,43 +254,5 @@ public class ListingController {
                     null
                 ));
         }
-    }
-
-    /**
-     * Obtenir les annonces d'un utilisateur
-     */
-    @GetMapping("/my")
-    @Operation(summary = "Obtenir mes annonces")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonces récupérées")
-    })
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<PagedResponse<ListingResponse>>> getUserListings(
-            @Parameter(description = "Statut des annonces (active, resolu, supprime)")
-            @RequestParam(required = false) String status,
-            
-            @Parameter(description = "Numéro de page")
-            @RequestParam(defaultValue = "1") int page,
-            
-            @Parameter(description = "Taille de la page")
-            @RequestParam(defaultValue = "20") int page_size,
-            
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        if (page < 1) page = 1;
-        if (page_size < 1 || page_size > 100) page_size = 20;
-
-        Pageable pageable = PageRequest.of(page - 1, page_size, 
-            Sort.by(Sort.Direction.DESC, "createdAt"));
-
-        PagedResponse<ListingResponse> listings = listingService.getUserListings(
-            userPrincipal.getId(), status, pageable);
-
-        return ResponseEntity.ok(new ApiResponse<>(
-            true,
-            "Vos annonces récupérées avec succès",
-            listings
-        ));
     }
 }

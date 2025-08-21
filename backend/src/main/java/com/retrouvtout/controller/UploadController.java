@@ -15,11 +15,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-
 /**
  * Contrôleur pour l'upload de fichiers conforme au cahier des charges
  * Section 3.2 - Upload de photos pour les annonces
+ * Réponse EXACTEMENT conforme au frontend (services/listings.ts)
  */
 @RestController
 @RequestMapping("/upload")
@@ -36,7 +35,7 @@ public class UploadController {
 
     /**
      * Upload d'image pour les annonces - Section 3.2
-     * Photos obligatoires pour les annonces d'objets retrouvés
+     * Réponse EXACTEMENT conforme au frontend : { url: string }
      */
     @PostMapping("/image")
     @Operation(summary = "Upload d'une photo pour annonce")
@@ -47,17 +46,20 @@ public class UploadController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Map<String, String>>> uploadImage(
+    public ResponseEntity<ApiResponse<UploadResponse>> uploadImage(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
             String imageUrl = fileUploadService.uploadImage(file, userPrincipal.getId());
             
+            // Réponse conforme au frontend : { url: string }
+            UploadResponse response = new UploadResponse(imageUrl);
+            
             return ResponseEntity.ok(new ApiResponse<>(
                 true,
                 "Photo uploadée avec succès",
-                Map.of("url", imageUrl)
+                response
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -73,6 +75,28 @@ public class UploadController {
                     "Erreur lors de l'upload",
                     null
                 ));
+        }
+    }
+
+    /**
+     * Classe de réponse EXACTEMENT conforme au frontend
+     * services/listings.ts attend : { url: string }
+     */
+    public static class UploadResponse {
+        private String url;
+
+        public UploadResponse() {}
+
+        public UploadResponse(String url) {
+            this.url = url;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
         }
     }
 }

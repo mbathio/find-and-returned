@@ -17,6 +17,7 @@ import java.util.List;
 
 /**
  * Service personnalisé pour charger les détails de l'utilisateur pour Spring Security
+ * Rôles STRICTEMENT conformes au cahier des charges
  */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -49,23 +50,21 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     /**
      * Convertit le rôle de l'utilisateur en autorités Spring Security
+     * UNIQUEMENT les rôles conformes au cahier des charges
      */
     private Collection<? extends GrantedAuthority> mapRolesToAuthorities(User.UserRole role) {
         List<GrantedAuthority> authorities = new ArrayList<>();
         
-        // Ajouter les rôles de base selon le type d'utilisateur
+        // Ajouter le rôle de base pour tous les utilisateurs authentifiés
         authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         
-        // Ajouter des rôles spécifiques si nécessaire
+        // Ajouter des rôles spécifiques selon le type d'utilisateur
+        // STRICTEMENT conforme au cahier des charges - Section 3.1
         switch (role) {
             case RETROUVEUR:
                 authorities.add(new SimpleGrantedAuthority("ROLE_FINDER"));
                 break;
             case PROPRIETAIRE:
-                authorities.add(new SimpleGrantedAuthority("ROLE_OWNER"));
-                break;
-            case MIXTE:
-                authorities.add(new SimpleGrantedAuthority("ROLE_FINDER"));
                 authorities.add(new SimpleGrantedAuthority("ROLE_OWNER"));
                 break;
         }

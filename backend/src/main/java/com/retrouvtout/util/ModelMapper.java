@@ -4,12 +4,16 @@ import com.retrouvtout.dto.response.*;
 import com.retrouvtout.entity.*;
 import org.springframework.stereotype.Component;
 
+import java.time.format.DateTimeFormatter;
+
 /**
  * Utilitaire de mapping entre entités et DTOs
- * Conforme au cahier des charges - mapping simple sans complexité
+ * Conforme EXACTEMENT au format attendu par le frontend
  */
 @Component
 public class ModelMapper {
+
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     /**
      * Mapper User vers UserResponse - Section 3.1 (gestion utilisateurs)
@@ -32,7 +36,7 @@ public class ModelMapper {
     }
 
     /**
-     * Mapper Listing vers ListingResponse - Section 3.2 (gestion annonces)
+     * Mapper Listing vers ListingResponse - EXACTEMENT conforme au frontend
      */
     public ListingResponse mapListingToListingResponse(Listing listing) {
         if (listing == null) return null;
@@ -44,33 +48,31 @@ public class ModelMapper {
         response.setLocationText(listing.getLocationText());
         response.setLatitude(listing.getLatitude());
         response.setLongitude(listing.getLongitude());
-        response.setFoundAt(listing.getFoundAt());
+        
+        // Conversion des dates en format ISO string pour le frontend
+        response.setFoundAt(listing.getFoundAt().format(ISO_FORMATTER));
+        response.setCreatedAt(listing.getCreatedAt().format(ISO_FORMATTER));
+        response.setUpdatedAt(listing.getUpdatedAt().format(ISO_FORMATTER));
+        
         response.setDescription(listing.getDescription());
         response.setImageUrl(listing.getImageUrl());
-        response.setStatus(listing.getStatus().getValue());
-        response.setViewsCount(listing.getViewsCount());
-        response.setIsModerated(listing.getIsModerated());
-        response.setCreatedAt(listing.getCreatedAt());
-        response.setUpdatedAt(listing.getUpdatedAt());
-
-        // Mapper l'utilisateur retrouveur
-        if (listing.getFinderUser() != null) {
-            // Version publique sans informations sensibles - Section 3.4
-            UserResponse finderUser = new UserResponse();
-            finderUser.setId(listing.getFinderUser().getId());
-            finderUser.setName(listing.getFinderUser().getName());
-            // Email et téléphone masqués pour la confidentialité
-            finderUser.setRole(listing.getFinderUser().getRole().getValue());
-            response.setFinderUser(finderUser);
-        }
+        
+        // Conversion du statut pour le frontend (resolu -> resolved)
+        String frontendStatus = listing.getStatus() == Listing.ListingStatus.RESOLU ? 
+            "resolved" : listing.getStatus().getValue();
+        response.setStatus(frontendStatus);
+        
+        // ID utilisateur simple comme attendu par le frontend
+        response.setFinderUserId(listing.getFinderUser().getId());
 
         return response;
     }
 
     /**
      * Mapper Thread vers ThreadResponse - Section 3.5 (messagerie)
+     * Utilisation du nom complet pour éviter l'ambiguïté avec java.lang.Thread
      */
-    public ThreadResponse mapThreadToThreadResponse(Thread thread) {
+    public ThreadResponse mapThreadToThreadResponse(com.retrouvtout.entity.Thread thread) {
         if (thread == null) return null;
 
         ThreadResponse response = new ThreadResponse();
@@ -133,7 +135,7 @@ public class ModelMapper {
     }
 
     /**
-     * Créer une PagedResponse générique
+     * Créer une PagedResponse conforme au frontend
      */
     public <T> PagedResponse<T> createPagedResponse(
             java.util.List<T> items, 
@@ -142,8 +144,7 @@ public class ModelMapper {
             long totalElements) {
         
         int totalPages = (int) Math.ceil((double) totalElements / pageSize);
-        boolean isLast = page >= totalPages;
 
-        return new PagedResponse<>(items, page, pageSize, totalElements, totalPages, isLast);
+        return new PagedResponse<>(items, totalElements, page, totalPages);
     }
 }

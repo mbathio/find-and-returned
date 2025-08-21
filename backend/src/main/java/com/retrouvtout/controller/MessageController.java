@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -26,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Contrôleur pour la messagerie intégrée
  * Conforme au cahier des charges - Section 3.5
- * Permet la communication directe via la plateforme avec masquage des informations personnelles
  */
 @RestController
 @RequestMapping("/messages")
@@ -43,7 +41,6 @@ public class MessageController {
 
     /**
      * Envoyer un message - Cahier des charges 3.5
-     * Communication directe via la plateforme
      */
     @PostMapping
     @Operation(summary = "Envoyer un message via la messagerie intégrée")
@@ -87,7 +84,6 @@ public class MessageController {
 
     /**
      * Obtenir les messages d'une conversation
-     * Respect de la confidentialité - Section 3.4
      */
     @GetMapping("/thread/{threadId}")
     @Operation(summary = "Obtenir les messages d'une conversation")
@@ -126,7 +122,12 @@ public class MessageController {
                 messages
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(
+                    false,
+                    "Conversation non trouvée",
+                    null
+                ));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(
@@ -163,7 +164,12 @@ public class MessageController {
                 null
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(
+                    false,
+                    "Conversation non trouvée",
+                    null
+                ));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(

@@ -14,6 +14,7 @@ import java.util.List;
 /**
  * Entité représentant un utilisateur
  * Conforme au cahier des charges - Section 3.1
+ * Rôles : retrouveur (qui publie) et proprietaire (qui cherche)
  */
 @Entity
 @Table(name = "users", indexes = {
@@ -48,7 +49,7 @@ public class User {
 
     /**
      * Rôles conformes au cahier des charges - Section 3.1
-     * Différenciation entre retrouveurs et propriétaires
+     * UNIQUEMENT : retrouveur (publie) et proprietaire (cherche)
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
@@ -79,12 +80,12 @@ public class User {
     private List<OAuthAccount> oauthAccounts;
 
     /**
-     * Énumération des rôles conformes au cahier des charges
-     * Section 3.1 : Différenciation entre retrouveurs et propriétaires
+     * Énumération des rôles STRICTEMENT conformes au cahier des charges
+     * Section 3.1 : Distinction retrouveurs (publient) vs propriétaires (cherchent)
      */
     public enum UserRole {
-        RETROUVEUR("retrouveur"),    // Ceux qui publient des annonces (retrouveurs)
-        PROPRIETAIRE("proprietaire"); // Ceux qui cherchent (propriétaires)
+        RETROUVEUR("retrouveur"),    // Ceux qui trouvent et publient des annonces
+        PROPRIETAIRE("proprietaire"); // Ceux qui ont perdu et cherchent
 
         private final String value;
 

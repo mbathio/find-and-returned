@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 /**
  * Service pour la gestion des annonces conforme au cahier des charges
  * Section 3.2 - Gestion des annonces d'objets retrouvés
+ * CORRIGÉ - Suppression des méthodes non existantes
  */
 @Service
 @Transactional
@@ -49,7 +50,6 @@ public class ListingService {
 
     /**
      * Rechercher des annonces avec filtres - Section 3.2
-     * Moteur de recherche avec filtres (catégorie, date, lieu)
      */
     @Transactional(readOnly = true)
     public PagedResponse<ListingResponse> searchListings(String query, String category, String location,
@@ -128,7 +128,6 @@ public class ListingService {
 
     /**
      * Créer une nouvelle annonce - Section 3.2
-     * Poster une annonce avec type d'objet, lieu, date, photo, description, catégorie
      */
     public ListingResponse createListing(CreateListingRequest request, String userId) {
         User user = userRepository.findByIdAndActiveTrue(userId)
@@ -258,13 +257,16 @@ public class ListingService {
 
     /**
      * Déclencher les notifications pour une nouvelle annonce - Section 3.3
-     * Envoi automatique d'alertes aux propriétaires concernés
+     * SIMPLIFIÉ - notification générale sans ciblage spécifique
      */
     private void triggerNotificationsForNewListing(Listing listing) {
         try {
-            // Rechercher les utilisateurs propriétaires potentiellement intéressés
-            // Logique simple : chercher par catégorie et lieu similaire
-            List<User> interestedUsers = userRepository.findByRole(User.UserRole.PROPRIETAIRE);
+            // Rechercher tous les utilisateurs propriétaires actifs
+            // Requête simplifiée pour éviter l'erreur findByRole
+            List<User> allUsers = userRepository.findAll();
+            List<User> interestedUsers = allUsers.stream()
+                .filter(user -> user.getRole() == User.UserRole.PROPRIETAIRE && user.getActive())
+                .collect(Collectors.toList());
             
             // Pour chaque utilisateur propriétaire, envoyer une notification
             for (User user : interestedUsers) {

@@ -1,8 +1,8 @@
 package com.retrouvtout.service;
 
+import com.retrouvtout.dto.response.PagedResponse;
 import com.retrouvtout.dto.response.ThreadResponse;
 import com.retrouvtout.entity.Listing;
-import com.retrouvtout.entity.Thread;
 import com.retrouvtout.entity.User;
 import com.retrouvtout.exception.ResourceNotFoundException;
 import com.retrouvtout.repository.ListingRepository;
@@ -15,10 +15,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service pour la gestion des threads de conversation
+ * CORRIGÉ - Version finale avec mapping correct
  */
 @Service
 @Transactional
@@ -63,17 +65,15 @@ public class ThreadService {
             throw new IllegalStateException("Une conversation existe déjà pour cette annonce");
         }
 
-        // Créer le thread
-        Thread thread = new Thread();
+        // Créer le thread SIMPLIFIÉ
+        com.retrouvtout.entity.Thread thread = new com.retrouvtout.entity.Thread();
         thread.setId(java.util.UUID.randomUUID().toString());
         thread.setListing(listing);
         thread.setOwnerUser(ownerUser);
         thread.setFinderUser(listing.getFinderUser());
-        thread.setStatus(Thread.ThreadStatus.PENDING);
-        thread.setApprovedByOwner(false);
-        thread.setApprovedByFinder(false);
+        thread.setStatus(com.retrouvtout.entity.Thread.ThreadStatus.ACTIVE);
 
-        Thread savedThread = threadRepository.save(thread);
+        com.retrouvtout.entity.Thread savedThread = threadRepository.save(thread);
 
         // Notifier le retrouveur
         try {
@@ -94,20 +94,31 @@ public class ThreadService {
      * Obtenir les threads d'un utilisateur
      */
     @Transactional(readOnly = true)
-    public Page<ThreadResponse> getUserThreads(String userId, String status, Pageable pageable) {
+    public PagedResponse<ThreadResponse> getUserThreads(String userId, String status, Pageable pageable) {
         User user = userRepository.findByIdAndActiveTrue(userId)
             .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", "id", userId));
 
-        Page<Thread> threads;
+        Page<com.retrouvtout.entity.Thread> threads;
         
         if (status != null && !status.trim().isEmpty()) {
-            Thread.ThreadStatus threadStatus = Thread.ThreadStatus.fromValue(status);
+            com.retrouvtout.entity.Thread.ThreadStatus threadStatus = 
+                com.retrouvtout.entity.Thread.ThreadStatus.fromValue(status);
             threads = threadRepository.findByUserInvolvedAndStatus(user, threadStatus, pageable);
         } else {
             threads = threadRepository.findByUserInvolved(user, pageable);
         }
 
-        return threads.map(modelMapper::mapThreadToThreadResponse);
+        // Conversion manuelle pour éviter l'erreur de type
+        List<ThreadResponse> threadResponses = threads.getContent().stream()
+            .map(modelMapper::mapThreadToThreadResponse)
+            .collect(Collectors.toList());
+
+        return modelMapper.createPagedResponse(
+            threadResponses,
+            pageable.getPageNumber() + 1,
+            pageable.getPageSize(),
+            threads.getTotalElements()
+        );
     }
 
     /**
@@ -115,7 +126,7 @@ public class ThreadService {
      */
     @Transactional(readOnly = true)
     public ThreadResponse getThreadById(String id, String userId) {
-        Thread thread = threadRepository.findById(id)
+        com.retrouvtout.entity.Thread thread = threadRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Thread", "id", id));
 
         // Vérifier que l'utilisateur fait partie du thread
@@ -128,46 +139,10 @@ public class ThreadService {
     }
 
     /**
-     * Approuver un thread (par le retrouveur)
-     */
-    public ThreadResponse approveThread(String id, String userId) {
-        Thread thread = threadRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Thread", "id", id));
-
-        // Seul le retrouveur peut approuver
-        if (!thread.getFinderUser().getId().equals(userId)) {
-            throw new SecurityException("Seul le retrouveur peut approuver cette conversation");
-        }
-
-        thread.setApprovedByFinder(true);
-        
-        // Si les deux parties ont approuvé, changer le statut
-        if (thread.getApprovedByOwner() && thread.getApprovedByFinder()) {
-            thread.setStatus(Thread.ThreadStatus.APPROVED);
-        }
-
-        Thread updatedThread = threadRepository.save(thread);
-
-        // Notifier l'autre partie
-        try {
-            String title = "Conversation approuvée";
-            String body = "Votre demande de contact a été acceptée";
-            String url = "/messages/" + thread.getId();
-
-            notificationService.sendPushNotification(
-                thread.getOwnerUser().getId(), title, body, url);
-        } catch (Exception e) {
-            System.err.println("Erreur lors de l'envoi de la notification: " + e.getMessage());
-        }
-
-        return modelMapper.mapThreadToThreadResponse(updatedThread);
-    }
-
-    /**
      * Fermer un thread
      */
     public ThreadResponse closeThread(String id, String userId) {
-        Thread thread = threadRepository.findById(id)
+        com.retrouvtout.entity.Thread thread = threadRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Thread", "id", id));
 
         // Vérifier que l'utilisateur fait partie du thread
@@ -176,8 +151,8 @@ public class ThreadService {
             throw new SecurityException("Vous n'êtes pas autorisé à fermer cette conversation");
         }
 
-        thread.setStatus(Thread.ThreadStatus.CLOSED);
-        Thread updatedThread = threadRepository.save(thread);
+        thread.setStatus(com.retrouvtout.entity.Thread.ThreadStatus.CLOSED);
+        com.retrouvtout.entity.Thread updatedThread = threadRepository.save(thread);
 
         return modelMapper.mapThreadToThreadResponse(updatedThread);
     }

@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Entité représentant une conversation
  * Conforme au cahier des charges - Section 3.5 (Messagerie intégrée)
- * Communication directe via la plateforme
+ * Communication directe via la plateforme - SIMPLIFIÉE
  */
 @Entity
 @Table(name = "threads", indexes = {

@@ -13,6 +13,7 @@ import java.util.Objects;
 
 /**
  * Classe principale pour l'utilisateur dans Spring Security
+ * Rôles STRICTEMENT conformes au cahier des charges
  */
 public class UserPrincipal implements UserDetails {
     
@@ -42,22 +43,23 @@ public class UserPrincipal implements UserDetails {
         this.emailVerified = emailVerified;
     }
 
+    /**
+     * Créer un UserPrincipal à partir d'un User
+     * Rôles STRICTEMENT conformes au cahier des charges - Section 3.1
+     */
     public static UserPrincipal create(User user) {
         List<GrantedAuthority> authorities = new ArrayList<>();
         
-        // Ajouter le rôle de base
+        // Ajouter le rôle de base pour tous les utilisateurs authentifiés
         authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         
         // Ajouter des rôles spécifiques selon le type d'utilisateur
+        // UNIQUEMENT les deux rôles définis dans le cahier des charges
         switch (user.getRole()) {
             case RETROUVEUR:
                 authorities.add(new SimpleGrantedAuthority("ROLE_FINDER"));
                 break;
             case PROPRIETAIRE:
-                authorities.add(new SimpleGrantedAuthority("ROLE_OWNER"));
-                break;
-            case MIXTE:
-                authorities.add(new SimpleGrantedAuthority("ROLE_FINDER"));
                 authorities.add(new SimpleGrantedAuthority("ROLE_OWNER"));
                 break;
         }

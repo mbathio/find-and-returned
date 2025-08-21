@@ -1,4 +1,3 @@
-// CustomOAuth2UserService.java
 package com.retrouvtout.security.oauth2;
 
 import com.retrouvtout.entity.OAuthAccount;
@@ -24,6 +23,7 @@ import java.util.Optional;
 
 /**
  * Service personnalisé pour l'authentification OAuth2
+ * CORRIGÉ - suppression du rôle MIXTE non conforme
  */
 @Service
 @Transactional
@@ -78,7 +78,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setName(oAuth2UserInfo.getName());
         user.setEmail(oAuth2UserInfo.getEmail());
         user.setEmailVerified(true); // OAuth2 emails are pre-verified
-        user.setRole(User.UserRole.MIXTE);
+        // Rôle par défaut conforme au cahier des charges
+        user.setRole(User.UserRole.RETROUVEUR);
         user.setActive(true);
         
         user = userRepository.save(user);

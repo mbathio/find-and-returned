@@ -4,7 +4,6 @@ import com.retrouvtout.dto.response.UserResponse;
 import com.retrouvtout.entity.User;
 import com.retrouvtout.exception.ResourceNotFoundException;
 import com.retrouvtout.repository.UserRepository;
-import com.retrouvtout.security.JwtTokenProvider;
 import com.retrouvtout.util.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,6 +17,7 @@ import java.util.Optional;
 
 /**
  * Service pour la gestion des utilisateurs
+ * CORRIGÉ - Suppression des méthodes non existantes
  */
 @Service
 @Transactional
@@ -25,19 +25,16 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider tokenProvider;
     private final EmailService emailService;
     private final ModelMapper modelMapper;
 
     @Autowired
     public UserService(UserRepository userRepository,
                       PasswordEncoder passwordEncoder,
-                      JwtTokenProvider tokenProvider,
                       EmailService emailService,
                       ModelMapper modelMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.tokenProvider = tokenProvider;
         this.emailService = emailService;
         this.modelMapper = modelMapper;
     }
@@ -67,13 +64,6 @@ public class UserService {
             emailService.sendEmailVerification(savedUser);
         } catch (Exception e) {
             System.err.println("Erreur lors de l'envoi de l'email de vérification: " + e.getMessage());
-        }
-
-        // Envoyer l'email de bienvenue
-        try {
-            emailService.sendWelcomeEmail(savedUser);
-        } catch (Exception e) {
-            System.err.println("Erreur lors de l'envoi de l'email de bienvenue: " + e.getMessage());
         }
 
         return savedUser;

@@ -16,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 /**
  * Service pour l'envoi d'emails conforme au cahier des charges
  * Section 3.3 - Notifications email
+ * UNIQUEMENT les fonctionnalités spécifiées
  */
 @Service
 public class EmailService {
@@ -29,7 +30,7 @@ public class EmailService {
     @Value("${app.notifications.email.from-name:Retrouv'Tout}")
     private String fromName;
 
-    @Value("${app.frontend.url:http://localhost:3000}")
+    @Value("${app.frontend.url:http://localhost:8080}")
     private String frontendUrl;
 
     @Value("${app.notifications.email.enabled:true}")
@@ -77,6 +78,29 @@ public class EmailService {
             sendHtmlEmail(user.getEmail(), subject, content);
         } catch (Exception e) {
             System.err.println("Erreur envoi notification email: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Envoyer notification de nouveau message - Section 3.5
+     */
+    @Async
+    public void sendNewMessageNotification(User recipient, User sender, String listingTitle) {
+        if (!emailNotificationsEnabled || !recipient.getEmailVerified()) {
+            return;
+        }
+
+        try {
+            String subject = "Nouveau message - Retrouv'Tout";
+            String message = String.format(
+                "Vous avez reçu un nouveau message de %s concernant: %s\n\n" +
+                "Connectez-vous pour répondre.",
+                sender.getName(), listingTitle
+            );
+
+            sendNotificationEmail(recipient, subject, message);
+        } catch (Exception e) {
+            System.err.println("Erreur envoi notification message: " + e.getMessage());
         }
     }
 

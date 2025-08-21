@@ -46,8 +46,8 @@ public class Listing {
     private String title;
 
     /**
-     * Catégorie - Cahier des charges 3.2
-     * Exemples : électronique, clés, vêtements
+     * Catégorie - Strictement conforme au frontend
+     * Categories exactes : cles, electronique, bagagerie, documents, vetements, autre
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false)
@@ -123,15 +123,15 @@ public class Listing {
     private List<Thread> threads;
 
     /**
-     * Catégories d'objets conformes au cahier des charges
-     * Section 3.2 : électronique, clés, vêtements
+     * Catégories d'objets EXACTEMENT conformes au frontend
+     * Correspondance directe avec les valeurs utilisées dans le frontend
      */
     public enum ListingCategory {
-        ELECTRONIQUE("electronique"),
         CLES("cles"),
-        VETEMENTS("vetements"),
-        DOCUMENTS("documents"),
+        ELECTRONIQUE("electronique"),
         BAGAGERIE("bagagerie"),
+        DOCUMENTS("documents"),
+        VETEMENTS("vetements"),
         AUTRE("autre");
 
         private final String value;
@@ -155,11 +155,11 @@ public class Listing {
     }
 
     /**
-     * Statuts d'annonce
+     * Statuts d'annonce conformes au frontend
      */
     public enum ListingStatus {
         ACTIVE("active"),
-        RESOLU("resolu"),
+        RESOLU("resolu"),    // Frontend utilise "resolved" mais gardons cohérence DB
         SUSPENDU("suspendu"),
         SUPPRIME("supprime");
 
