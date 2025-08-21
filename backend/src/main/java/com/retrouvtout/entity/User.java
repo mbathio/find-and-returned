@@ -83,8 +83,8 @@ public class User {
      * Section 3.1 : Différenciation entre retrouveurs et propriétaires
      */
     public enum UserRole {
-        RETROUVEUR("retrouveur"),
-        PROPRIETAIRE("proprietaire");
+        RETROUVEUR("retrouveur"),    // Ceux qui publient des annonces (retrouveurs)
+        PROPRIETAIRE("proprietaire"); // Ceux qui cherchent (propriétaires)
 
         private final String value;
 

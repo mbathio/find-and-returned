@@ -1,6 +1,7 @@
 package com.retrouvtout.service;
 
 import com.retrouvtout.entity.User;
+import com.retrouvtout.entity.Listing;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -32,41 +33,56 @@ public class NotificationService {
     }
 
     /**
-     * Envoyer notification email - Cahier des charges 3.3
-     * Alertes email aux propriétaires
+     * Envoyer notification email - Section 3.3
+     * Alertes email aux propriétaires lorsqu'un objet correspondant est retrouvé
      */
     @Async
-    public void sendEmailNotification(User user, String subject, String message) {
+    public void sendEmailAlert(User user, Listing listing) {
         if (!emailNotificationsEnabled || !user.getEmailVerified()) {
             return;
         }
 
         try {
+            String subject = "Objet retrouvé correspondant à votre recherche - Retrouv'Tout";
+            String message = String.format(
+                "Bonjour %s,\n\nUn objet correspondant à votre recherche a été trouvé :\n\n" +
+                "Titre : %s\nLieu : %s\nCatégorie : %s\n\n" +
+                "Connectez-vous à votre compte pour contacter la personne qui l'a trouvé.\n\n" +
+                "Cordialement,\nL'équipe Retrouv'Tout",
+                user.getName(), listing.getTitle(), listing.getLocationText(), 
+                listing.getCategory().getValue()
+            );
+
             emailService.sendNotificationEmail(user, subject, message);
         } catch (Exception e) {
-            System.err.println("Erreur lors de l'envoi de la notification email: " + e.getMessage());
+            System.err.println("Erreur envoi notification email: " + e.getMessage());
         }
     }
 
     /**
-     * Envoyer notification SMS - Cahier des charges 3.3
+     * Envoyer notification SMS - Section 3.3
      * Alertes SMS aux propriétaires
      */
     @Async
-    public void sendSmsNotification(User user, String message) {
+    public void sendSmsAlert(User user, Listing listing) {
         if (!smsNotificationsEnabled || user.getPhone() == null || user.getPhone().isEmpty()) {
             return;
         }
 
         try {
+            String message = String.format(
+                "Retrouv'Tout: Objet trouvé correspondant à votre recherche: %s à %s. Connectez-vous pour plus d'infos.",
+                listing.getTitle(), listing.getLocationText()
+            );
+
             smsService.sendSms(user.getPhone(), message);
         } catch (Exception e) {
-            System.err.println("Erreur lors de l'envoi de la notification SMS: " + e.getMessage());
+            System.err.println("Erreur envoi notification SMS: " + e.getMessage());
         }
     }
 
     /**
-     * Envoyer notification push - Cahier des charges 3.3
+     * Envoyer notification push - Section 3.3
      * Notifications push sur l'application
      */
     @Async
@@ -77,61 +93,63 @@ public class NotificationService {
 
         try {
             // Implémentation basique pour les notifications push
+            // En production, utiliser Firebase Cloud Messaging ou service similaire
             System.out.println(String.format(
                 "Notification Push pour %s: %s - %s (URL: %s)",
                 userId, title, body, url
             ));
         } catch (Exception e) {
-            System.err.println("Erreur lors de l'envoi de la notification push: " + e.getMessage());
+            System.err.println("Erreur envoi notification push: " + e.getMessage());
         }
     }
 
     /**
-     * Notifier quand un objet correspondant est trouvé
-     * Conforme au cahier des charges 3.3
+     * Notifier quand un objet correspondant est trouvé - Section 3.3
+     * Envoi automatique de notifications aux propriétaires concernés
      */
     @Async
-    public void notifyObjectFound(User user, String objectTitle, String finderName) {
-        String emailSubject = "Objet correspondant trouvé - Retrouv'Tout";
-        String emailMessage = String.format(
-            "Bonjour %s,\n\nUn objet correspondant à votre recherche a été trouvé: %s\n\n" +
-            "Connectez-vous à votre compte pour contacter la personne qui l'a trouvé.\n\n" +
-            "Cordialement,\nL'équipe Retrouv'Tout",
-            user.getName(), objectTitle
+    public void notifyObjectFound(User user, Listing listing) {
+        // Email
+        sendEmailAlert(user, listing);
+        
+        // SMS
+        sendSmsAlert(user, listing);
+        
+        // Push
+        sendPushNotification(
+            user.getId(), 
+            "Objet trouvé !", 
+            String.format("Objet correspondant trouvé : %s", listing.getTitle()),
+            "/annonces/" + listing.getId()
         );
-
-        String smsMessage = String.format(
-            "Retrouv'Tout: Objet trouvé correspondant à votre recherche: %s. Connectez-vous pour plus d'infos.",
-            objectTitle
-        );
-
-        // Envoyer notifications selon les préférences de l'utilisateur
-        sendEmailNotification(user, emailSubject, emailMessage);
-        sendSmsNotification(user, smsMessage);
-        sendPushNotification(user.getId(), "Objet trouvé !", 
-            "Un objet correspondant à votre recherche a été trouvé", "/annonces");
     }
 
     /**
-     * Notifier d'un nouveau message
+     * Notifier d'un nouveau message - Section 3.5 (messagerie intégrée)
      */
     @Async
     public void notifyNewMessage(User recipient, User sender, String listingTitle) {
-        String emailSubject = "Nouveau message - Retrouv'Tout";
-        String emailMessage = String.format(
-            "Bonjour %s,\n\nVous avez reçu un nouveau message de %s concernant: %s\n\n" +
-            "Connectez-vous pour répondre.\n\nCordialement,\nL'équipe Retrouv'Tout",
-            recipient.getName(), sender.getName(), listingTitle
-        );
+        if (emailNotificationsEnabled && recipient.getEmailVerified()) {
+            try {
+                String subject = "Nouveau message - Retrouv'Tout";
+                String message = String.format(
+                    "Bonjour %s,\n\nVous avez reçu un nouveau message de %s concernant: %s\n\n" +
+                    "Connectez-vous pour répondre.\n\nCordialement,\nL'équipe Retrouv'Tout",
+                    recipient.getName(), sender.getName(), listingTitle
+                );
 
-        String smsMessage = String.format(
-            "Retrouv'Tout: Nouveau message de %s concernant %s. Connectez-vous pour répondre.",
-            sender.getName(), listingTitle
-        );
+                emailService.sendNotificationEmail(recipient, subject, message);
+            } catch (Exception e) {
+                System.err.println("Erreur envoi notification message: " + e.getMessage());
+            }
+        }
 
-        sendEmailNotification(recipient, emailSubject, emailMessage);
-        sendSmsNotification(recipient, smsMessage);
-        sendPushNotification(recipient.getId(), "Nouveau message", 
-            String.format("Message de %s", sender.getName()), "/messages");
+        // Notification push pour nouveau message
+        sendPushNotification(
+            recipient.getId(), 
+            "Nouveau message", 
+            String.format("Message de %s", sender.getName()),
+            "/messages"
+        );
     }
 }

@@ -27,8 +27,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Contrôleur pour la gestion des annonces d'objets retrouvés
- * Conforme au cahier des charges - Section 3.2
+ * Contrôleur pour la gestion des annonces conforme au cahier des charges
+ * Section 3.2 - Gestion des annonces d'objets retrouvés
  */
 @RestController
 @RequestMapping("/listings")
@@ -44,7 +44,7 @@ public class ListingController {
     }
 
     /**
-     * Poster une annonce - Cahier des charges 3.2
+     * Poster une annonce - Section 3.2
      * Formulaire avec : type d'objet, lieu de découverte, date, photo, description, catégorie
      */
     @PostMapping
@@ -80,7 +80,7 @@ public class ListingController {
     }
 
     /**
-     * Rechercher des annonces - Cahier des charges 3.2
+     * Rechercher des annonces - Section 3.2
      * Moteur de recherche avec filtres : catégorie, date, lieu
      */
     @GetMapping
@@ -105,28 +105,28 @@ public class ListingController {
             @RequestParam(required = false) BigDecimal lng,
             
             @Parameter(description = "Rayon de recherche en km")
-            @RequestParam(required = false) Double radiusKm,
+            @RequestParam(required = false) Double radius_km,
             
             @Parameter(description = "Date de début (format YYYY-MM-DD)")
-            @RequestParam(required = false) LocalDate dateFrom,
+            @RequestParam(required = false) LocalDate date_from,
             
             @Parameter(description = "Date de fin (format YYYY-MM-DD)")
-            @RequestParam(required = false) LocalDate dateTo,
+            @RequestParam(required = false) LocalDate date_to,
             
             @Parameter(description = "Numéro de page")
             @RequestParam(defaultValue = "1") int page,
             
             @Parameter(description = "Taille de la page")
-            @RequestParam(defaultValue = "20") int pageSize) {
+            @RequestParam(defaultValue = "20") int page_size) {
 
         if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+        if (page_size < 1 || page_size > 100) page_size = 20;
 
-        Pageable pageable = PageRequest.of(page - 1, pageSize, 
+        Pageable pageable = PageRequest.of(page - 1, page_size, 
             Sort.by(Sort.Direction.DESC, "createdAt"));
 
         PagedResponse<ListingResponse> listings = listingService.searchListings(
-            q, category, location, lat, lng, radiusKm, dateFrom, dateTo, pageable);
+            q, category, location, lat, lng, radius_km, date_from, date_to, pageable);
 
         return ResponseEntity.ok(new ApiResponse<>(
             true,
@@ -203,7 +203,7 @@ public class ListingController {
     }
 
     /**
-     * Supprimer une annonce (soft delete)
+     * Supprimer une annonce
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une annonce")
@@ -240,43 +240,6 @@ public class ListingController {
     }
 
     /**
-     * Marquer une annonce comme résolue
-     */
-    @PatchMapping("/{id}/resolve")
-    @Operation(summary = "Marquer une annonce comme résolue")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Annonce résolue"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Annonce non trouvée"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé")
-    })
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<ListingResponse>> resolveListing(
-            @Parameter(description = "ID de l'annonce")
-            @PathVariable String id,
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        try {
-            ListingResponse listing = listingService.resolveListing(id, userPrincipal.getId());
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Annonce marquée comme résolue",
-                listing
-            ));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse<>(
-                    false,
-                    "Vous n'êtes pas autorisé à modifier cette annonce",
-                    null
-                ));
-        }
-    }
-
-    /**
      * Obtenir les annonces d'un utilisateur
      */
     @GetMapping("/my")
@@ -294,14 +257,14 @@ public class ListingController {
             @RequestParam(defaultValue = "1") int page,
             
             @Parameter(description = "Taille de la page")
-            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(defaultValue = "20") int page_size,
             
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+        if (page_size < 1 || page_size > 100) page_size = 20;
 
-        Pageable pageable = PageRequest.of(page - 1, pageSize, 
+        Pageable pageable = PageRequest.of(page - 1, page_size, 
             Sort.by(Sort.Direction.DESC, "createdAt"));
 
         PagedResponse<ListingResponse> listings = listingService.getUserListings(

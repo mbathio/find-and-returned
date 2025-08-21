@@ -1,5 +1,5 @@
-# Configuration simplifiée conforme au cahier des charges
-# Suppression des fonctionnalités non mentionnées
+# Configuration conforme au cahier des charges uniquement
+# Suppression des fonctionnalités non spécifiées
 
 spring:
   application:
@@ -74,7 +74,7 @@ logging:
     com.retrouvtout: ${LOG_LEVEL_APP:INFO}
     org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
 
-# Configuration application
+# Configuration application conforme au cahier des charges
 app:
   # Frontend URL
   frontend:
@@ -148,7 +148,6 @@ spring:
 logging:
   level:
     com.retrouvtout: DEBUG
-    org.springframework.web: DEBUG
 
 app:
   frontend:

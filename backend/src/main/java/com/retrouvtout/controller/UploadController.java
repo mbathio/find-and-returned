@@ -1,4 +1,3 @@
-// UploadController.java
 package com.retrouvtout.controller;
 
 import com.retrouvtout.dto.response.ApiResponse;
@@ -6,7 +5,6 @@ import com.retrouvtout.security.UserPrincipal;
 import com.retrouvtout.service.FileUploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import com.retrouvtout.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 /**
- * Contrôleur pour l'upload de fichiers
+ * Contrôleur pour l'upload de fichiers conforme au cahier des charges
+ * Section 3.2 - Upload de photos pour les annonces
  */
 @RestController
 @RequestMapping("/upload")
-@Tag(name = "Upload", description = "API d'upload de fichiers")
+@Tag(name = "Upload", description = "API d'upload de photos pour annonces")
 @CrossOrigin(origins = {"${app.cors.allowed-origins}"})
 public class UploadController {
 
@@ -36,13 +35,14 @@ public class UploadController {
     }
 
     /**
-     * Upload d'image pour les annonces
+     * Upload d'image pour les annonces - Section 3.2
+     * Photos obligatoires pour les annonces d'objets retrouvés
      */
     @PostMapping("/image")
-    @Operation(summary = "Upload d'une image")
+    @Operation(summary = "Upload d'une photo pour annonce")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Image uploadée avec succès"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Photo uploadée avec succès"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Fichier invalide"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié")
     })
@@ -56,45 +56,7 @@ public class UploadController {
             
             return ResponseEntity.ok(new ApiResponse<>(
                 true,
-                "Image uploadée avec succès",
-                Map.of("url", imageUrl)
-            ));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(
-                    false,
-                    e.getMessage(),
-                    null
-                ));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse<>(
-                    false,
-                    "Erreur lors de l'upload",
-                    null
-                ));
-        }
-    }
-
-    /**
-     * Upload temporaire d'image (pour prévisualisation)
-     */
-    @PostMapping("/temp")
-    @Operation(summary = "Upload temporaire d'une image")
-    @ApiResponses(value = {
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description =
- "Image uploadée temporairement"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Fichier invalide")
-    })
-    public ResponseEntity<ApiResponse<Map<String, String>>> uploadTempImage(
-            @RequestParam("file") MultipartFile file) {
-
-        try {
-            String imageUrl = fileUploadService.uploadTempImage(file);
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Image uploadée temporairement",
+                "Photo uploadée avec succès",
                 Map.of("url", imageUrl)
             ));
         } catch (IllegalArgumentException e) {
