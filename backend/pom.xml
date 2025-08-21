@@ -248,8 +248,8 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <configuration>
                     <url>jdbc:mariadb://localhost:3306/retrouvtout_dev</url>
-                    <user>${env.DB_USER}</user>
-                    <password>${env.DB_PASSWORD}</password>
+                    <user>retrouvtout</user>
+                    <password>password123</password>
                 </configuration>
             </plugin>
             
