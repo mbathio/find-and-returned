@@ -58,6 +58,7 @@ com\retrouvtout\controller\TestController.class
 com\retrouvtout\entity\Message.class
 com\retrouvtout\security\oauth2\CustomOAuth2UserService$OAuth2UserPrincipal.class
 com\retrouvtout\websocket\WebSocketEventListener$UserStatusMessage.class
+com\retrouvtout\controller\DebugTestController.class
 com\retrouvtout\security\UserPrincipal$1.class
 com\retrouvtout\util\ModelMapper.class
 com\retrouvtout\security\JwtAuthenticationEntryPoint.class

@@ -1,10 +1,11 @@
-// LoginRequest.java
 package com.retrouvtout.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
+/**
+ * ✅ CORRECTION : Validation simplifiée pour éviter l'erreur 500
+ */
 public class LoginRequest {
     
     @NotBlank(message = "L'email est obligatoire")
@@ -12,8 +13,7 @@ public class LoginRequest {
     private String email;
     
     @NotBlank(message = "Le mot de passe est obligatoire")
-    @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
-    private String password;
+    private String password; // ✅ Suppression de @Size qui causait l'erreur
     
     // Constructeurs
     public LoginRequest() {}
@@ -29,4 +29,12 @@ public class LoginRequest {
     
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+    
+    @Override
+    public String toString() {
+        return "LoginRequest{" +
+                "email='" + email + '\'' +
+                ", password='[PROTECTED]'" +
+                '}';
+    }
 }

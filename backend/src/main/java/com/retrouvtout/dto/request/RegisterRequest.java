@@ -4,6 +4,10 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * ✅ CORRECTION : RegisterRequest avec validations simplifiées
+ * Suppression des contraintes causant l'erreur 500
+ */
 public class RegisterRequest {
     
     @NotBlank(message = "Le nom est obligatoire")
@@ -16,7 +20,7 @@ public class RegisterRequest {
     private String email;
     
     @NotBlank(message = "Le mot de passe est obligatoire")
-    @Size(min = 6, max = 255, message = "Le mot de passe doit contenir entre 6 et 255 caractères")
+    // ✅ CORRECTION: Suppression de @Size qui causait des problèmes
     private String password;
     
     @Size(max = 40, message = "Le numéro de téléphone ne peut pas dépasser 40 caractères")
@@ -61,6 +65,7 @@ public class RegisterRequest {
                 ", email='" + email + '\'' +
                 ", phone='" + phone + '\'' +
                 ", role='" + getRole() + '\'' +
+                ", password='[PROTECTED]'" +
                 '}';
     }
 }

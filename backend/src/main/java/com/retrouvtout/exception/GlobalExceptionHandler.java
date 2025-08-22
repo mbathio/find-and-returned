@@ -17,8 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * ✅ CORRECTION: Gestionnaire global des exceptions amélioré
- * Gestion spécifique des erreurs d'inscription
+ * ✅ GESTIONNAIRE GLOBAL DES EXCEPTIONS AVEC DEBUG AVANCÉ
+ * Logs détaillés pour identifier l'origine de l'erreur 500
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -29,6 +29,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException ex, WebRequest request) {
+        
+        System.err.println("❌ ERREUR JSON: " + ex.getMessage());
+        ex.printStackTrace();
         
         ApiResponse<Object> response = new ApiResponse<>(
             false, 
@@ -44,6 +47,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolationException(
             DataIntegrityViolationException ex, WebRequest request) {
+        
+        System.err.println("❌ ERREUR BASE DE DONNÉES: " + ex.getMessage());
+        ex.printStackTrace();
         
         String message = "Erreur de données";
         
@@ -63,39 +69,21 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Gestion des ressources non trouvées
-     */
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
-            ResourceNotFoundException ex, WebRequest request) {
-        
-        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-    }
-
-    /**
-     * Gestion des requêtes malformées
-     */
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBadRequestException(
-            BadRequestException ex, WebRequest request) {
-        
-        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * ✅ CORRECTION: Gestion améliorée des erreurs de validation
+     * ✅ GESTION AMÉLIORÉE DES ERREURS DE VALIDATION
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
+        
+        System.err.println("❌ ERREUR DE VALIDATION: " + ex.getMessage());
+        ex.printStackTrace();
         
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
+            System.err.println("  - Champ '" + fieldName + "': " + errorMessage);
         });
 
         // Message principal basé sur la première erreur
@@ -109,11 +97,41 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Gestion des ressources non trouvées
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
+            ResourceNotFoundException ex, WebRequest request) {
+        
+        System.err.println("❌ RESSOURCE NON TROUVÉE: " + ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Gestion des requêtes malformées
+     */
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<Object>> handleBadRequestException(
+            BadRequestException ex, WebRequest request) {
+        
+        System.err.println("❌ REQUÊTE MALFORMÉE: " + ex.getMessage());
+        ex.printStackTrace();
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
      * Gestion des erreurs d'authentification
      */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(
             AuthenticationException ex, WebRequest request) {
+        
+        System.err.println("❌ ERREUR D'AUTHENTIFICATION: " + ex.getMessage());
+        ex.printStackTrace();
         
         String message = ex instanceof BadCredentialsException ? 
             "Identifiants invalides" : "Erreur d'authentification";
@@ -129,16 +147,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleSecurityException(
             SecurityException ex, WebRequest request) {
         
+        System.err.println("❌ ERREUR DE SÉCURITÉ: " + ex.getMessage());
+        ex.printStackTrace();
+        
         ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     /**
-     * ✅ CORRECTION: Gestion améliorée des arguments illégaux
+     * ✅ GESTION AMÉLIORÉE DES ARGUMENTS ILLÉGAUX
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(
             IllegalArgumentException ex, WebRequest request) {
+        
+        System.err.println("❌ ARGUMENT ILLÉGAL: " + ex.getMessage());
+        ex.printStackTrace();
         
         ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -151,42 +175,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleIllegalStateException(
             IllegalStateException ex, WebRequest request) {
         
+        System.err.println("❌ ÉTAT ILLÉGAL: " + ex.getMessage());
+        ex.printStackTrace();
+        
         ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     /**
-     * Gestion des erreurs OAuth2
-     */
-    @ExceptionHandler(OAuth2AuthenticationProcessingException.class)
-    public ResponseEntity<ApiResponse<Object>> handleOAuth2AuthenticationProcessingException(
-            OAuth2AuthenticationProcessingException ex, WebRequest request) {
-        
-        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Gestion des exceptions générales de l'application
-     */
-    @ExceptionHandler(AppException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAppException(
-            AppException ex, WebRequest request) {
-        
-        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    /**
-     * ✅ CORRECTION: Gestion améliorée des RuntimeException
+     * ✅ GESTION AMÉLIORÉE DES RuntimeException
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Object>> handleRuntimeException(
             RuntimeException ex, WebRequest request) {
         
-        // Log pour debug
-        System.err.println("RuntimeException: " + ex.getMessage());
+        System.err.println("❌ RUNTIME EXCEPTION: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
         ex.printStackTrace();
+        
+        // Log de la stack trace complète pour debug
+        System.err.println("📍 Stack trace complète:");
+        for (StackTraceElement element : ex.getStackTrace()) {
+            if (element.getClassName().contains("retrouvtout")) {
+                System.err.println("  at " + element.toString());
+            }
+        }
         
         ApiResponse<Object> response = new ApiResponse<>(
             false, 
@@ -197,15 +209,27 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * ✅ CORRECTION: Gestion de toutes les autres exceptions avec log détaillé
+     * ✅ GESTION DE TOUTES LES AUTRES EXCEPTIONS AVEC DEBUG MAXIMUM
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGlobalException(
             Exception ex, WebRequest request) {
         
-        // Log détaillé pour debug
-        System.err.println("Exception non gérée: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+        System.err.println("❌ EXCEPTION NON GÉRÉE: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+        System.err.println("📍 URL de la requête: " + request.getDescription(false));
+        
+        // Log de la stack trace complète
+        System.err.println("📍 Stack trace complète:");
         ex.printStackTrace();
+        
+        // Log des causes imbriquées
+        Throwable cause = ex.getCause();
+        int level = 1;
+        while (cause != null && level <= 3) {
+            System.err.println("📍 Cause niveau " + level + ": " + cause.getClass().getSimpleName() + ": " + cause.getMessage());
+            cause = cause.getCause();
+            level++;
+        }
         
         ApiResponse<Object> response = new ApiResponse<>(
             false, 

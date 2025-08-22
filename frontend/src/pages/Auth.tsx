@@ -1,4 +1,4 @@
-// src/pages/Auth.tsx - VERSION CORRIGÉE
+// src/pages/Auth.tsx - VERSION CORRIGÉE AVEC DEBUG
 import { Helmet } from "react-helmet-async";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,8 @@ const Auth = () => {
     e.preventDefault();
     
     try {
+      console.log("🚀 Tentative de connexion:", loginData);
+      
       await loginMutation.mutateAsync(loginData);
       toast({
         title: "Connexion réussie",
@@ -44,6 +46,7 @@ const Auth = () => {
       });
       navigate(redirectTo);
     } catch (error: any) {
+      console.error("❌ Erreur de connexion:", error);
       toast({
         title: "Erreur de connexion",
         description: error.message || "Vérifiez vos identifiants.",
@@ -56,13 +59,55 @@ const Auth = () => {
     e.preventDefault();
     
     try {
-      await registerMutation.mutateAsync(registerData);
+      console.log("🚀 Tentative d'inscription:", registerData);
+      
+      // ✅ Validation côté client avant envoi
+      if (!registerData.name || registerData.name.trim().length === 0) {
+        toast({
+          title: "Nom requis",
+          description: "Veuillez saisir votre nom.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!registerData.email || registerData.email.trim().length === 0) {
+        toast({
+          title: "Email requis",
+          description: "Veuillez saisir votre email.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!registerData.password || registerData.password.length < 6) {
+        toast({
+          title: "Mot de passe trop court",
+          description: "Le mot de passe doit contenir au moins 6 caractères.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // ✅ Nettoyage des données avant envoi
+      const cleanedData: RegisterRequest = {
+        name: registerData.name.trim(),
+        email: registerData.email.trim().toLowerCase(),
+        password: registerData.password,
+        phone: registerData.phone?.trim() || undefined,
+        role: registerData.role || "retrouveur",
+      };
+      
+      console.log("📦 Données nettoyées à envoyer:", cleanedData);
+      
+      await registerMutation.mutateAsync(cleanedData);
       toast({
         title: "Inscription réussie",
         description: "Votre compte a été créé avec succès.",
       });
       navigate(redirectTo);
     } catch (error: any) {
+      console.error("❌ Erreur d'inscription:", error);
       toast({
         title: "Erreur d'inscription",
         description: error.message || "Une erreur est survenue.",
@@ -131,7 +176,7 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleRegister} className="grid gap-4">
                 <Input 
-                  placeholder="Nom" 
+                  placeholder="Nom complet" 
                   required 
                   aria-label="Nom"
                   value={registerData.name}
@@ -167,10 +212,10 @@ const Auth = () => {
                 </Select>
                 <Input 
                   type="password" 
-                  placeholder="Mot de passe (min. 8 caractères)" 
+                  placeholder="Mot de passe (min. 6 caractères)" 
                   required 
                   aria-label="Mot de passe"
-                  minLength={8}
+                  minLength={6}
                   value={registerData.password}
                   onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
                 />
