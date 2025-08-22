@@ -1,9 +1,10 @@
-// GlobalExceptionHandler.java
 package com.retrouvtout.exception;
 
 import com.retrouvtout.dto.response.ApiResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -16,10 +17,50 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Gestionnaire global des exceptions
+ * ✅ CORRECTION: Gestionnaire global des exceptions amélioré
+ * Gestion spécifique des erreurs d'inscription
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * ✅ Gestion des erreurs de validation des données JSON
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException ex, WebRequest request) {
+        
+        ApiResponse<Object> response = new ApiResponse<>(
+            false, 
+            "Données JSON invalides ou malformées", 
+            null
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * ✅ Gestion des erreurs de contrainte de base de données
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex, WebRequest request) {
+        
+        String message = "Erreur de données";
+        
+        // Analyser le message d'erreur pour donner des détails utiles
+        if (ex.getMessage() != null) {
+            if (ex.getMessage().contains("email")) {
+                message = "Cette adresse email est déjà utilisée";
+            } else if (ex.getMessage().contains("phone")) {
+                message = "Ce numéro de téléphone est déjà utilisé";
+            } else if (ex.getMessage().contains("Duplicate entry")) {
+                message = "Ces informations sont déjà utilisées par un autre utilisateur";
+            }
+        }
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, message, null);
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
 
     /**
      * Gestion des ressources non trouvées
@@ -44,7 +85,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Gestion des erreurs de validation
+     * ✅ CORRECTION: Gestion améliorée des erreurs de validation
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(
@@ -57,7 +98,13 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ApiResponse<Object> response = new ApiResponse<>(false, "Erreurs de validation", errors);
+        // Message principal basé sur la première erreur
+        String mainMessage = "Erreurs de validation";
+        if (!errors.isEmpty()) {
+            mainMessage = errors.values().iterator().next();
+        }
+
+        ApiResponse<Object> response = new ApiResponse<>(false, mainMessage, errors);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -87,7 +134,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Gestion des arguments illégaux
+     * ✅ CORRECTION: Gestion améliorée des arguments illégaux
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(
@@ -131,19 +178,38 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Gestion de toutes les autres exceptions
+     * ✅ CORRECTION: Gestion améliorée des RuntimeException
+     */
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiResponse<Object>> handleRuntimeException(
+            RuntimeException ex, WebRequest request) {
+        
+        // Log pour debug
+        System.err.println("RuntimeException: " + ex.getMessage());
+        ex.printStackTrace();
+        
+        ApiResponse<Object> response = new ApiResponse<>(
+            false, 
+            ex.getMessage() != null ? ex.getMessage() : "Une erreur interne s'est produite", 
+            null
+        );
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * ✅ CORRECTION: Gestion de toutes les autres exceptions avec log détaillé
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGlobalException(
             Exception ex, WebRequest request) {
         
-        // Log l'erreur pour le débogage
-        System.err.println("Erreur non gérée: " + ex.getMessage());
+        // Log détaillé pour debug
+        System.err.println("Exception non gérée: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
         ex.printStackTrace();
         
         ApiResponse<Object> response = new ApiResponse<>(
             false, 
-            "Une erreur interne s'est produite", 
+            "Une erreur interne s'est produite. Veuillez réessayer.", 
             null
         );
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);

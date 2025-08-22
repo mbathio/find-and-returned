@@ -1,4 +1,5 @@
-# Configuration développement avec MariaDB - application-dev.yml
+# backend/src/main/resources/application-dev.yml - VERSION CORRIGÉE
+
 spring:
   config:
     activate:
@@ -22,12 +23,12 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: update # ✅ CORRECTION : update au lieu de create-drop
+    show-sql: false # ✅ Désactiver pour réduire le bruit
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
-        format_sql: true
+        format_sql: false
         use_sql_comments: false
         jdbc:
           time_zone: UTC
@@ -42,21 +43,21 @@ spring:
           use_query_cache: false
     open-in-view: false
 
-  # Désactiver Flyway pour le développement
-  flyway:
-    enabled: false
-
-  # Configuration cache simple
-  cache:
-    type: simple
-
-  # Configuration Redis désactivée pour le développement
+  # ✅ CORRECTION : Configuration Redis désactivée pour le développement
   data:
     redis:
       repositories:
         enabled: false
 
-  # Configuration email pour le développement
+  # ✅ CORRECTION : Désactiver Flyway pour le développement
+  flyway:
+    enabled: false
+
+  # Configuration cache simple (pas Redis)
+  cache:
+    type: simple
+
+  # Configuration email pour le développement (MailHog ou désactivé)
   mail:
     host: localhost
     port: 1025
@@ -108,48 +109,34 @@ spring:
 # Configuration logging pour le développement
 logging:
   level:
-    root: INFO
-    com.retrouvtout: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.mariadb.jdbc: INFO
-    org.springframework.data: DEBUG
-    org.springframework.orm: DEBUG
-    org.springframework.transaction: DEBUG
+    root: WARN # ✅ Réduire le niveau pour moins de bruit
+    com.retrouvtout: INFO # ✅ Seulement INFO pour notre app
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.mariadb.jdbc: WARN
+    org.springframework.data: WARN
+    org.springframework.orm: WARN
+    org.springframework.transaction: WARN
   pattern:
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"
   file:
     name: logs/retrouvtout-dev.log
     max-size: 10MB
-    max-history: 5
+    max-history: 3
 
 # Configuration Management/Actuator
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,beans,env,configprops,mappings
+        include: health,info,metrics
       base-path: /actuator
   endpoint:
     health:
       show-details: always
       show-components: always
-    beans:
-      enabled: true
-    env:
-      enabled: true
-    configprops:
-      enabled: true
-  info:
-    env:
-      enabled: true
-    build:
-      enabled: true
-    git:
-      enabled: true
 
 # Configuration OpenAPI/Swagger
 springdoc:
@@ -165,8 +152,6 @@ springdoc:
     display-request-duration: true
     doc-expansion: none
     default-model-expand-depth: 3
-  show-actuator: true
-  packages-to-scan: com.retrouvtout.controller
 
 # Configuration serveur
 server:
@@ -175,12 +160,12 @@ server:
     include-message: always
     include-binding-errors: always
     include-stacktrace: on_param
-    include-exception: true
+    include-exception: false # ✅ Ne pas exposer les stack traces
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
   servlet:
-    context-path:
+    context-path: # ✅ Pas de context-path pour éviter les problèmes d'URL
     session:
       timeout: 30m
 

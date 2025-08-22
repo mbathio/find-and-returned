@@ -1,5 +1,4 @@
-# Configuration conforme au cahier des charges uniquement
-# Suppression des fonctionnalités non spécifiées
+# ✅ Configuration simplifiée pour résoudre les problèmes d'auth
 
 spring:
   application:
@@ -8,19 +7,19 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
-  # Base de données - Section 4.1 (MySQL/PostgreSQL)
+  # ✅ Base de données - Configuration simplifiée
   datasource:
-    url: ${DB_URL:jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:retrouvtout}
     password: ${DB_PASSWORD:password123}
     driver-class-name: org.mariadb.jdbc.Driver
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 300000
+      maximum-pool-size: 10
+      minimum-idle: 2
       connection-timeout: 20000
+      idle-timeout: 300000
 
-  # JPA/Hibernate
+  # ✅ JPA/Hibernate - Configuration de base
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
@@ -29,198 +28,122 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
-        format_sql: true
-        jdbc:
-          time_zone: UTC
+        format_sql: false
 
-  # Configuration email pour notifications - Section 3.3
-  mail:
-    host: ${MAIL_HOST:localhost}
-    port: ${MAIL_PORT:1025}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: ${MAIL_SMTP_AUTH:false}
-          starttls:
-            enable: ${MAIL_SMTP_STARTTLS:false}
+  # ✅ Sérialisation JSON simplifiée
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: NON_NULL
 
-  # Upload fichiers (photos) - Section 3.2
+  # ✅ Upload fichiers
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
       max-request-size: 15MB
 
-  # Sérialisation JSON
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-    default-property-inclusion: NON_NULL
-    time-zone: UTC
+  # ✅ Email désactivé en dev
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
 
-# Configuration serveur - Section 5 (Performance)
+# ✅ Configuration serveur simplifiée
 server:
   port: ${SERVER_PORT:8081}
-  compression:
-    enabled: true
-    mime-types: application/json,text/html,text/xml,application/javascript,text/css
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
 
-# Configuration logging
+# ✅ Logging pour debug d'auth
 logging:
   level:
-    root: INFO
+    root: ${LOG_LEVEL_ROOT:WARN}
     com.retrouvtout: ${LOG_LEVEL_APP:INFO}
     org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
+    org.springframework.web: ${LOG_LEVEL_WEB:INFO}
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"
 
-# Configuration application conforme au cahier des charges
+# ✅ Configuration application
 app:
-  # Frontend URL
+  # Frontend
   frontend:
     url: ${FRONTEND_URL:http://localhost:8080}
 
-  # JWT pour authentification - Section 3.1
+  # JWT simplifié
   jwt:
-    secret: ${JWT_SECRET:change-this-in-production-very-long-secret-key}
-    expiration: ${JWT_EXPIRATION:86400000} # 24 heures
-    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 jours
+    secret: ${JWT_SECRET:dev-secret-key-for-development-only-not-for-production-use}
+    expiration: ${JWT_EXPIRATION:86400000}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
-  # CORS - Section 4.1 (Front-end moderne)
+  # CORS ultra-permissif en dev
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:3000,http://localhost:5173}
-    allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:8080}
+    allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS,HEAD
     allowed-headers: "*"
     allow-credentials: true
+    max-age: 3600
 
-  # Upload photos - Section 3.2
+  # Upload
   upload:
-    dir: ${UPLOAD_DIR:./uploads}
-    max-file-size: ${UPLOAD_MAX_FILE_SIZE:10485760} # 10MB
+    dir: ${UPLOAD_DIR:./uploads-dev}
+    max-file-size: 10485760
     allowed-extensions: jpg,jpeg,png,gif,webp
 
-  # Notifications - Section 3.3
+  # Notifications désactivées en dev
   notifications:
     email:
-      enabled: ${EMAIL_NOTIFICATIONS_ENABLED:true}
-      from: ${EMAIL_FROM:noreply@retrouvtout.com}
-      from-name: ${EMAIL_FROM_NAME:Retrouv'Tout}
+      enabled: ${EMAIL_NOTIFICATIONS_ENABLED:false}
     sms:
       enabled: ${SMS_NOTIFICATIONS_ENABLED:false}
-      twilio:
-        account-sid: ${TWILIO_ACCOUNT_SID:}
-        auth-token: ${TWILIO_AUTH_TOKEN:}
-        from-number: ${TWILIO_FROM_NUMBER:}
     push:
-      enabled: ${PUSH_NOTIFICATIONS_ENABLED:true}
+      enabled: ${PUSH_NOTIFICATIONS_ENABLED:false}
 
-  # Modération - Section 3.4
-  moderation:
-    auto-approve: ${AUTO_APPROVE_LISTINGS:true}
-    max-listings-per-day: ${MAX_LISTINGS_PER_DAY:10}
-
-  # Sécurité - Section 3.4
+  # Sécurité relâchée en dev
   security:
     password:
-      min-length: ${PASSWORD_MIN_LENGTH:8}
+      min-length: ${PASSWORD_MIN_LENGTH:6}
 
 ---
-# Configuration développement
+# ✅ Profil développement
 spring:
   config:
     activate:
       on-profile: dev
 
-  datasource:
-    url: jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC
-    username: retrouvtout
-    password: password123
+  # Cache simple (pas Redis)
+  cache:
+    type: simple
 
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+  # DevTools
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
 
-  mail:
-    host: localhost
-    port: 1025
-
+# Logging détaillé en dev
 logging:
   level:
     com.retrouvtout: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
 
+# Configuration dev spécifique
 app:
-  frontend:
-    url: http://localhost:8080
-
   jwt:
     secret: dev-secret-key-not-for-production
-
+    
   notifications:
     email:
       enabled: false
-    sms:
-      enabled: false
-    push:
-      enabled: false
-
-  moderation:
-    auto-approve: true
-
----
-# Configuration production
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    hikari:
-      maximum-pool-size: 50
-      minimum-idle: 10
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-
-  mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-
-server:
-  port: ${PORT:8080}
-
-logging:
-  level:
-    root: INFO
-    com.retrouvtout: INFO
-
-app:
-  frontend:
-    url: ${FRONTEND_URL:https://retrouvtout.com}
-
-  cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://retrouvtout.com}
-
-  notifications:
-    email:
-      enabled: true
-    sms:
-      enabled: ${SMS_NOTIFICATIONS_ENABLED:true}
-    push:
-      enabled: true
-
-  moderation:
-    auto-approve: false
+      from: dev@retrouvtout.com
+      
+  security:
+    password:
+      min-length: 6

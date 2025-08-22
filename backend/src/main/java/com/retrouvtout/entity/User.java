@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Entité représentant un utilisateur
  * Conforme au cahier des charges - Section 3.1
- * Rôles : retrouveur (qui publie) et proprietaire (qui cherche)
+ * ✅ CORRECTION: Rôles conformes au frontend: retrouveur, proprietaire, mixte
  */
 @Entity
 @Table(name = "users", indexes = {
@@ -48,12 +48,14 @@ public class User {
     private String phone;
 
     /**
-     * Rôles conformes au cahier des charges - Section 3.1
-     * UNIQUEMENT : retrouveur (publie) et proprietaire (cherche)
+     * ✅ CORRECTION: Rôles conformes au frontend
+     * - retrouveur: publie des annonces d'objets trouvés
+     * - proprietaire: cherche des objets perdus
+     * - mixte: peut faire les deux
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private UserRole role = UserRole.RETROUVEUR;
+    private UserRole role = UserRole.MIXTE;
 
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
@@ -80,12 +82,13 @@ public class User {
     private List<OAuthAccount> oauthAccounts;
 
     /**
-     * Énumération des rôles STRICTEMENT conformes au cahier des charges
-     * Section 3.1 : Distinction retrouveurs (publient) vs propriétaires (cherchent)
+     * ✅ CORRECTION: Énumération des rôles conforme au frontend
+     * Ajout du rôle "mixte" comme dans le frontend
      */
     public enum UserRole {
         RETROUVEUR("retrouveur"),    // Ceux qui trouvent et publient des annonces
-        PROPRIETAIRE("proprietaire"); // Ceux qui ont perdu et cherchent
+        PROPRIETAIRE("proprietaire"), // Ceux qui ont perdu et cherchent
+        MIXTE("mixte");              // Peuvent faire les deux (par défaut)
 
         private final String value;
 
@@ -98,12 +101,18 @@ public class User {
         }
 
         public static UserRole fromValue(String value) {
+            if (value == null) {
+                return MIXTE; // Valeur par défaut
+            }
+            
             for (UserRole role : UserRole.values()) {
                 if (role.value.equals(value)) {
                     return role;
                 }
             }
-            throw new IllegalArgumentException("Rôle utilisateur invalide: " + value);
+            
+            // Si la valeur n'est pas reconnue, retourner mixte par défaut
+            return MIXTE;
         }
     }
 
@@ -115,7 +124,7 @@ public class User {
         this.name = name;
         this.email = email;
         this.passwordHash = passwordHash;
-        this.role = role;
+        this.role = role != null ? role : UserRole.MIXTE;
     }
 
     // Getters et Setters
@@ -135,7 +144,7 @@ public class User {
     public void setPhone(String phone) { this.phone = phone; }
 
     public UserRole getRole() { return role; }
-    public void setRole(UserRole role) { this.role = role; }
+    public void setRole(UserRole role) { this.role = role != null ? role : UserRole.MIXTE; }
 
     public Boolean getEmailVerified() { return emailVerified; }
     public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
@@ -168,6 +177,9 @@ public class User {
         }
         if (updatedAt == null) {
             updatedAt = LocalDateTime.now();
+        }
+        if (role == null) {
+            role = UserRole.MIXTE;
         }
     }
 

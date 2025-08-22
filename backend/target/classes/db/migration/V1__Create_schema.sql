@@ -1,16 +1,16 @@
 -- Schema strictement conforme au cahier des charges
--- UNIQUEMENT les fonctionnalités spécifiées
+-- ✅ CORRECTION: Ajout du rôle "mixte" pour correspondre au frontend
 
 -- Table des utilisateurs - Section 3.1 du cahier des charges
 -- Gestion des informations personnelles (nom, email, téléphone)
--- Rôles STRICTEMENT : retrouveur vs proprietaire
+-- ✅ Rôles CONFORMES AU FRONTEND : retrouveur, proprietaire, mixte
 CREATE TABLE users (
     id CHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     email VARCHAR(190) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NULL,
     phone VARCHAR(40) NULL, -- Pour notifications SMS (Section 3.3)
-    role ENUM('retrouveur', 'proprietaire') NOT NULL DEFAULT 'retrouveur',
+    role ENUM('retrouveur', 'proprietaire', 'mixte') NOT NULL DEFAULT 'mixte',
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     last_login_at DATETIME(3) NULL,
@@ -178,3 +178,7 @@ CREATE TABLE notification_logs (
         FOREIGN KEY (listing_id) REFERENCES listings(id) 
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ✅ Correction pour mise à jour si la table existe déjà
+-- Ajouter le rôle 'mixte' si la table users existe déjà
+ALTER TABLE users MODIFY COLUMN role ENUM('retrouveur', 'proprietaire', 'mixte') NOT NULL DEFAULT 'mixte';

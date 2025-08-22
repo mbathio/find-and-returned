@@ -29,6 +29,7 @@ com\retrouvtout\entity\OAuthAccount.class
 com\retrouvtout\RetrouvToutApplication.class
 com\retrouvtout\repository\ListingRepository.class
 com\retrouvtout\security\oauth2\OAuth2AuthenticationFailureHandler.class
+com\retrouvtout\controller\DatabaseTestController.class
 com\retrouvtout\security\oauth2\user\FacebookOAuth2UserInfo.class
 com\retrouvtout\dto\request\RegisterRequest.class
 com\retrouvtout\util\ValidationUtils.class
@@ -53,6 +54,7 @@ com\retrouvtout\repository\UserRepository.class
 com\retrouvtout\dto\response\ApiResponse.class
 com\retrouvtout\config\OAuth2Config$ProdOAuth2SecurityConfig.class
 com\retrouvtout\config\WebSocketConfig$1.class
+com\retrouvtout\controller\TestController.class
 com\retrouvtout\entity\Message.class
 com\retrouvtout\security\oauth2\CustomOAuth2UserService$OAuth2UserPrincipal.class
 com\retrouvtout\websocket\WebSocketEventListener$UserStatusMessage.class

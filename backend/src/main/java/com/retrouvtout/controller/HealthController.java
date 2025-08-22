@@ -1,6 +1,3 @@
-// backend/src/main/java/com/retrouvtout/controller/HealthController.java
-// CORRECTION pour éviter l'erreur 500 sur /health
-
 package com.retrouvtout.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +29,7 @@ public class HealthController {
      * Endpoint de santé public simple
      * CORRIGÉ : Plus de dépendance Redis obligatoire
      */
-    @GetMapping("/health")
+    @GetMapping("/api/health")
     public ResponseEntity<Map<String, Object>> simpleHealth() {
         Map<String, Object> response = new HashMap<>();
         
@@ -41,6 +38,17 @@ public class HealthController {
             response.put("timestamp", System.currentTimeMillis());
             response.put("service", "retrouvtout-api");
             response.put("version", "1.0.0");
+            
+            // Test base de données
+            try (Connection connection = dataSource.getConnection()) {
+                if (connection.isValid(5)) {
+                    response.put("database", "UP");
+                } else {
+                    response.put("database", "DOWN");
+                }
+            } catch (Exception e) {
+                response.put("database", "DOWN - " + e.getMessage());
+            }
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -53,10 +61,18 @@ public class HealthController {
     }
 
     /**
+     * Endpoint de santé simple sans path /api
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthWithoutApi() {
+        return simpleHealth();
+    }
+
+    /**
      * Vérification détaillée de la santé
      * CORRIGÉ : Gestion d'erreur robuste
      */
-    @GetMapping("/health/detailed")
+    @GetMapping("/api/health/detailed")
     public ResponseEntity<Map<String, Object>> detailedHealth() {
         Map<String, Object> response = new HashMap<>();
         Map<String, Object> checks = new HashMap<>();

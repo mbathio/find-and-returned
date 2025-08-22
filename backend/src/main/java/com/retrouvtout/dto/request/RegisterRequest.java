@@ -1,4 +1,3 @@
-// RegisterRequest.java
 package com.retrouvtout.dto.request;
 
 import jakarta.validation.constraints.Email;
@@ -17,16 +16,24 @@ public class RegisterRequest {
     private String email;
     
     @NotBlank(message = "Le mot de passe est obligatoire")
-    @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
+    @Size(min = 6, max = 255, message = "Le mot de passe doit contenir entre 6 et 255 caractères")
     private String password;
     
     @Size(max = 40, message = "Le numéro de téléphone ne peut pas dépasser 40 caractères")
     private String phone;
     
-    private String role = "mixte"; // Par défaut
+    // ✅ CORRECTION: Rôle optionnel avec valeur par défaut
+    private String role; // Peut être null, sera défini à "mixte" par défaut
     
     // Constructeurs
     public RegisterRequest() {}
+    
+    public RegisterRequest(String name, String email, String password) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = "mixte"; // Valeur par défaut
+    }
     
     // Getters et Setters
     public String getName() { return name; }
@@ -41,6 +48,19 @@ public class RegisterRequest {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
     
-    public String getRole() { return role; }
+    public String getRole() { 
+        // ✅ Retourner "mixte" par défaut si null ou vide
+        return (role == null || role.trim().isEmpty()) ? "mixte" : role; 
+    }
     public void setRole(String role) { this.role = role; }
+    
+    @Override
+    public String toString() {
+        return "RegisterRequest{" +
+                "name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", phone='" + phone + '\'' +
+                ", role='" + getRole() + '\'' +
+                '}';
+    }
 }
