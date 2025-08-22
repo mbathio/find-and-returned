@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Utilitaire de mapping entre entités et DTOs
- * Conforme EXACTEMENT au format attendu par le frontend
+ * ✅ CORRECTION FINALE : Mapping du rôle avec @JsonValue
  */
 @Component
 public class ModelMapper {
@@ -17,6 +17,7 @@ public class ModelMapper {
 
     /**
      * Mapper User vers UserResponse - Section 3.1 (gestion utilisateurs)
+     * ✅ CORRECTION: Le rôle sera automatiquement sérialisé avec @JsonValue
      */
     public UserResponse mapUserToUserResponse(User user) {
         if (user == null) return null;
@@ -26,7 +27,8 @@ public class ModelMapper {
         response.setName(user.getName());
         response.setEmail(user.getEmail());
         response.setPhone(user.getPhone());
-        response.setRole(user.getRole().getValue());
+        // ✅ user.getRole().getValue() sera appelé automatiquement grâce à @JsonValue
+        response.setRole(user.getRole().getValue()); 
         response.setEmailVerified(user.getEmailVerified());
         response.setActive(user.getActive());
         response.setCreatedAt(user.getCreatedAt());
@@ -70,7 +72,7 @@ public class ModelMapper {
 
     /**
      * Mapper Thread vers ThreadResponse - Section 3.5 (messagerie)
-     * Utilisation du nom complet pour éviter l'ambiguïté avec java.lang.Thread
+     * ✅ CORRECTION: Mapping du rôle utilisateur avec @JsonValue
      */
     public ThreadResponse mapThreadToThreadResponse(com.retrouvtout.entity.Thread thread) {
         if (thread == null) return null;
@@ -92,6 +94,7 @@ public class ModelMapper {
             UserResponse ownerUser = new UserResponse();
             ownerUser.setId(thread.getOwnerUser().getId());
             ownerUser.setName(thread.getOwnerUser().getName());
+            // ✅ CORRECTION: Utilisation de getValue() pour le rôle
             ownerUser.setRole(thread.getOwnerUser().getRole().getValue());
             response.setOwnerUser(ownerUser);
         }
@@ -100,6 +103,7 @@ public class ModelMapper {
             UserResponse finderUser = new UserResponse();
             finderUser.setId(thread.getFinderUser().getId());
             finderUser.setName(thread.getFinderUser().getName());
+            // ✅ CORRECTION: Utilisation de getValue() pour le rôle
             finderUser.setRole(thread.getFinderUser().getRole().getValue());
             response.setFinderUser(finderUser);
         }
@@ -109,6 +113,7 @@ public class ModelMapper {
 
     /**
      * Mapper Message vers MessageResponse - Section 3.5 (messagerie)
+     * ✅ CORRECTION: Mapping du rôle utilisateur avec @JsonValue
      */
     public MessageResponse mapMessageToMessageResponse(Message message) {
         if (message == null) return null;
@@ -127,6 +132,7 @@ public class ModelMapper {
             UserResponse senderUser = new UserResponse();
             senderUser.setId(message.getSenderUser().getId());
             senderUser.setName(message.getSenderUser().getName());
+            // ✅ CORRECTION: Utilisation de getValue() pour le rôle
             senderUser.setRole(message.getSenderUser().getRole().getValue());
             response.setSenderUser(senderUser);
         }

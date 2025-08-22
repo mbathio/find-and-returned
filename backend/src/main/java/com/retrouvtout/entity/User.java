@@ -1,5 +1,6 @@
 package com.retrouvtout.entity;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +15,7 @@ import java.util.List;
 /**
  * Entité représentant un utilisateur
  * Conforme au cahier des charges - Section 3.1
- * ✅ CORRECTION: Rôles conformes au frontend: retrouveur, proprietaire, mixte
+ * ✅ CORRECTION FINALE: Enum avec @JsonValue pour correspondre exactement au frontend
  */
 @Entity
 @Table(name = "users", indexes = {
@@ -48,10 +49,7 @@ public class User {
     private String phone;
 
     /**
-     * ✅ CORRECTION: Rôles conformes au frontend
-     * - retrouveur: publie des annonces d'objets trouvés
-     * - proprietaire: cherche des objets perdus
-     * - mixte: peut faire les deux
+     * ✅ CORRECTION FINALE: Rôles avec @JsonValue pour sérialisation correcte
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
@@ -82,13 +80,13 @@ public class User {
     private List<OAuthAccount> oauthAccounts;
 
     /**
-     * ✅ CORRECTION: Énumération des rôles conforme au frontend
-     * Ajout du rôle "mixte" comme dans le frontend
+     * ✅ CORRECTION FINALE: Énumération des rôles avec @JsonValue
+     * Garantit que la sérialisation JSON utilise exactement les valeurs attendues par le frontend
      */
     public enum UserRole {
-        RETROUVEUR("retrouveur"),    // Ceux qui trouvent et publient des annonces
-        PROPRIETAIRE("proprietaire"), // Ceux qui ont perdu et cherchent
-        MIXTE("mixte");              // Peuvent faire les deux (par défaut)
+        RETROUVEUR("retrouveur"),
+        PROPRIETAIRE("proprietaire"), 
+        MIXTE("mixte");
 
         private final String value;
 
@@ -96,6 +94,11 @@ public class User {
             this.value = value;
         }
 
+        /**
+         * ✅ ANNOTATION CRITIQUE pour la cohérence frontend ↔ backend
+         * Assure que Jackson sérialise avec les bonnes valeurs string
+         */
+        @JsonValue
         public String getValue() {
             return value;
         }

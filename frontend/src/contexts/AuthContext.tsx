@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - VERSION CORRIGÉE
+// src/contexts/AuthContext.tsx - VERSION CORRIGÉE COMPLÈTE
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, authService } from "@/services/auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

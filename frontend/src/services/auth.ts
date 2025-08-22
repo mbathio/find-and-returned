@@ -1,4 +1,4 @@
-// src/services/auth.ts - VERSION CORRIGÉE AVEC URLs FIXES
+// src/services/auth.ts - VERSION CORRIGÉE COMPLÈTE AVEC MIXTE
 import { apiClient } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -7,7 +7,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role: "retrouveur" | "proprietaire" | "mixte";
+  role: "retrouveur" | "proprietaire" | "mixte"; // ✅ Ajout "mixte" pour correspondre au backend
   email_verified: boolean;
   active: boolean;
   created_at: string;
@@ -24,7 +24,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   phone?: string;
-  role?: "retrouveur" | "proprietaire" | "mixte";
+  role?: "retrouveur" | "proprietaire" | "mixte"; // ✅ Ajout "mixte" pour correspondre au backend
 }
 
 export interface AuthResponse {

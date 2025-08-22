@@ -1,4 +1,4 @@
-// src/pages/Auth.tsx - VERSION CORRIGÉE AVEC DEBUG
+// src/pages/Auth.tsx - VERSION CORRIGÉE COMPLÈTE AVEC MIXTE
 import { Helmet } from "react-helmet-async";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ const Auth = () => {
     email: "",
     password: "",
     phone: "",
-    role: "retrouveur",
+    role: "mixte", // ✅ Valeur par défaut correspondant au backend
   });
 
   // Mutations
@@ -95,7 +95,7 @@ const Auth = () => {
         email: registerData.email.trim().toLowerCase(),
         password: registerData.password,
         phone: registerData.phone?.trim() || undefined,
-        role: registerData.role || "retrouveur",
+        role: registerData.role || "mixte", // ✅ Par défaut "mixte"
       };
       
       console.log("📦 Données nettoyées à envoyer:", cleanedData);
@@ -198,7 +198,7 @@ const Auth = () => {
                 />
                 <Select 
                   value={registerData.role}
-                  onValueChange={(value: "retrouveur" | "proprietaire") => 
+                  onValueChange={(value: "retrouveur" | "proprietaire" | "mixte") => 
                     setRegisterData({...registerData, role: value})
                   }
                 >
@@ -208,6 +208,7 @@ const Auth = () => {
                   <SelectContent>
                     <SelectItem value="retrouveur">Retrouveur (je trouve des objets)</SelectItem>
                     <SelectItem value="proprietaire">Propriétaire (je cherche mes objets)</SelectItem>
+                    <SelectItem value="mixte">Les deux (par défaut)</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input 

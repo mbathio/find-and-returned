@@ -1,4 +1,4 @@
-// src/components/layout/SiteHeader.tsx - VERSION CORRIGÉE POUR ÉVITER LES ERREURS 500
+// src/components/layout/SiteHeader.tsx - VERSION CORRIGÉE COMPLÈTE AVEC MIXTE
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -38,6 +38,19 @@ const SiteHeader = () => {
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "retrouveur":
+        return "Retrouveur";
+      case "proprietaire":
+        return "Propriétaire";
+      case "mixte":
+        return "Mixte";
+      default:
+        return "Utilisateur";
+    }
   };
 
   return (
@@ -104,7 +117,7 @@ const SiteHeader = () => {
                         {user?.email}
                       </p>
                       <Badge variant="secondary" className="w-fit text-xs">
-                        {user?.role === "retrouveur" ? "Retrouveur" : "Propriétaire"}
+                        {user?.role ? getRoleLabel(user.role) : "Utilisateur"}
                       </Badge>
                     </div>
                   </div>
