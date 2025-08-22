@@ -27,14 +27,16 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
+ * ✅ CONTRÔLEUR LISTINGS CORRIGÉ - VERSION COMPLÈTE
+ * Correction du mapping : /api/listings au lieu de /listings
  * Contrôleur pour la gestion des annonces conforme au cahier des charges
  * Section 3.2 - Gestion des annonces d'objets retrouvés
  * API EXACTEMENT conforme au frontend (services/listings.ts)
  */
 @RestController
-@RequestMapping("/listings")
+@RequestMapping("/api/listings") // ✅ CORRECTION : /api/listings au lieu de /listings
 @Tag(name = "Listings", description = "API de gestion des annonces d'objets retrouvés")
-@CrossOrigin(origins = {"${app.cors.allowed-origins}"})
+@CrossOrigin(origins = {"*"}) // ✅ CORS permissif en dev
 public class ListingController {
 
     private final ListingService listingService;
@@ -62,6 +64,12 @@ public class ListingController {
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
             ListingResponse listing = listingService.createListing(request, userPrincipal.getId());
             
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -77,6 +85,12 @@ public class ListingController {
                     e.getMessage(),
                     null
                 ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans createListing: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la création de l'annonce", null));
         }
     }
 
@@ -120,20 +134,28 @@ public class ListingController {
             @Parameter(description = "Taille de la page")
             @RequestParam(defaultValue = "20") int page_size) {
 
-        if (page < 1) page = 1;
-        if (page_size < 1 || page_size > 100) page_size = 20;
+        try {
+            if (page < 1) page = 1;
+            if (page_size < 1 || page_size > 100) page_size = 20;
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, 
-            Sort.by(Sort.Direction.DESC, "createdAt"));
+            Pageable pageable = PageRequest.of(page - 1, page_size, 
+                Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        PagedResponse<ListingResponse> listings = listingService.searchListings(
-            q, category, location, lat, lng, radius_km, date_from, date_to, pageable);
+            PagedResponse<ListingResponse> listings = listingService.searchListings(
+                q, category, location, lat, lng, radius_km, date_from, date_to, pageable);
 
-        return ResponseEntity.ok(new ApiResponse<>(
-            true,
-            "Annonces récupérées avec succès",
-            listings
-        ));
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Annonces récupérées avec succès",
+                listings
+            ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans getListings: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la recherche", null));
+        }
     }
 
     /**
@@ -190,6 +212,12 @@ public class ListingController {
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
             ListingResponse listing = listingService.updateListing(id, request, userPrincipal.getId());
             
             return ResponseEntity.ok(new ApiResponse<>(
@@ -211,6 +239,12 @@ public class ListingController {
                     "Vous n'êtes pas autorisé à modifier cette annonce",
                     null
                 ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans updateListing: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la mise à jour", null));
         }
     }
 
@@ -232,6 +266,12 @@ public class ListingController {
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
             listingService.deleteListing(id, userPrincipal.getId());
             
             return ResponseEntity.ok(new ApiResponse<>(
@@ -253,6 +293,12 @@ public class ListingController {
                     "Vous n'êtes pas autorisé à supprimer cette annonce",
                     null
                 ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans deleteListing: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la suppression", null));
         }
     }
 }

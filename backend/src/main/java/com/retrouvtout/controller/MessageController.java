@@ -1,3 +1,4 @@
+// MessageController.java - VERSION CORRIGÉE pour éviter les 500
 package com.retrouvtout.controller;
 
 import com.retrouvtout.dto.request.CreateMessageRequest;
@@ -7,8 +8,6 @@ import com.retrouvtout.dto.response.PagedResponse;
 import com.retrouvtout.security.UserPrincipal;
 import com.retrouvtout.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,13 +22,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Contrôleur pour la messagerie intégrée
- * Conforme au cahier des charges - Section 3.5
+ * ✅ CONTRÔLEUR MESSAGES CORRIGÉ POUR ÉVITER LES 500
  */
 @RestController
-@RequestMapping("/messages")
+@RequestMapping("/api/messages") // ✅ CORRECTION : /api/messages au lieu de /messages
 @Tag(name = "Messages", description = "API de messagerie intégrée sécurisée")
-@CrossOrigin(origins = {"${app.cors.allowed-origins}"})
+@CrossOrigin(origins = {"*"}) // ✅ CORS permissif en dev
 public class MessageController {
 
     private final MessageService messageService;
@@ -40,23 +38,72 @@ public class MessageController {
     }
 
     /**
-     * Envoyer un message - Cahier des charges 3.5
+     * ✅ CORRECTION : Obtenir le nombre de messages non lus avec gestion d'erreur robuste
+     */
+    @GetMapping("/unread-count")
+    @Operation(summary = "Obtenir le nombre de messages non lus")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Long>> getUnreadCount(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null) {
+                System.err.println("❌ getUnreadCount: userPrincipal est null");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", 0L));
+            }
+
+            if (userPrincipal.getId() == null || userPrincipal.getId().isEmpty()) {
+                System.err.println("❌ getUnreadCount: userId est null ou vide");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "ID utilisateur invalide", 0L));
+            }
+
+            System.out.println("✅ getUnreadCount: Récupération pour userId = " + userPrincipal.getId());
+            
+            long unreadCount = messageService.getUnreadMessageCount(userPrincipal.getId());
+            
+            System.out.println("✅ getUnreadCount: " + unreadCount + " messages non lus trouvés");
+            
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Nombre de messages non lus récupéré",
+                unreadCount
+            ));
+        } catch (Exception e) {
+            // ✅ LOG détaillé pour debug
+            System.err.println("❌ Erreur dans getUnreadCount: " + e.getMessage());
+            e.printStackTrace();
+            
+            // ✅ Retourner 0 au lieu d'une erreur 500 pour éviter de casser l'UI
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Nombre de messages non lus récupéré (avec erreur)",
+                0L
+            ));
+        }
+    }
+
+    /**
+     * Envoyer un message avec validation robuste
      */
     @PostMapping
     @Operation(summary = "Envoyer un message via la messagerie intégrée")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Message envoyé"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Données invalides"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifié"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Non autorisé")
-    })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<MessageResponse>> createMessage(
             @Valid @RequestBody CreateMessageRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
             MessageResponse message = messageService.createMessage(request, userPrincipal.getId());
             
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -67,49 +114,42 @@ public class MessageController {
                 ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                .body(new ApiResponse<>(
-                    false,
-                    e.getMessage(),
-                    null
-                ));
+                .body(new ApiResponse<>(false, e.getMessage(), null));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse<>(
-                    false,
-                    "Vous n'êtes pas autorisé à envoyer ce message",
-                    null
-                ));
+                .body(new ApiResponse<>(false, "Vous n'êtes pas autorisé à envoyer ce message", null));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans createMessage: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de l'envoi du message", null));
         }
     }
 
     /**
-     * Obtenir les messages d'une conversation
+     * Obtenir les messages d'une conversation avec validation robuste
      */
     @GetMapping("/thread/{threadId}")
     @Operation(summary = "Obtenir les messages d'une conversation")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Messages récupérés"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Conversation non trouvée"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
-    })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<PagedResponse<MessageResponse>>> getThreadMessages(
-            @Parameter(description = "ID de la conversation")
             @PathVariable String threadId,
-            
-            @Parameter(description = "Numéro de page")
             @RequestParam(defaultValue = "1") int page,
-            
-            @Parameter(description = "Taille de la page")
             @RequestParam(defaultValue = "50") int pageSize,
-            
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 100) pageSize = 50;
-
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 50;
+
             Pageable pageable = PageRequest.of(page - 1, pageSize, 
                 Sort.by(Sort.Direction.ASC, "createdAt"));
 
@@ -123,39 +163,37 @@ public class MessageController {
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(
-                    false,
-                    "Conversation non trouvée",
-                    null
-                ));
+                .body(new ApiResponse<>(false, "Conversation non trouvée", null));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse<>(
-                    false,
-                    "Vous n'êtes pas autorisé à accéder à cette conversation",
-                    null
-                ));
+                .body(new ApiResponse<>(false, "Vous n'êtes pas autorisé à accéder à cette conversation", null));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans getThreadMessages: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la récupération des messages", null));
         }
     }
 
     /**
-     * Marquer les messages comme lus
+     * Marquer les messages comme lus avec validation robuste
      */
     @PatchMapping("/thread/{threadId}/read")
     @Operation(summary = "Marquer les messages d'une conversation comme lus")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Messages marqués comme lus"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Conversation non trouvée"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Accès non autorisé")
-    })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Void>> markThreadAsRead(
-            @Parameter(description = "ID de la conversation")
             @PathVariable String threadId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
             messageService.markThreadAsRead(threadId, userPrincipal.getId());
             
             return ResponseEntity.ok(new ApiResponse<>(
@@ -165,49 +203,16 @@ public class MessageController {
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(
-                    false,
-                    "Conversation non trouvée",
-                    null
-                ));
+                .body(new ApiResponse<>(false, "Conversation non trouvée", null));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse<>(
-                    false,
-                    "Vous n'êtes pas autorisé à accéder à cette conversation",
-                    null
-                ));
-        }
-    }
-
-    /**
-     * Obtenir le nombre de messages non lus
-     */
-    @GetMapping("/unread-count")
-    @Operation(summary = "Obtenir le nombre de messages non lus")
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Long>> getUnreadCount(
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        try {
-            long unreadCount = messageService.getUnreadMessageCount(userPrincipal.getId());
-            
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Nombre de messages non lus récupéré",
-                unreadCount
-            ));
+                .body(new ApiResponse<>(false, "Vous n'êtes pas autorisé à accéder à cette conversation", null));
         } catch (Exception e) {
-            // Log l'erreur
-            System.err.println("Erreur lors de la récupération du nombre de messages non lus: " + e.getMessage());
+            System.err.println("❌ Erreur dans markThreadAsRead: " + e.getMessage());
+            e.printStackTrace();
             
-            // Retourner 0 au lieu d'une erreur 500
-            return ResponseEntity.ok(new ApiResponse<>(
-                true,
-                "Nombre de messages non lus récupéré",
-                0L
-            ));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors du marquage comme lu", null));
         }
     }
 }

@@ -21,14 +21,16 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
+ * ✅ CONTRÔLEUR THREADS CORRIGÉ - VERSION COMPLÈTE
+ * Correction du mapping : /api/threads au lieu de /threads
  * Contrôleur pour les conversations
  * Conforme au cahier des charges - Section 3.5 (Messagerie intégrée)
  * Permet communication directe via la plateforme
  */
 @RestController
-@RequestMapping("/threads")
+@RequestMapping("/api/threads") // ✅ CORRECTION : /api/threads au lieu de /threads
 @Tag(name = "Threads", description = "API de gestion des conversations")
-@CrossOrigin(origins = {"${app.cors.allowed-origins}"})
+@CrossOrigin(origins = {"*"}) // ✅ CORS permissif en dev
 public class ThreadController {
 
     private final ThreadService threadService;
@@ -58,6 +60,15 @@ public class ThreadController {
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                System.err.println("❌ createThread: userPrincipal est null ou invalide");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
+            System.out.println("✅ createThread: Création pour userId = " + userPrincipal.getId() + ", listingId = " + listingId);
+
             ThreadResponse thread = threadService.createThread(listingId, userPrincipal.getId());
             
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -80,6 +91,12 @@ public class ThreadController {
                     e.getMessage(),
                     null
                 ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans createThread: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la création de la conversation", null));
         }
     }
 
@@ -106,20 +123,34 @@ public class ThreadController {
             
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+        try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
 
-        Pageable pageable = PageRequest.of(page - 1, pageSize, 
-            Sort.by(Sort.Direction.DESC, "lastMessageAt"));
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
-        PagedResponse<ThreadResponse> threads = threadService.getUserThreads(
-            userPrincipal.getId(), status, pageable);
+            Pageable pageable = PageRequest.of(page - 1, pageSize, 
+                Sort.by(Sort.Direction.DESC, "lastMessageAt"));
 
-        return ResponseEntity.ok(new ApiResponse<>(
-            true,
-            "Conversations récupérées avec succès",
-            threads
-        ));
+            PagedResponse<ThreadResponse> threads = threadService.getUserThreads(
+                userPrincipal.getId(), status, pageable);
+
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Conversations récupérées avec succès",
+                threads
+            ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans getUserThreads: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la récupération des conversations", null));
+        }
     }
 
     /**
@@ -140,6 +171,12 @@ public class ThreadController {
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
             ThreadResponse thread = threadService.getThreadById(id, userPrincipal.getId());
             
             return ResponseEntity.ok(new ApiResponse<>(
@@ -148,7 +185,8 @@ public class ThreadController {
                 thread
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, "Conversation non trouvée", null));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(
@@ -156,6 +194,12 @@ public class ThreadController {
                     "Vous n'êtes pas autorisé à accéder à cette conversation",
                     null
                 ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans getThread: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la récupération de la conversation", null));
         }
     }
 
@@ -177,6 +221,12 @@ public class ThreadController {
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         try {
+            // ✅ VALIDATION : Vérifier l'authentification
+            if (userPrincipal == null || userPrincipal.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Utilisateur non authentifié", null));
+            }
+
             ThreadResponse thread = threadService.closeThread(id, userPrincipal.getId());
             
             return ResponseEntity.ok(new ApiResponse<>(
@@ -185,7 +235,8 @@ public class ThreadController {
                 thread
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, "Conversation non trouvée", null));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(
@@ -193,6 +244,12 @@ public class ThreadController {
                     "Vous n'êtes pas autorisé à fermer cette conversation",
                     null
                 ));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans closeThread: " + e.getMessage());
+            e.printStackTrace();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Erreur lors de la fermeture de la conversation", null));
         }
     }
 }

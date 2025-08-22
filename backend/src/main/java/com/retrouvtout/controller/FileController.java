@@ -16,7 +16,7 @@ import java.nio.file.Paths;
  * Contrôleur pour servir les fichiers statiques uploadés
  */
 @RestController
-@RequestMapping("/files")
+@RequestMapping("/api/files")
 @CrossOrigin(origins = {"${app.cors.allowed-origins}"})
 public class FileController {
 
