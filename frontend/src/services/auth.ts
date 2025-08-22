@@ -7,7 +7,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role: "retrouveur" | "proprietaire";
+  role: "retrouveur" | "proprietaire" | "mixte";
   email_verified: boolean;
   active: boolean;
   created_at: string;
@@ -24,7 +24,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   phone?: string;
-  role?: "retrouveur" | "proprietaire";
+  role?: "retrouveur" | "proprietaire" | "mixte";
 }
 
 export interface AuthResponse {
