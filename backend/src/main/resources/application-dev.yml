@@ -1,4 +1,5 @@
-# Configuration développement avec MariaDB - application-dev.yml
+# backend/src/main/resources/application-dev.yml - VERSION CORRIGÉE
+
 spring:
   config:
     activate:
@@ -22,7 +23,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update # ✅ CORRECTION : update au lieu de create-drop
     show-sql: true
     properties:
       hibernate:
@@ -42,7 +43,14 @@ spring:
           use_query_cache: false
     open-in-view: false
 
-  # Désactiver Flyway pour le développement
+  # ✅ CORRECTION : Configuration Redis désactivée pour le développement
+  data:
+    redis:
+      repositories:
+        enabled: false
+      # Pas de configuration Redis en dev
+
+  # ✅ CORRECTION : Désactiver Flyway pour le développement
   flyway:
     enabled: false
 
@@ -50,13 +58,7 @@ spring:
   cache:
     type: simple
 
-  # Configuration Redis désactivée pour le développement
-  data:
-    redis:
-      repositories:
-        enabled: false
-
-  # Configuration email pour le développement
+  # Configuration email pour le développement (MailHog ou désactivé)
   mail:
     host: localhost
     port: 1025
@@ -180,7 +182,7 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
   servlet:
-    context-path:
+    context-path: # ✅ Pas de context-path pour éviter les problèmes d'URL
     session:
       timeout: 30m
 

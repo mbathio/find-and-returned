@@ -1,3 +1,6 @@
+// backend/src/main/java/com/retrouvtout/controller/HealthController.java
+// CORRECTION pour éviter l'erreur 500 sur /health
+
 package com.retrouvtout.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +16,7 @@ import java.util.Map;
 
 /**
  * Contrôleur pour les vérifications de santé du système
+ * CORRIGÉ pour éviter les erreurs Redis en développement
  */
 @RestController
 public class HealthController {
@@ -20,25 +24,37 @@ public class HealthController {
     @Autowired
     private DataSource dataSource;
 
-    @Autowired
+    // ✅ CORRECTION : Redis optionnel pour éviter les erreurs en dev
+    @Autowired(required = false)
     private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * Endpoint de santé public simple
+     * CORRIGÉ : Plus de dépendance Redis obligatoire
      */
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> simpleHealth() {
         Map<String, Object> response = new HashMap<>();
-        response.put("status", "UP");
-        response.put("timestamp", System.currentTimeMillis());
-        response.put("service", "retrouvtout-api");
-        response.put("version", "1.0.0");
         
-        return ResponseEntity.ok(response);
+        try {
+            response.put("status", "UP");
+            response.put("timestamp", System.currentTimeMillis());
+            response.put("service", "retrouvtout-api");
+            response.put("version", "1.0.0");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("status", "DOWN");
+            response.put("error", e.getMessage());
+            response.put("timestamp", System.currentTimeMillis());
+            
+            return ResponseEntity.status(500).body(response);
+        }
     }
 
     /**
      * Vérification détaillée de la santé
+     * CORRIGÉ : Gestion d'erreur robuste
      */
     @GetMapping("/health/detailed")
     public ResponseEntity<Map<String, Object>> detailedHealth() {
@@ -60,20 +76,27 @@ public class HealthController {
             isHealthy = false;
         }
 
-        // Vérification Redis
-        try {
-            redisTemplate.opsForValue().set("health-check", "test");
-            String result = (String) redisTemplate.opsForValue().get("health-check");
-            if ("test".equals(result)) {
-                checks.put("redis", Map.of("status", "UP"));
-                redisTemplate.delete("health-check");
-            } else {
-                checks.put("redis", Map.of("status", "DOWN", "error", "Test failed"));
-                isHealthy = false;
+        // ✅ CORRECTION : Vérification Redis conditionnelle
+        if (redisTemplate != null) {
+            try {
+                redisTemplate.opsForValue().set("health-check", "test");
+                String result = (String) redisTemplate.opsForValue().get("health-check");
+                if ("test".equals(result)) {
+                    checks.put("redis", Map.of("status", "UP"));
+                    redisTemplate.delete("health-check");
+                } else {
+                    checks.put("redis", Map.of("status", "DOWN", "error", "Test failed"));
+                    isHealthy = false;
+                }
+            } catch (Exception e) {
+                checks.put("redis", Map.of("status", "DOWN", "error", e.getMessage()));
+                // ✅ Ne pas considérer Redis comme critique en dev
+                if (!"dev".equals(System.getProperty("spring.profiles.active"))) {
+                    isHealthy = false;
+                }
             }
-        } catch (Exception e) {
-            checks.put("redis", Map.of("status", "DOWN", "error", e.getMessage()));
-            isHealthy = false;
+        } else {
+            checks.put("redis", Map.of("status", "DISABLED", "note", "Redis not configured"));
         }
 
         // Informations système

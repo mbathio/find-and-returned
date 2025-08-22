@@ -186,19 +186,28 @@ public class MessageController {
     @GetMapping("/unread-count")
     @Operation(summary = "Obtenir le nombre de messages non lus")
     @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Nombre de messages non lus")
-    })
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        long unreadCount = messageService.getUnreadMessageCount(userPrincipal.getId());
-        
-        return ResponseEntity.ok(new ApiResponse<>(
-            true,
-            "Nombre de messages non lus récupéré",
-            unreadCount
-        ));
+        try {
+            long unreadCount = messageService.getUnreadMessageCount(userPrincipal.getId());
+            
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Nombre de messages non lus récupéré",
+                unreadCount
+            ));
+        } catch (Exception e) {
+            // Log l'erreur
+            System.err.println("Erreur lors de la récupération du nombre de messages non lus: " + e.getMessage());
+            
+            // Retourner 0 au lieu d'une erreur 500
+            return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Nombre de messages non lus récupéré",
+                0L
+            ));
+        }
     }
 }

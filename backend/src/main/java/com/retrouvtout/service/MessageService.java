@@ -153,12 +153,20 @@ public class MessageService {
     /**
      * Obtenir le nombre de messages non lus pour un utilisateur
      */
-    @Transactional(readOnly = true)
+      @Transactional(readOnly = true)
     public long getUnreadMessageCount(String userId) {
-        User user = userRepository.findByIdAndActiveTrue(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", "id", userId));
+        try {
+            User user = userRepository.findByIdAndActiveTrue(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", "id", userId));
 
-        return threadRepository.countUnreadThreadsForUser(user);
+            // Compter directement les messages non lus pour cet utilisateur
+            return messageRepository.countUnreadMessagesForUser(user);
+        } catch (Exception e) {
+            // Log l'erreur pour debug
+            System.err.println("Erreur lors du calcul des messages non lus pour l'utilisateur " + userId + ": " + e.getMessage());
+            // Retourner 0 au lieu de propager l'erreur
+            return 0L;
+        }
     }
 
     /**

@@ -1,4 +1,4 @@
-// src/services/listings.ts
+// src/services/listings.ts - VERSION CORRIGÉE
 import { apiClient } from "@/lib/api";
 import {
   useQuery,
@@ -7,14 +7,15 @@ import {
   UseQueryOptions,
 } from "@tanstack/react-query";
 
+// Interface conforme au backend ListingResponse
 export interface Listing {
   id: string;
   title: string;
-  category: string;
+  category: "cles" | "electronique" | "bagagerie" | "documents" | "vetements" | "autre";
   locationText: string;
   latitude?: number;
   longitude?: number;
-  foundAt: string;
+  foundAt: string; // ISO string
   description: string;
   imageUrl?: string;
   status: "active" | "resolved";
@@ -23,17 +24,19 @@ export interface Listing {
   updatedAt: string;
 }
 
+// Interface conforme au backend CreateListingRequest
 export interface CreateListingRequest {
   title: string;
   category: string;
   locationText: string;
   latitude?: number;
   longitude?: number;
-  foundAt: string;
+  foundAt: string; // LocalDateTime ISO string
   description: string;
   imageUrl?: string;
 }
 
+// Paramètres de recherche conformes à l'API backend
 export interface ListingsSearchParams {
   q?: string;
   category?: string;
@@ -41,17 +44,26 @@ export interface ListingsSearchParams {
   lat?: number;
   lng?: number;
   radius_km?: number;
-  date_from?: string;
-  date_to?: string;
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string; // YYYY-MM-DD
   page?: number;
   page_size?: number;
 }
 
+// Interface conforme au backend PagedResponse
 export interface ListingsResponse {
   items: Listing[];
   total: number;
   page: number;
   totalPages: number;
+}
+
+// Interface conforme au backend ApiResponse
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
 }
 
 class ListingsService {
@@ -71,37 +83,43 @@ class ListingsService {
     const url = `${this.baseUrl}${
       searchParams.toString() ? `?${searchParams.toString()}` : ""
     }`;
-    return apiClient.get<ListingsResponse>(url);
+    
+    const response = await apiClient.get<ApiResponse<ListingsResponse>>(url);
+    return response.data;
   }
 
   async getListing(id: string): Promise<Listing> {
-    return apiClient.get<Listing>(`${this.baseUrl}/${id}`);
+    const response = await apiClient.get<ApiResponse<Listing>>(`${this.baseUrl}/${id}`);
+    return response.data;
   }
 
   async createListing(data: CreateListingRequest): Promise<Listing> {
-    return apiClient.post<Listing>(this.baseUrl, data);
+    const response = await apiClient.post<ApiResponse<Listing>>(this.baseUrl, data);
+    return response.data;
   }
 
   async updateListing(
     id: string,
     data: Partial<CreateListingRequest>
   ): Promise<Listing> {
-    return apiClient.put<Listing>(`${this.baseUrl}/${id}`, data);
+    const response = await apiClient.put<ApiResponse<Listing>>(`${this.baseUrl}/${id}`, data);
+    return response.data;
   }
 
   async deleteListing(id: string): Promise<void> {
-    return apiClient.delete<void>(`${this.baseUrl}/${id}`);
+    await apiClient.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
   }
 
   async uploadImage(
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<{ url: string }> {
-    return apiClient.uploadFile<{ url: string }>(
+    const response = await apiClient.uploadFile<ApiResponse<{ url: string }>>(
       "/upload/image",
       file,
       onProgress
     );
+    return response.data;
   }
 }
 
@@ -135,7 +153,6 @@ export const useCreateListing = () => {
   return useMutation({
     mutationFn: listingsService.createListing,
     onSuccess: () => {
-      // Invalider le cache des listings
       queryClient.invalidateQueries({ queryKey: ["listings"] });
     },
   });
@@ -153,9 +170,7 @@ export const useUpdateListing = () => {
       data: Partial<CreateListingRequest>;
     }) => listingsService.updateListing(id, data),
     onSuccess: (data) => {
-      // Mettre à jour le cache spécifique
       queryClient.setQueryData(["listing", data.id], data);
-      // Invalider la liste
       queryClient.invalidateQueries({ queryKey: ["listings"] });
     },
   });
@@ -167,9 +182,7 @@ export const useDeleteListing = () => {
   return useMutation({
     mutationFn: listingsService.deleteListing,
     onSuccess: (_, id) => {
-      // Supprimer du cache
       queryClient.removeQueries({ queryKey: ["listing", id] });
-      // Invalider la liste
       queryClient.invalidateQueries({ queryKey: ["listings"] });
     },
   });

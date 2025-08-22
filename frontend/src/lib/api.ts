@@ -1,6 +1,8 @@
-// src/lib/api.ts - VERSION CORRIGÉE
+// src/lib/api.ts - VERSION CORRIGÉE AVEC DEBUG
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8081/api"; // ✅ Port corrigé 8081
+
+console.log("🔧 API_BASE_URL configuré:", API_BASE_URL); // ✅ Debug
 
 class ApiError extends Error {
   constructor(
@@ -40,29 +42,35 @@ class ApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // Log pour debug en développement
+        // ✅ Debug amélioré
         if (import.meta.env.DEV) {
           console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+          console.log(`📦 Request data:`, config.data);
         }
         
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => {
+        console.error("❌ Request interceptor error:", error);
+        return Promise.reject(error);
+      }
     );
 
     // Response interceptor pour gérer les erreurs
     this.client.interceptors.response.use(
       (response) => {
-        // Log pour debug en développement
+        // ✅ Debug amélioré
         if (import.meta.env.DEV) {
           console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+          console.log(`📦 Response data:`, response.data);
         }
         return response;
       },
       async (error) => {
-        // Log pour debug en développement
+        // ✅ Debug amélioré
         if (import.meta.env.DEV) {
           console.error(`❌ API Error: ${error.response?.status || 'Network'} ${error.config?.url}`, error.message);
+          console.error(`📦 Error response:`, error.response?.data);
         }
 
         const originalRequest = error.config;
@@ -74,7 +82,7 @@ class ApiClient {
             const refreshToken = localStorage.getItem("refresh_token");
             if (refreshToken) {
               const response = await this.refreshAuthToken(refreshToken);
-              localStorage.setItem("auth_token", response.data.accessToken);
+              localStorage.setItem("auth_token", response.data.access_token);
               return this.client(originalRequest);
             }
           } catch (refreshError) {
@@ -152,7 +160,7 @@ class ApiClient {
   // Méthode utilitaire pour tester la connexion
   async testConnection(): Promise<boolean> {
     try {
-      await this.get('/actuator/health');
+      await this.get('/health');
       return true;
     } catch {
       return false;
