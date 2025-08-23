@@ -1,4 +1,4 @@
-// src/services/auth.ts - VERSION CORRIGÉE AVEC GESTION TOKENS
+// src/services/auth.ts - CORRECTION DES HOOKS POUR SYNCHRONISER AVEC LE CONTEXTE
 import { apiClient } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -43,7 +43,7 @@ export interface ApiResponse<T> {
 }
 
 class AuthService {
-  async login(credentials: LoginRequest): Promise<AuthResponse> {
+  login = async (credentials: LoginRequest): Promise<AuthResponse> => {
     console.log("🚀 AuthService.login - Tentative de connexion");
 
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
@@ -54,15 +54,15 @@ class AuthService {
     console.log("✅ AuthService.login - Réponse reçue:", response);
 
     // ✅ CORRECTION : Accès correct aux données dans ApiResponse<AuthResponse>
-    const authData = response.data; // response.data contient déjà l'AuthResponse
+    const authData = response.data;
 
-    // Sauvegarder immédiatement les tokens
+    // Sauvegarder les tokens immédiatement
     this.saveAuthData(authData);
 
     return authData;
-  }
+  };
 
-  async register(userData: RegisterRequest): Promise<AuthResponse> {
+  register = async (userData: RegisterRequest): Promise<AuthResponse> => {
     console.log("🚀 AuthService.register - Tentative d'inscription");
 
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
@@ -72,30 +72,26 @@ class AuthService {
 
     console.log("✅ AuthService.register - Réponse reçue:", response);
 
-    // ✅ CORRECTION : Accès correct aux données
     const authData = response.data;
 
-    // Sauvegarder immédiatement les tokens
+    // Sauvegarder les tokens immédiatement
     this.saveAuthData(authData);
 
     return authData;
-  }
+  };
 
-  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+  refreshToken = async (refreshToken: string): Promise<AuthResponse> => {
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
       "/auth/refresh",
       { refreshToken }
     );
 
     const authData = response.data;
-
-    // Sauvegarder les nouveaux tokens
     this.saveAuthData(authData);
-
     return authData;
-  }
+  };
 
-  async logout(): Promise<void> {
+  logout = async (): Promise<void> => {
     const token = localStorage.getItem("auth_token");
     if (token) {
       try {
@@ -106,9 +102,9 @@ class AuthService {
     }
 
     this.clearAuthData();
-  }
+  };
 
-  async getCurrentUser(): Promise<User> {
+  getCurrentUser = async (): Promise<User> => {
     console.log(
       "🔍 AuthService.getCurrentUser - Récupération utilisateur actuel"
     );
@@ -121,10 +117,9 @@ class AuthService {
     );
 
     return response.data;
-  }
+  };
 
-  // ✅ CORRECTION : Gestion correcte de la sauvegarde des tokens
-  saveAuthData(authResponse: AuthResponse): void {
+  saveAuthData = (authResponse: AuthResponse): void => {
     console.log("💾 Sauvegarde des données d'authentification");
 
     // Sauvegarder les tokens avec les noms corrects
@@ -137,22 +132,22 @@ class AuthService {
       refresh_token: authResponse.refresh_token ? "✓" : "✗",
       user: authResponse.user ? "✓" : "✗",
     });
-  }
+  };
 
-  clearAuthData(): void {
+  clearAuthData = (): void => {
     console.log("🧹 Nettoyage des données d'authentification");
 
     localStorage.removeItem("auth_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
-  }
+  };
 
-  getStoredUser(): User | null {
+  getStoredUser = (): User | null => {
     const userStr = localStorage.getItem("user");
     return userStr ? JSON.parse(userStr) : null;
-  }
+  };
 
-  isAuthenticated(): boolean {
+  isAuthenticated = (): boolean => {
     const token = localStorage.getItem("auth_token");
     const user = this.getStoredUser();
 
@@ -167,25 +162,29 @@ class AuthService {
     }
 
     return isAuth;
-  }
+  };
 
-  getToken(): string | null {
+  getToken = (): string | null => {
     return localStorage.getItem("auth_token");
-  }
+  };
 }
 
 export const authService = new AuthService();
 
-// ✅ Hooks React Query corrigés
+// ✅ CORRECTION : Hooks qui utilisent le contexte AuthContext
+// Ces hooks doivent être utilisés AVEC useAuth() dans les composants
 export const useLogin = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: authService.login,
     onSuccess: (data) => {
-      console.log("✅ useLogin.onSuccess - Connexion réussie");
+      console.log("✅ useLogin.onSuccess - Connexion réussie, data:", data);
 
-      // Les tokens sont déjà sauvegardés dans authService.login
+      // ✅ IMPORTANT : Ne pas essayer d'accéder au contexte ici
+      // Le composant qui utilise ce hook doit appeler authContext.login()
+
+      // Mettre à jour React Query
       queryClient.setQueryData(["currentUser"], data.user);
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },
@@ -201,9 +200,15 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: authService.register,
     onSuccess: (data) => {
-      console.log("✅ useRegister.onSuccess - Inscription réussie");
+      console.log(
+        "✅ useRegister.onSuccess - Inscription réussie, data:",
+        data
+      );
 
-      // Les tokens sont déjà sauvegardés dans authService.register
+      // ✅ IMPORTANT : Ne pas essayer d'accéder au contexte ici
+      // Le composant qui utilise ce hook doit appeler authContext.login()
+
+      // Mettre à jour React Query
       queryClient.setQueryData(["currentUser"], data.user);
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },

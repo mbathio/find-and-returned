@@ -1,5 +1,13 @@
-// src/contexts/AuthContext.tsx - CORRECTION AVEC STARTTRANSITION
-import { createContext, useContext, useState, useEffect, ReactNode, useTransition, startTransition } from "react";
+// src/contexts/AuthContext.tsx - CORRECTION COMPLÈTE DE LA SYNCHRONISATION
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useTransition,
+  startTransition,
+} from "react";
 import { User, authService } from "@/services/auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -33,16 +41,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isPending, startTransition] = useTransition();
   const queryClient = useQueryClient();
 
-  // ✅ CORRECTION : Initialisation de l'état d'authentification au démarrage
+  // ✅ CORRECTION 1 : Initialisation immédiate au démarrage
   useEffect(() => {
     const initAuth = () => {
+      console.log("🔧 AuthContext - Initialisation de l'authentification");
+
       startTransition(() => {
         const storedUser = authService.getStoredUser();
         const hasToken = !!localStorage.getItem("auth_token");
 
+        console.log("🔍 Données stockées:", {
+          hasToken,
+          hasUser: !!storedUser,
+          user: storedUser,
+        });
+
         if (hasToken && storedUser) {
+          console.log("✅ Utilisateur trouvé, authentification activée");
           setUser(storedUser);
           setIsAuthenticated(true);
+        } else {
+          console.log("❌ Pas de données d'authentification valides");
+          setUser(null);
+          setIsAuthenticated(false);
         }
         setIsInitialized(true);
       });
@@ -51,16 +72,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     initAuth();
   }, []);
 
-  // ✅ CORRECTION : Query pour charger l'utilisateur actuel avec suspense désactivé
-  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
+  // ✅ CORRECTION 2 : Query conditionnelle qui ne se déclenche que si déjà authentifié
+  const {
+    data: currentUser,
+    isLoading: isLoadingUser,
+    error,
+  } = useQuery({
     queryKey: ["currentUser"],
     queryFn: authService.getCurrentUser,
-    enabled: isAuthenticated && isInitialized, // ✅ Seulement si authentifié
-    suspense: false, // ✅ IMPORTANT : Désactiver suspense
+    enabled: isAuthenticated && isInitialized, // ✅ Seulement si déjà authentifié
+    suspense: false,
     retry: (failureCount, error: any) => {
-      // Ne pas retry sur 401 (non autorisé)
+      console.log("🔄 Retry currentUser query:", { failureCount, error });
+
+      // Si erreur 401, déconnecter
       if (error?.status === 401) {
-        // Token invalide, déconnecter automatiquement
+        console.log("❌ Token invalide, déconnexion automatique");
         startTransition(() => {
           logout();
         });
@@ -69,29 +96,51 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return failureCount < 1;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error: any) => {
+      console.error(
+        "❌ Erreur lors de la récupération de l'utilisateur:",
+        error
+      );
+      if (error?.status === 401) {
+        startTransition(() => {
+          logout();
+        });
+      }
+    },
   });
 
-  // Mettre à jour l'état quand l'utilisateur actuel change
+  // ✅ CORRECTION 3 : Mettre à jour quand currentUser change
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && isAuthenticated) {
+      console.log("🔄 Mise à jour des données utilisateur:", currentUser);
       startTransition(() => {
         setUser(currentUser);
-        setIsAuthenticated(true);
-        // Mettre à jour le localStorage
+        // Mettre à jour le localStorage aussi
         localStorage.setItem("user", JSON.stringify(currentUser));
       });
     }
-  }, [currentUser]);
+  }, [currentUser, isAuthenticated]);
 
+  // ✅ CORRECTION 4 : Fonction login qui met à jour immédiatement l'état
   const login = (userData: User) => {
+    console.log("✅ AuthContext.login - Connexion de l'utilisateur:", userData);
+
     startTransition(() => {
       setUser(userData);
       setIsAuthenticated(true);
+
+      // Mettre à jour React Query immédiatement
       queryClient.setQueryData(["currentUser"], userData);
+
+      // S'assurer que le localStorage est à jour
+      localStorage.setItem("user", JSON.stringify(userData));
     });
   };
 
+  // ✅ CORRECTION 5 : Fonction logout qui nettoie tout
   const logout = async () => {
+    console.log("🚪 AuthContext.logout - Déconnexion");
+
     try {
       await authService.logout();
     } catch (error) {
@@ -105,7 +154,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // ✅ CORRECTION 6 : Fonction updateUser
   const updateUser = (userData: User) => {
+    console.log("🔄 AuthContext.updateUser:", userData);
+
     startTransition(() => {
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
@@ -113,8 +165,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
   };
 
-  // ✅ CORRECTION : isLoading ne doit être true que pendant le chargement initial
-  const isLoading = !isInitialized || (isAuthenticated && isLoadingUser) || isPending;
+  // ✅ CORRECTION 7 : isLoading correct
+  const isLoading = !isInitialized || isPending;
 
   const value: AuthContextType = {
     user,
@@ -125,9 +177,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // ✅ CORRECTION 8 : Debug en développement
+  if (import.meta.env.DEV) {
+    console.log("🔧 AuthContext State:", {
+      user: user?.name || null,
+      isAuthenticated,
+      isLoading,
+      isInitialized,
+      hasToken: !!localStorage.getItem("auth_token"),
+    });
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
