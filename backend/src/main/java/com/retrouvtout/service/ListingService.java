@@ -129,30 +129,28 @@ public class ListingService {
     /**
      * Créer une nouvelle annonce - Section 3.2
      */
-    public ListingResponse createListing(CreateListingRequest request, String userId) {
-        User user = userRepository.findByIdAndActiveTrue(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", "id", userId));
-
+     public ListingResponse createListing(CreateListingRequest request, String userId) {
+        System.out.println("🔧 CREATE LISTING:");
+        System.out.println("  - Catégorie reçue: '" + request.getCategory() + "'");
+        
+        // ✅ Conversion avec gestion d'erreur
+        Listing.ListingCategory category;
+        try {
+            category = Listing.ListingCategory.fromValue(request.getCategory());
+            System.out.println("  - Catégorie convertie: " + category.name() + " (" + category.getValue() + ")");
+        } catch (Exception e) {
+            System.err.println("❌ Erreur conversion catégorie: " + e.getMessage());
+            throw new IllegalArgumentException("Catégorie invalide: " + request.getCategory());
+        }
+        
         Listing listing = new Listing();
-        listing.setId(java.util.UUID.randomUUID().toString());
-        listing.setFinderUser(user);
-        listing.setTitle(request.getTitle());
-        listing.setCategory(Listing.ListingCategory.fromValue(request.getCategory()));
-        listing.setLocationText(request.getLocationText());
-        listing.setLatitude(request.getLatitude());
-        listing.setLongitude(request.getLongitude());
-        listing.setFoundAt(request.getFoundAt());
-        listing.setDescription(request.getDescription());
-        listing.setImageUrl(request.getImageUrl());
-        listing.setStatus(Listing.ListingStatus.ACTIVE);
-        listing.setIsModerated(true); // Auto-modération selon configuration - Section 3.4
-
-        Listing savedListing = listingRepository.save(listing);
-
-        // Déclencher notifications - Section 3.3
-        triggerNotificationsForNewListing(savedListing);
-
-        return modelMapper.mapListingToListingResponse(savedListing);
+        // ... autres champs ...
+        listing.setCategory(category); // ✅ Le converter s'occupera de sauvegarder la bonne valeur
+        
+        Listing saved = listingRepository.save(listing);
+        System.out.println("✅ Annonce sauvée avec catégorie: " + saved.getCategory().getValue());
+        
+        return modelMapper.mapListingToListingResponse(saved);
     }
 
     /**

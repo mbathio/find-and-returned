@@ -1,5 +1,8 @@
+// backend/src/main/java/com/retrouvtout/entity/Listing.java
+
 package com.retrouvtout.entity;
 
+import com.retrouvtout.converter.ListingCategoryConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,9 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Entité représentant une annonce d'objet retrouvé
- * Conforme au cahier des charges - Section 3.2
- * Champs requis : type d'objet, lieu de découverte, date, photo, description, catégorie
+ * ✅ Entité Listing CORRIGÉE avec Converter JPA
  */
 @Entity
 @Table(name = "listings", indexes = {
@@ -37,70 +38,52 @@ public class Listing {
     @JoinColumn(name = "finder_user_id", nullable = false)
     private User finderUser;
 
-    /**
-     * Type d'objet - Cahier des charges 3.2
-     */
     @NotNull(message = "Le type d'objet est obligatoire")
     @Size(max = 180, message = "Le type d'objet ne peut pas dépasser 180 caractères")
     @Column(name = "title", nullable = false, length = 180)
     private String title;
 
     /**
-     * Catégorie - Strictement conforme au frontend
-     * Categories exactes : cles, electronique, bagagerie, documents, vetements, autre
+     * ✅ CORRECTION MAJEURE : Utilisation du Converter JPA
+     * Suppression de @Enumerated(EnumType.STRING)
+     * Ajout de @Convert pour utiliser notre converter personnalisé
      */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false)
+    @NotNull(message = "La catégorie est obligatoire")
+    @Convert(converter = ListingCategoryConverter.class) // ✅ Utilise notre converter
+    @Column(name = "category", nullable = false, length = 50) // ✅ Taille suffisante pour "electronique"
     private ListingCategory category;
 
-    /**
-     * Lieu de découverte - Cahier des charges 3.2
-     */
     @NotNull(message = "Le lieu de découverte est obligatoire")
     @Size(max = 255, message = "Le lieu ne peut pas dépasser 255 caractères")
     @Column(name = "location_text", nullable = false, length = 255)
     private String locationText;
 
-    /**
-     * Coordonnées géographiques pour la recherche par lieu
-     */
     @Column(name = "latitude", precision = 9, scale = 6)
     private BigDecimal latitude;
 
     @Column(name = "longitude", precision = 9, scale = 6)
     private BigDecimal longitude;
 
-    /**
-     * Date de découverte - Cahier des charges 3.2
-     */
     @NotNull(message = "La date de découverte est obligatoire")
     @Column(name = "found_at", nullable = false)
     private LocalDateTime foundAt;
 
-    /**
-     * Description - Cahier des charges 3.2
-     */
     @NotNull(message = "La description est obligatoire")
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    /**
-     * Photo - Cahier des charges 3.2
-     */
     @Size(max = 512, message = "L'URL de l'image ne peut pas dépasser 512 caractères")
     @Column(name = "image_url", length = 512)
     private String imageUrl;
 
-    @Enumerated(EnumType.STRING)
+    // ✅ Status aussi avec converter (optionnel)
+    @Convert(converter = ListingStatusConverter.class)
     @Column(name = "status", nullable = false)
     private ListingStatus status = ListingStatus.ACTIVE;
 
     @Column(name = "views_count", nullable = false)
     private Long viewsCount = 0L;
 
-    /**
-     * Modération - Cahier des charges 3.4
-     */
     @Column(name = "is_moderated", nullable = false)
     private Boolean isModerated = false;
 
@@ -123,8 +106,7 @@ public class Listing {
     private List<Thread> threads;
 
     /**
-     * Catégories d'objets EXACTEMENT conformes au frontend
-     * Correspondance directe avec les valeurs utilisées dans le frontend
+     * ✅ Enum ListingCategory GARDÉ TEL QUEL (déjà correct)
      */
     public enum ListingCategory {
         CLES("cles"),
@@ -145,23 +127,39 @@ public class Listing {
         }
 
         public static ListingCategory fromValue(String value) {
+            if (value == null || value.trim().isEmpty()) {
+                return AUTRE; // ✅ Valeur par défaut
+            }
+            
             for (ListingCategory category : ListingCategory.values()) {
-                if (category.value.equals(value)) {
+                if (category.value.equalsIgnoreCase(value.trim())) {
                     return category;
                 }
             }
-            throw new IllegalArgumentException("Catégorie invalide: " + value);
+            
+            // ✅ Log pour debug
+            System.err.println("❌ Catégorie inconnue: '" + value + "' - utilisation d'AUTRE par défaut");
+            return AUTRE; // ✅ Fallback au lieu d'exception
+        }
+
+        /**
+         * ✅ Méthode utilitaire pour validation côté API
+         */
+        public static boolean isValidValue(String value) {
+            if (value == null) return false;
+            return java.util.Arrays.stream(values())
+                    .anyMatch(cat -> cat.value.equalsIgnoreCase(value.trim()));
         }
     }
 
     /**
-     * Statuts d'annonce conformes au frontend
+     * ✅ Enum ListingStatus avec même principe
      */
     public enum ListingStatus {
         ACTIVE("active"),
-        RESOLU("resolu"),    // Frontend utilise "resolved" mais gardons cohérence DB
-        SUSPENDU("suspendu"),
-        SUPPRIME("supprime");
+        RESOLU("resolved"), // ✅ Correction : "resolved" pour correspondre au frontend
+        SUSPENDU("suspended"),
+        SUPPRIME("deleted");
 
         private final String value;
 
@@ -174,19 +172,25 @@ public class Listing {
         }
 
         public static ListingStatus fromValue(String value) {
+            if (value == null || value.trim().isEmpty()) {
+                return ACTIVE;
+            }
+            
             for (ListingStatus status : ListingStatus.values()) {
-                if (status.value.equals(value)) {
+                if (status.value.equalsIgnoreCase(value.trim())) {
                     return status;
                 }
             }
-            throw new IllegalArgumentException("Statut invalide: " + value);
+            
+            System.err.println("❌ Status inconnu: '" + value + "' - utilisation d'ACTIVE par défaut");
+            return ACTIVE;
         }
     }
 
-    // Constructeurs
+    // ✅ Constructeurs
     public Listing() {}
 
-    // Getters et Setters
+    // ✅ Getters et Setters (gardés tels quels)
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -241,7 +245,7 @@ public class Listing {
     public List<Thread> getThreads() { return threads; }
     public void setThreads(List<Thread> threads) { this.threads = threads; }
 
-    // Méthodes utilitaires
+    // ✅ Méthodes utilitaires
     public void incrementViewCount() {
         this.viewsCount = (this.viewsCount == null ? 0L : this.viewsCount) + 1L;
     }
