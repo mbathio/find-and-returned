@@ -4,6 +4,10 @@ import com.retrouvtout.entity.Listing;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
+/**
+ * CONVERTER JPA POUR ListingStatus
+ * Sauvegarde les VALUES en DB au lieu des enum names
+ */
 @Converter(autoApply = true)
 public class ListingStatusConverter implements AttributeConverter<Listing.ListingStatus, String> {
 
@@ -12,7 +16,10 @@ public class ListingStatusConverter implements AttributeConverter<Listing.Listin
         if (attribute == null) {
             return null;
         }
-        return attribute.getValue();
+        
+        String value = attribute.getValue();
+        System.out.println("DB SAVE STATUS: " + attribute.name() + " -> \"" + value + "\"");
+        return value;
     }
 
     @Override
@@ -22,8 +29,11 @@ public class ListingStatusConverter implements AttributeConverter<Listing.Listin
         }
         
         try {
-            return Listing.ListingStatus.fromValue(dbData);
+            Listing.ListingStatus status = Listing.ListingStatus.fromValue(dbData);
+            System.out.println("DB READ STATUS: \"" + dbData + "\" -> " + status.name());
+            return status;
         } catch (IllegalArgumentException e) {
+            System.err.println("Status invalide en DB: '" + dbData + "'");
             return Listing.ListingStatus.ACTIVE;
         }
     }

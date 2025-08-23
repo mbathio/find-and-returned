@@ -3,6 +3,7 @@
 package com.retrouvtout.entity;
 
 import com.retrouvtout.converter.ListingCategoryConverter;
+import com.retrouvtout.converter.ListingStatusConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
