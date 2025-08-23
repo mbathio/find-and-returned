@@ -1,209 +1,172 @@
-// src/components/layout/SiteHeader.tsx - VERSION CORRIGÉE COMPLÈTE AVEC MIXTE
-import { Link, NavLink } from "react-router-dom";
+// src/components/layout/SiteHeader.tsx - CORRECTION AVEC STARTTRANSITION
+import { useState, useTransition, startTransition } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator 
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnreadCount } from "@/services/messages";
-import { User, LogOut, MessageSquare, Plus, Search } from "lucide-react";
-
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  cn(
-    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-  );
+import { useLogout } from "@/services/auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { User, Bell, LogOut, Menu } from "lucide-react";
 
 const SiteHeader = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const [isPending, startTransition] = useTransition();
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
-  // ✅ CORRECTION : Ne charger le compteur que si l'utilisateur est authentifié
-  const { data: unreadCount } = useUnreadCount();
+  // ✅ CORRECTION : useUnreadCount ne se déclenche que si authentifié
+  const { data: unreadCount = 0, error: unreadError } = useUnreadCount();
+  
+  const logoutMutation = useLogout();
 
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    // ✅ CORRECTION : Entourer dans startTransition
+    startTransition(() => {
+      logoutMutation.mutate();
+    });
   };
 
-  const getUserInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map(word => word.charAt(0))
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const handleMobileMenuToggle = () => {
+    // ✅ CORRECTION : Entourer les updates d'état dans startTransition
+    startTransition(() => {
+      setShowMobileMenu(!showMobileMenu);
+    });
   };
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case "retrouveur":
-        return "Retrouveur";
-      case "proprietaire":
-        return "Propriétaire";
-      case "mixte":
-        return "Mixte";
-      default:
-        return "Utilisateur";
-    }
-  };
+  // ✅ Gestion d'erreur pour le compteur non lu
+  const displayUnreadCount = unreadError ? 0 : unreadCount;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+      <div className="container mx-auto flex h-14 items-center justify-between px-4">
+        
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2" aria-label="Retrouv'Tout Accueil">
-          <div className="h-8 w-8 rounded-md bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center">
-            <span className="text-primary font-bold text-sm">RT</span>
-          </div>
-          <span className="text-lg font-semibold tracking-tight">Retrouv'Tout</span>
+        <Link to="/" className="flex items-center space-x-2">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-foreground" />
+          <span className="font-bold">Retrouv'Tout</span>
         </Link>
 
-        {/* Navigation principale */}
-        <nav className="hidden md:flex items-center gap-1" aria-label="Navigation principale">
-          <NavLink to="/" className={navLinkClass} end>
-            Accueil
-          </NavLink>
-          <NavLink to="/annonces" className={navLinkClass}>
+        {/* Navigation desktop */}
+        <nav className="hidden md:flex items-center space-x-6">
+          <Link to="/annonces" className="text-sm font-medium hover:text-primary transition-colors">
             Annonces
-          </NavLink>
+          </Link>
+          <Link to="/poster" className="text-sm font-medium hover:text-primary transition-colors">
+            Publier
+          </Link>
+          
           {isAuthenticated && (
-            <NavLink to="/messages" className={navLinkClass}>
-              <div className="flex items-center gap-1">
-                Messages
-                {unreadCount && unreadCount > 0 && (
-                  <Badge variant="destructive" className="h-5 w-5 p-0 text-xs flex items-center justify-center">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </Badge>
-                )}
-              </div>
-            </NavLink>
+            <Link to="/messages" className="flex items-center space-x-1 text-sm font-medium hover:text-primary transition-colors">
+              <Bell size={16} />
+              <span>Messages</span>
+              {displayUnreadCount > 0 && (
+                <Badge variant="destructive" className="text-xs">
+                  {displayUnreadCount > 99 ? "99+" : displayUnreadCount}
+                </Badge>
+              )}
+            </Link>
           )}
         </nav>
 
         {/* Actions utilisateur */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center space-x-2">
           {isAuthenticated ? (
-            <>
-              {/* Bouton publier */}
-              <Button asChild variant="hero" size="sm" className="hidden sm:inline-flex">
-                <Link to="/poster">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Publier
-                </Link>
-              </Button>
-
-              {/* Menu utilisateur */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs">
-                        {user ? getUserInitials(user.name) : "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{user?.name}</p>
-                      <p className="w-[200px] truncate text-sm text-muted-foreground">
-                        {user?.email}
-                      </p>
-                      <Badge variant="secondary" className="w-fit text-xs">
-                        {user?.role ? getRoleLabel(user.role) : "Utilisateur"}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                  <User size={16} />
+                  <span className="hidden sm:inline-block max-w-24 truncate">
+                    {user?.name || "Utilisateur"}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profil" className="cursor-pointer">
+                    Profil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/messages" className="cursor-pointer">
+                    Messages
+                    {displayUnreadCount > 0 && (
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {displayUnreadCount}
                       </Badge>
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/profil" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      Mon profil
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/messages" className="cursor-pointer">
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      Messages
-                      {unreadCount && unreadCount > 0 && (
-                        <Badge variant="destructive" className="ml-auto h-5 w-5 p-0 text-xs">
-                          {unreadCount > 99 ? "99+" : unreadCount}
-                        </Badge>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="md:hidden">
-                    <Link to="/poster" className="cursor-pointer">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Publier une annonce
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Se déconnecter
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+                    )}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                  disabled={isPending}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {isPending ? "Déconnexion..." : "Se déconnecter"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <>
-              {/* Boutons non authentifié */}
-              <Button asChild variant="ghost" className="hidden sm:inline-flex">
-                <Link to="/auth">Se connecter</Link>
-              </Button>
-              <Button asChild variant="hero" size="sm">
-                <Link to="/poster">Publier</Link>
-              </Button>
-            </>
+            <Button asChild variant="hero" size="sm">
+              <Link to="/auth">Connexion</Link>
+            </Button>
           )}
+
+          {/* Bouton menu mobile */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden"
+            onClick={handleMobileMenuToggle}
+            disabled={isPending}
+          >
+            <Menu size={16} />
+          </Button>
         </div>
       </div>
 
-      {/* Navigation mobile */}
-      {isAuthenticated && (
-        <div className="md:hidden border-t bg-background">
-          <nav className="container mx-auto flex items-center justify-around py-2">
-            <NavLink 
+      {/* Menu mobile */}
+      {showMobileMenu && (
+        <div className="md:hidden border-t bg-background/95 backdrop-blur">
+          <nav className="container mx-auto py-4 flex flex-col space-y-2">
+            <Link 
               to="/annonces" 
-              className="flex flex-col items-center gap-1 p-2 text-xs"
+              className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-md transition-colors"
+              onClick={() => startTransition(() => setShowMobileMenu(false))}
             >
-              <Search className="h-4 w-4" />
               Annonces
-            </NavLink>
-            <NavLink 
-              to="/messages" 
-              className="flex flex-col items-center gap-1 p-2 text-xs relative"
-            >
-              <MessageSquare className="h-4 w-4" />
-              Messages
-              {unreadCount && unreadCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Badge>
-              )}
-            </NavLink>
-            <NavLink 
+            </Link>
+            <Link 
               to="/poster" 
-              className="flex flex-col items-center gap-1 p-2 text-xs"
+              className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-md transition-colors"
+              onClick={() => startTransition(() => setShowMobileMenu(false))}
             >
-              <Plus className="h-4 w-4" />
               Publier
-            </NavLink>
-            <NavLink 
-              to="/profil" 
-              className="flex flex-col items-center gap-1 p-2 text-xs"
-            >
-              <User className="h-4 w-4" />
-              Profil
-            </NavLink>
+            </Link>
+            {isAuthenticated && (
+              <Link 
+                to="/messages" 
+                className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-md transition-colors flex items-center justify-between"
+                onClick={() => startTransition(() => setShowMobileMenu(false))}
+              >
+                <span>Messages</span>
+                {displayUnreadCount > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    {displayUnreadCount > 99 ? "99+" : displayUnreadCount}
+                  </Badge>
+                )}
+              </Link>
+            )}
           </nav>
         </div>
       )}

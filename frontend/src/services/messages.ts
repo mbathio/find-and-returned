@@ -211,12 +211,15 @@ export const useMarkAsRead = () => {
 
 // ✅ CORRECTION : Hook qui ne se déclenche que si l'utilisateur est authentifié
 export const useUnreadCount = () => {
+  const isAuth = authService.isAuthenticated();
+  
   return useQuery({
     queryKey: ["unreadCount"],
     queryFn: messagesService.getUnreadCount,
-    enabled: authService.isAuthenticated(), // ✅ Condition d'activation
+    enabled: isAuth, // ✅ Condition d'activation stricte
     staleTime: 10 * 1000, // 10 secondes
-    refetchInterval: authService.isAuthenticated() ? 30 * 1000 : false, // ✅ Pas de refetch automatique si non authentifié
+    refetchInterval: isAuth ? 30 * 1000 : false, // ✅ Pas de refetch automatique si non authentifié
     retry: false, // ✅ Pas de retry sur erreur pour éviter les boucles
+    suspense: false, // ✅ IMPORTANT : Désactiver suspense pour éviter les warnings
   });
 };

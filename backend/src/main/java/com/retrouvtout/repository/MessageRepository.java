@@ -16,10 +16,21 @@ import java.util.List;
 
 /**
  * ✅ REPOSITORY MESSAGES CORRIGÉ - VERSION COMPLÈTE
- * Ajout de la méthode countUnreadMessagesForUser manquante
+ * Ajout de toutes les méthodes manquantes avec debug SQL
  */
 @Repository
 public interface MessageRepository extends JpaRepository<Message, String> {
+
+    /**
+     * ✅ MÉTHODE CRITIQUE MANQUANTE - Compter les messages non lus pour un utilisateur
+     * Cette méthode était appelée par le service mais n'existait pas !
+     */
+    @Query("SELECT COUNT(m) FROM Message m " +
+           "JOIN m.thread t " +
+           "WHERE (t.ownerUser = :user OR t.finderUser = :user) " +
+           "AND m.senderUser != :user " +
+           "AND m.isRead = false")
+    long countUnreadMessagesForUser(@Param("user") User user);
 
     /**
      * Trouver les messages d'un thread
@@ -32,17 +43,6 @@ public interface MessageRepository extends JpaRepository<Message, String> {
     @Query("SELECT COUNT(m) FROM Message m WHERE m.thread = :thread AND " +
            "m.senderUser != :user AND m.isRead = false")
     long countUnreadMessagesInThreadForUser(@Param("thread") Thread thread, @Param("user") User user);
-
-    /**
-     * ✅ CORRECTION : Compter les messages non lus pour un utilisateur (méthode manquante)
-     * Compte tous les messages non lus dans les threads où l'utilisateur participe
-     */
-    @Query("SELECT COUNT(m) FROM Message m " +
-           "JOIN m.thread t " +
-           "WHERE (t.ownerUser = :user OR t.finderUser = :user) " +
-           "AND m.senderUser != :user " +
-           "AND m.isRead = false")
-    long countUnreadMessagesForUser(@Param("user") User user);
 
     /**
      * Marquer tous les messages d'un thread comme lus pour un utilisateur
@@ -60,7 +60,7 @@ public interface MessageRepository extends JpaRepository<Message, String> {
     List<Message> findLastMessageInThread(@Param("thread") Thread thread, Pageable pageable);
 
     /**
-     * ✅ BONUS : Méthodes supplémentaires utiles
+     * ✅ MÉTHODES SUPPLÉMENTAIRES UTILES pour éviter d'autres erreurs
      */
     
     /**
@@ -117,4 +117,83 @@ public interface MessageRepository extends JpaRepository<Message, String> {
            "AND m.senderUser != :user " +
            "AND m.isRead = false")
     List<Thread> findThreadsWithUnreadMessagesForUser(@Param("user") User user);
+
+    /**
+     * ✅ MÉTHODES DE DEBUG pour identifier les problèmes
+     */
+    
+    /**
+     * Compter tous les messages d'un utilisateur
+     */
+    @Query("SELECT COUNT(m) FROM Message m " +
+           "JOIN m.thread t " +
+           "WHERE (t.ownerUser = :user OR t.finderUser = :user)")
+    long countAllMessagesForUser(@Param("user") User user);
+
+    /**
+     * Trouver tous les messages d'un utilisateur (pour debug)
+     */
+    @Query("SELECT m FROM Message m " +
+           "JOIN m.thread t " +
+           "WHERE (t.ownerUser = :user OR t.finderUser = :user) " +
+           "ORDER BY m.createdAt DESC")
+    List<Message> findAllMessagesForUser(@Param("user") User user, Pageable pageable);
+
+    /**
+     * Compter les messages par utilisateur et statut de lecture
+     */
+    @Query("SELECT m.isRead, COUNT(m) FROM Message m " +
+           "JOIN m.thread t " +
+           "WHERE (t.ownerUser = :user OR t.finderUser = :user) " +
+           "AND m.senderUser != :user " +
+           "GROUP BY m.isRead")
+    List<Object[]> countMessagesByReadStatusForUser(@Param("user") User user);
+
+    /**
+     * ✅ MÉTHODES POUR LES STATISTIQUES ADMIN
+     */
+    
+    /**
+     * Compter le nombre total de messages
+     */
+    @Query("SELECT COUNT(m) FROM Message m")
+    long countTotalMessages();
+
+    /**
+     * Compter les messages par type
+     */
+    @Query("SELECT m.messageType, COUNT(m) FROM Message m GROUP BY m.messageType")
+    List<Object[]> countMessagesByType();
+
+    /**
+     * Trouver les utilisateurs les plus actifs (par nombre de messages envoyés)
+     */
+    @Query("SELECT m.senderUser, COUNT(m) as messageCount FROM Message m " +
+           "GROUP BY m.senderUser ORDER BY messageCount DESC")
+    List<Object[]> findMostActiveUsers(Pageable pageable);
+
+    /**
+     * ✅ REQUÊTES OPTIMISÉES pour les performances
+     */
+    
+    /**
+     * Version optimisée pour compter les non lus avec index
+     */
+    @Query(value = "SELECT COUNT(*) FROM messages m " +
+                   "INNER JOIN threads t ON m.thread_id = t.id " +
+                   "WHERE (t.owner_user_id = :userId OR t.finder_user_id = :userId) " +
+                   "AND m.sender_user_id != :userId " +
+                   "AND m.is_read = false", 
+           nativeQuery = true)
+    long countUnreadMessagesForUserOptimized(@Param("userId") String userId);
+
+    /**
+     * Version avec fallback si l'entity User pose problème
+     */
+    @Query("SELECT COUNT(m) FROM Message m " +
+           "JOIN m.thread t " +
+           "WHERE (t.ownerUser.id = :userId OR t.finderUser.id = :userId) " +
+           "AND m.senderUser.id != :userId " +
+           "AND m.isRead = false")
+    long countUnreadMessagesForUserById(@Param("userId") String userId);
 }

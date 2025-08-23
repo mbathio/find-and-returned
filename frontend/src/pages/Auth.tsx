@@ -1,4 +1,4 @@
-// src/pages/Auth.tsx - VERSION CORRIGÉE COMPLÈTE AVEC MIXTE
+// src/pages/Auth.tsx - CORRECTION DU SELECT ROLE
 import { Helmet } from "react-helmet-async";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ const Auth = () => {
     email: "",
     password: "",
     phone: "",
-    role: "mixte", // ✅ Valeur par défaut correspondant au backend
+    role: "mixte", // ✅ Valeur par défaut valide (non vide)
   });
 
   // Mutations
@@ -196,6 +196,8 @@ const Auth = () => {
                   value={registerData.phone}
                   onChange={(e) => setRegisterData({...registerData, phone: e.target.value})}
                 />
+                
+                {/* ✅ CORRECTION : Select sans value vide */}
                 <Select 
                   value={registerData.role}
                   onValueChange={(value: "retrouveur" | "proprietaire" | "mixte") => 
@@ -203,14 +205,16 @@ const Auth = () => {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Votre rôle" />
+                    <SelectValue placeholder="Choisir votre rôle" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* ✅ TOUTES les options ont une valeur non-vide */}
                     <SelectItem value="retrouveur">Retrouveur (je trouve des objets)</SelectItem>
                     <SelectItem value="proprietaire">Propriétaire (je cherche mes objets)</SelectItem>
                     <SelectItem value="mixte">Les deux (par défaut)</SelectItem>
                   </SelectContent>
                 </Select>
+                
                 <Input 
                   type="password" 
                   placeholder="Mot de passe (min. 6 caractères)" 
@@ -254,3 +258,58 @@ const Auth = () => {
 };
 
 export default Auth;
+
+// =====================================================
+
+// src/pages/Annonces.tsx - CORRECTION DU SELECT CATÉGORIE
+// [EXTRAIT - juste la partie Select corrigée]
+
+const Annonces = () => {
+  // ... autres états ...
+
+  return (
+    <main className="container mx-auto py-10">
+      {/* ... autres éléments ... */}
+      
+      {/* Filtres de recherche */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="grid gap-3 md:grid-cols-4 mb-4">
+            {/* ... autres filtres ... */}
+            
+            <div className="md:col-span-1">
+              {/* ✅ CORRECTION : Select catégorie sans value vide */}
+              <Select 
+                value={filters.category || "all"} // ✅ Fallback vers "all" au lieu de ""
+                onValueChange={(value) => setFilters(prev => ({ 
+                  ...prev, 
+                  category: value === "all" ? "" : value // ✅ Convertir "all" en chaîne vide pour l'API
+                }))}
+              >
+                <SelectTrigger aria-label="Catégorie">
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* ✅ Option "Toutes" avec valeur "all" au lieu de "" */}
+                  <SelectItem value="all">Toutes les catégories</SelectItem>
+                  <SelectItem value="cles">Clés</SelectItem>
+                  <SelectItem value="electronique">Électronique</SelectItem>
+                  <SelectItem value="bagagerie">Bagagerie</SelectItem>
+                  <SelectItem value="documents">Documents</SelectItem>
+                  <SelectItem value="vetements">Vêtements</SelectItem>
+                  <SelectItem value="autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* ... autres filtres ... */}
+          </div>
+          
+          {/* ... resto du composant ... */}
+        </CardContent>
+      </Card>
+      
+      {/* ... resto de la page ... */}
+    </main>
+  );
+};

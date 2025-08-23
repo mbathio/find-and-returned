@@ -28,6 +28,7 @@ import { authService } from "@/services/auth";
 
 const Poster = () => {
   const navigate = useNavigate();
+  const [isPending, startTransition] = useTransition();
   const createListingMutation = useCreateListing();
   const uploadImageMutation = useUploadImage();
 
@@ -47,8 +48,8 @@ const Poster = () => {
 
   // Vérifier l'authentification
   const isAuthenticated = authService.isAuthenticated();
-
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  
+const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validation du fichier
@@ -73,11 +74,15 @@ const Poster = () => {
         return;
       }
 
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreview(url);
+      // ✅ CORRECTION : Entourer dans startTransition
+      startTransition(() => {
+        setSelectedFile(file);
+        const url = URL.createObjectURL(file);
+        setPreview(url);
+      });
     }
   };
+
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,10 +156,13 @@ const Poster = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setFormData({
-            ...formData,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+          // ✅ CORRECTION : Entourer dans startTransition
+          startTransition(() => {
+            setFormData({
+              ...formData,
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
           });
           toast({
             title: "Position détectée",
