@@ -1,5 +1,3 @@
-// backend/src/main/java/com/retrouvtout/converter/ListingStatusConverter.java
-
 package com.retrouvtout.converter;
 
 import com.retrouvtout.entity.Listing;
@@ -14,7 +12,7 @@ public class ListingStatusConverter implements AttributeConverter<Listing.Listin
         if (attribute == null) {
             return null;
         }
-        return attribute.getValue(); // Sauvegarde "active", "resolved", etc.
+        return attribute.getValue();
     }
 
     @Override
@@ -22,6 +20,11 @@ public class ListingStatusConverter implements AttributeConverter<Listing.Listin
         if (dbData == null || dbData.trim().isEmpty()) {
             return null;
         }
-        return Listing.ListingStatus.fromValue(dbData);
+        
+        try {
+            return Listing.ListingStatus.fromValue(dbData);
+        } catch (IllegalArgumentException e) {
+            return Listing.ListingStatus.ACTIVE;
+        }
     }
 }
