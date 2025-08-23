@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.dto.request.LoginRequest;
+import com.retrouvtout.dto.request.RegisterRequest;
+import com.retrouvtout.dto.response.AuthResponse;
+import com.retrouvtout.dto.response.UserResponse;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.security.JwtTokenProvider;
+import com.retrouvtout.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+/**
+ * ✅ SERVICE D'AUTHENTIFICATION CORRIGÉ
+ * Suppression des validations causant l'erreur 500
+ */
+@Service
+@Transactional
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider tokenProvider;
+    private final ModelMapper modelMapper;
+
+    @Value(&quot;${app.jwt.expiration:86400000}&quot;)
+    private long jwtExpirationInMs;
+
+    @Value(&quot;${app.jwt.refresh-expiration:604800000}&quot;)
+    private long refreshTokenExpirationInMs;
+
+    @Autowired
+    public AuthService(UserRepository userRepository,
+                      PasswordEncoder passwordEncoder,
+                      JwtTokenProvider tokenProvider,
+<span class="nc" id="L44">                      ModelMapper modelMapper) {</span>
+<span class="nc" id="L45">        this.userRepository = userRepository;</span>
+<span class="nc" id="L46">        this.passwordEncoder = passwordEncoder;</span>
+<span class="nc" id="L47">        this.tokenProvider = tokenProvider;</span>
+<span class="nc" id="L48">        this.modelMapper = modelMapper;</span>
+<span class="nc" id="L49">    }</span>
+
+    /**
+     * ✅ CONNEXION SIMPLIFIÉE
+     */
+    public AuthResponse login(LoginRequest request, String clientIp) {
+<span class="nc" id="L55">        System.out.println(&quot;🔧 Début de la connexion pour: &quot; + request.getEmail());</span>
+        
+        try {
+            // Normalisation simple
+<span class="nc" id="L59">            String email = request.getEmail().trim().toLowerCase();</span>
+<span class="nc" id="L60">            System.out.println(&quot;✅ Email normalisé: &quot; + email);</span>
+
+            // Recherche de l'utilisateur
+<span class="nc" id="L63">            User user = userRepository.findByEmailAndActiveTrue(email)</span>
+<span class="nc" id="L64">                .orElseThrow(() -&gt; new BadCredentialsException(&quot;Email ou mot de passe incorrect&quot;));</span>
+            
+<span class="nc" id="L66">            System.out.println(&quot;✅ Utilisateur trouvé: &quot; + user.getId());</span>
+
+            // Vérification du compte actif
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            if (!user.getActive()) {</span>
+<span class="nc" id="L70">                throw new IllegalStateException(&quot;Votre compte a été désactivé&quot;);</span>
+            }
+
+            // Vérification du mot de passe
+<span class="nc bnc" id="L74" title="All 4 branches missed.">            if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {</span>
+<span class="nc" id="L75">                throw new BadCredentialsException(&quot;Ce compte n'a pas de mot de passe défini&quot;);</span>
+            }
+
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {</span>
+<span class="nc" id="L79">                System.out.println(&quot;❌ Mot de passe incorrect pour: &quot; + email);</span>
+<span class="nc" id="L80">                throw new BadCredentialsException(&quot;Email ou mot de passe incorrect&quot;);</span>
+            }
+            
+<span class="nc" id="L83">            System.out.println(&quot;✅ Mot de passe vérifié&quot;);</span>
+
+            // Mise à jour de la dernière connexion
+            try {
+<span class="nc" id="L87">                user.setLastLoginAt(LocalDateTime.now());</span>
+<span class="nc" id="L88">                userRepository.save(user);</span>
+<span class="nc" id="L89">                System.out.println(&quot;✅ Dernière connexion mise à jour&quot;);</span>
+<span class="nc" id="L90">            } catch (Exception e) {</span>
+<span class="nc" id="L91">                System.err.println(&quot;⚠️ Erreur lors de la mise à jour de la dernière connexion: &quot; + e.getMessage());</span>
+                // Ne pas faire échouer la connexion pour ça
+<span class="nc" id="L93">            }</span>
+
+            // Génération des tokens
+<span class="nc" id="L96">            AuthResponse authResponse = generateAuthTokens(user);</span>
+<span class="nc" id="L97">            System.out.println(&quot;✅ Tokens de connexion générés&quot;);</span>
+
+<span class="nc" id="L99">            return authResponse;</span>
+
+<span class="nc" id="L101">        } catch (BadCredentialsException | IllegalStateException e) {</span>
+<span class="nc" id="L102">            System.out.println(&quot;❌ Erreur d'authentification: &quot; + e.getMessage());</span>
+<span class="nc" id="L103">            throw e;</span>
+<span class="nc" id="L104">        } catch (Exception e) {</span>
+<span class="nc" id="L105">            System.err.println(&quot;❌ Erreur inattendue lors de la connexion: &quot; + e.getMessage());</span>
+<span class="nc" id="L106">            e.printStackTrace();</span>
+<span class="nc" id="L107">            throw new RuntimeException(&quot;Erreur interne lors de la connexion&quot;);</span>
+        }
+    }
+
+    /**
+     * ✅ INSCRIPTION SIMPLIFIÉE
+     */
+    public AuthResponse register(RegisterRequest request, String clientIp) {
+<span class="nc" id="L115">        System.out.println(&quot;🔧 Début de l'inscription pour: &quot; + request.getEmail());</span>
+        
+        try {
+            // Normalisation des données
+<span class="nc" id="L119">            String email = request.getEmail().trim().toLowerCase();</span>
+<span class="nc" id="L120">            String name = request.getName().trim();</span>
+<span class="nc bnc" id="L121" title="All 4 branches missed.">            String phone = (request.getPhone() != null &amp;&amp; !request.getPhone().trim().isEmpty()) ? </span>
+<span class="nc" id="L122">                request.getPhone().trim() : null;</span>
+            
+<span class="nc" id="L124">            System.out.println(&quot;✅ Données normalisées - Email: &quot; + email);</span>
+
+            // Vérification de l'unicité de l'email
+<span class="nc bnc" id="L127" title="All 2 branches missed.">            if (userRepository.existsByEmailAndActiveTrue(email)) {</span>
+<span class="nc" id="L128">                throw new IllegalArgumentException(&quot;Un utilisateur avec cet email existe déjà&quot;);</span>
+            }
+<span class="nc" id="L130">            System.out.println(&quot;✅ Email unique vérifié&quot;);</span>
+
+            // Détermination du rôle
+<span class="nc" id="L133">            User.UserRole role = determineUserRole(request.getRole());</span>
+<span class="nc" id="L134">            System.out.println(&quot;✅ Rôle déterminé: &quot; + role.getValue());</span>
+
+            // Création de l'utilisateur
+<span class="nc" id="L137">            User user = new User();</span>
+<span class="nc" id="L138">            user.setId(java.util.UUID.randomUUID().toString());</span>
+<span class="nc" id="L139">            user.setName(name);</span>
+<span class="nc" id="L140">            user.setEmail(email);</span>
+<span class="nc" id="L141">            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));</span>
+<span class="nc" id="L142">            user.setPhone(phone);</span>
+<span class="nc" id="L143">            user.setRole(role);</span>
+<span class="nc" id="L144">            user.setEmailVerified(false);</span>
+<span class="nc" id="L145">            user.setActive(true);</span>
+            
+<span class="nc" id="L147">            System.out.println(&quot;✅ Entité utilisateur créée&quot;);</span>
+
+            // Sauvegarde
+<span class="nc" id="L150">            User savedUser = userRepository.save(user);</span>
+<span class="nc" id="L151">            System.out.println(&quot;✅ Utilisateur sauvegardé avec ID: &quot; + savedUser.getId());</span>
+
+            // Génération des tokens
+<span class="nc" id="L154">            AuthResponse authResponse = generateAuthTokens(savedUser);</span>
+<span class="nc" id="L155">            System.out.println(&quot;✅ Tokens générés avec succès&quot;);</span>
+
+<span class="nc" id="L157">            return authResponse;</span>
+
+<span class="nc" id="L159">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L160">            System.out.println(&quot;❌ Erreur de validation: &quot; + e.getMessage());</span>
+<span class="nc" id="L161">            throw e;</span>
+<span class="nc" id="L162">        } catch (DataIntegrityViolationException e) {</span>
+<span class="nc" id="L163">            System.err.println(&quot;❌ Erreur de contrainte DB: &quot; + e.getMessage());</span>
+<span class="nc" id="L164">            throw new IllegalArgumentException(&quot;Cette adresse email est déjà utilisée&quot;);</span>
+<span class="nc" id="L165">        } catch (Exception e) {</span>
+<span class="nc" id="L166">            System.err.println(&quot;❌ Erreur inattendue lors de l'inscription: &quot; + e.getMessage());</span>
+<span class="nc" id="L167">            e.printStackTrace();</span>
+<span class="nc" id="L168">            throw new RuntimeException(&quot;Erreur interne lors de l'inscription&quot;);</span>
+        }
+    }
+
+    /**
+     * ✅ RAFRAÎCHISSEMENT DE TOKEN
+     */
+    public AuthResponse refreshToken(String refreshToken) {
+        try {
+<span class="nc" id="L177">            System.out.println(&quot;🔧 Rafraîchissement de token&quot;);</span>
+            
+<span class="nc bnc" id="L179" title="All 4 branches missed.">            if (refreshToken == null || refreshToken.trim().isEmpty()) {</span>
+<span class="nc" id="L180">                throw new IllegalArgumentException(&quot;Token de rafraîchissement manquant&quot;);</span>
+            }
+
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            if (!tokenProvider.validateToken(refreshToken)) {</span>
+<span class="nc" id="L184">                throw new IllegalArgumentException(&quot;Token de rafraîchissement invalide ou expiré&quot;);</span>
+            }
+
+<span class="nc" id="L187">            String userId = tokenProvider.getUserIdFromToken(refreshToken);</span>
+<span class="nc" id="L188">            User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L189">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Utilisateur non trouvé ou inactif&quot;));</span>
+
+<span class="nc" id="L191">            String newAccessToken = tokenProvider.generateToken(userId);</span>
+<span class="nc" id="L192">            UserResponse userResponse = modelMapper.mapUserToUserResponse(user);</span>
+
+<span class="nc" id="L194">            System.out.println(&quot;✅ Token rafraîchi pour utilisateur: &quot; + userId);</span>
+
+<span class="nc" id="L196">            return new AuthResponse(</span>
+                newAccessToken,
+                refreshToken,
+                &quot;Bearer&quot;,
+                jwtExpirationInMs / 1000,
+                userResponse
+            );
+
+<span class="nc" id="L204">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L205">            System.out.println(&quot;❌ Erreur de token: &quot; + e.getMessage());</span>
+<span class="nc" id="L206">            throw e;</span>
+<span class="nc" id="L207">        } catch (Exception e) {</span>
+<span class="nc" id="L208">            System.err.println(&quot;❌ Erreur lors du refresh: &quot; + e.getMessage());</span>
+<span class="nc" id="L209">            throw new RuntimeException(&quot;Erreur lors du rafraîchissement du token&quot;);</span>
+        }
+    }
+
+    /**
+     * ✅ DÉCONNEXION
+     */
+    public void logout(String accessToken) {
+        try {
+<span class="nc bnc" id="L218" title="All 4 branches missed.">            if (accessToken != null &amp;&amp; !accessToken.trim().isEmpty()) {</span>
+<span class="nc" id="L219">                String userId = tokenProvider.getUserIdFromToken(accessToken);</span>
+<span class="nc" id="L220">                System.out.println(&quot;✅ Utilisateur déconnecté: &quot; + userId);</span>
+            }
+<span class="nc" id="L222">        } catch (Exception e) {</span>
+<span class="nc" id="L223">            System.out.println(&quot;ℹ️ Déconnexion sans validation de token&quot;);</span>
+<span class="nc" id="L224">        }</span>
+<span class="nc" id="L225">    }</span>
+
+    // Méthodes utilitaires privées
+
+    private User.UserRole determineUserRole(String roleString) {
+<span class="nc bnc" id="L230" title="All 4 branches missed.">        if (roleString == null || roleString.trim().isEmpty()) {</span>
+<span class="nc" id="L231">            return User.UserRole.MIXTE;</span>
+        }
+
+        try {
+<span class="nc" id="L235">            return User.UserRole.fromValue(roleString.trim().toLowerCase());</span>
+<span class="nc" id="L236">        } catch (Exception e) {</span>
+<span class="nc" id="L237">            System.out.println(&quot;⚠️ Rôle invalide '&quot; + roleString + &quot;', utilisation de 'mixte'&quot;);</span>
+<span class="nc" id="L238">            return User.UserRole.MIXTE;</span>
+        }
+    }
+
+    private AuthResponse generateAuthTokens(User user) {
+        try {
+<span class="nc" id="L244">            String accessToken = tokenProvider.generateToken(user.getId());</span>
+<span class="nc" id="L245">            String refreshToken = tokenProvider.generateRefreshToken(user.getId());</span>
+<span class="nc" id="L246">            UserResponse userResponse = modelMapper.mapUserToUserResponse(user);</span>
+
+<span class="nc" id="L248">            return new AuthResponse(</span>
+                accessToken,
+                refreshToken,
+                &quot;Bearer&quot;,
+                jwtExpirationInMs / 1000,
+                userResponse
+            );
+<span class="nc" id="L255">        } catch (Exception e) {</span>
+<span class="nc" id="L256">            System.err.println(&quot;❌ Erreur lors de la génération des tokens: &quot; + e.getMessage());</span>
+<span class="nc" id="L257">            throw new RuntimeException(&quot;Erreur lors de la génération des tokens&quot;);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

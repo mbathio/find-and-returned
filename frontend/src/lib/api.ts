@@ -41,13 +41,17 @@ class ApiClient {
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        
+
         // ✅ Debug amélioré
         if (import.meta.env.DEV) {
-          console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+          console.log(
+            `🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${
+              config.url
+            }`
+          );
           console.log(`📦 Request data:`, config.data);
         }
-        
+
         return config;
       },
       (error) => {
@@ -61,7 +65,9 @@ class ApiClient {
       (response) => {
         // ✅ Debug amélioré
         if (import.meta.env.DEV) {
-          console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+          console.log(
+            `✅ API Response: ${response.status} ${response.config.url}`
+          );
           console.log(`📦 Response data:`, response.data);
         }
         return response;
@@ -69,7 +75,12 @@ class ApiClient {
       async (error) => {
         // ✅ Debug amélioré
         if (import.meta.env.DEV) {
-          console.error(`❌ API Error: ${error.response?.status || 'Network'} ${error.config?.url}`, error.message);
+          console.error(
+            `❌ API Error: ${error.response?.status || "Network"} ${
+              error.config?.url
+            }`,
+            error.message
+          );
           console.error(`📦 Error response:`, error.response?.data);
         }
 
@@ -95,7 +106,9 @@ class ApiClient {
 
         throw new ApiError(
           error.response?.status || 500,
-          error.response?.data?.message || error.message || "Une erreur est survenue",
+          error.response?.data?.message ||
+            error.message ||
+            "Une erreur est survenue",
           error.response
         );
       }
@@ -160,7 +173,7 @@ class ApiClient {
   // Méthode utilitaire pour tester la connexion
   async testConnection(): Promise<boolean> {
     try {
-      await this.get('/health');
+      await this.get("/health");
       return true;
     } catch {
       return false;

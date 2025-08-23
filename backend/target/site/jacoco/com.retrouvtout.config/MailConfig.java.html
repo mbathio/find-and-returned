@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MailConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.config</a> &gt; <span class="el_source">MailConfig.java</span></div><h1>MailConfig.java</h1><pre class="source lang-java linenums">package com.retrouvtout.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+
+import java.util.Properties;
+
+/**
+ * Configuration pour l'envoi d'emails
+ */
+@Configuration
+<span class="nc" id="L15">public class MailConfig {</span>
+
+    @Value(&quot;${spring.mail.host}&quot;)
+    private String mailHost;
+
+    @Value(&quot;${spring.mail.port}&quot;)
+    private int mailPort;
+
+    @Value(&quot;${spring.mail.username}&quot;)
+    private String mailUsername;
+
+    @Value(&quot;${spring.mail.password}&quot;)
+    private String mailPassword;
+
+    @Value(&quot;${spring.mail.properties.mail.smtp.auth:true}&quot;)
+    private boolean smtpAuth;
+
+    @Value(&quot;${spring.mail.properties.mail.smtp.starttls.enable:true}&quot;)
+    private boolean starttlsEnable;
+
+    @Value(&quot;${spring.mail.properties.mail.smtp.connectiontimeout:5000}&quot;)
+    private int connectionTimeout;
+
+    @Value(&quot;${spring.mail.properties.mail.smtp.timeout:3000}&quot;)
+    private int timeout;
+
+    @Value(&quot;${spring.mail.properties.mail.smtp.writetimeout:5000}&quot;)
+    private int writeTimeout;
+
+    /**
+     * Configuration du service d'envoi d'emails
+     */
+    @Bean
+    public JavaMailSender getJavaMailSender() {
+<span class="nc" id="L49">        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();</span>
+        
+<span class="nc" id="L51">        mailSender.setHost(mailHost);</span>
+<span class="nc" id="L52">        mailSender.setPort(mailPort);</span>
+<span class="nc" id="L53">        mailSender.setUsername(mailUsername);</span>
+<span class="nc" id="L54">        mailSender.setPassword(mailPassword);</span>
+        
+<span class="nc" id="L56">        Properties props = mailSender.getJavaMailProperties();</span>
+<span class="nc" id="L57">        props.put(&quot;mail.transport.protocol&quot;, &quot;smtp&quot;);</span>
+<span class="nc" id="L58">        props.put(&quot;mail.smtp.auth&quot;, smtpAuth);</span>
+<span class="nc" id="L59">        props.put(&quot;mail.smtp.starttls.enable&quot;, starttlsEnable);</span>
+<span class="nc" id="L60">        props.put(&quot;mail.smtp.connectiontimeout&quot;, connectionTimeout);</span>
+<span class="nc" id="L61">        props.put(&quot;mail.smtp.timeout&quot;, timeout);</span>
+<span class="nc" id="L62">        props.put(&quot;mail.smtp.writetimeout&quot;, writeTimeout);</span>
+<span class="nc" id="L63">        props.put(&quot;mail.debug&quot;, &quot;false&quot;);</span>
+        
+<span class="nc" id="L65">        return mailSender;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

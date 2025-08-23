@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListingService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">ListingService.java</span></div><h1>ListingService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.dto.request.CreateListingRequest;
+import com.retrouvtout.dto.request.UpdateListingRequest;
+import com.retrouvtout.dto.response.ListingResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.entity.Listing;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.exception.ResourceNotFoundException;
+import com.retrouvtout.repository.ListingRepository;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Service pour la gestion des annonces conforme au cahier des charges
+ * Section 3.2 - Gestion des annonces d'objets retrouvés
+ * CORRIGÉ - Suppression des méthodes non existantes
+ */
+@Service
+@Transactional
+public class ListingService {
+
+    private final ListingRepository listingRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
+
+    @Autowired
+    public ListingService(ListingRepository listingRepository,
+                         UserRepository userRepository,
+                         ModelMapper modelMapper,
+<span class="nc" id="L44">                         NotificationService notificationService) {</span>
+<span class="nc" id="L45">        this.listingRepository = listingRepository;</span>
+<span class="nc" id="L46">        this.userRepository = userRepository;</span>
+<span class="nc" id="L47">        this.modelMapper = modelMapper;</span>
+<span class="nc" id="L48">        this.notificationService = notificationService;</span>
+<span class="nc" id="L49">    }</span>
+
+    /**
+     * Rechercher des annonces avec filtres - Section 3.2
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;ListingResponse&gt; searchListings(String query, String category, String location,
+                                               BigDecimal lat, BigDecimal lng, Double radiusKm,
+                                               LocalDate dateFrom, LocalDate dateTo,
+                                               Pageable pageable) {
+        
+<span class="nc" id="L60">        Specification&lt;Listing&gt; spec = Specification.where(null);</span>
+
+        // Filtre par statut actif uniquement
+<span class="nc" id="L63">        spec = spec.and((root, query1, cb) -&gt; </span>
+<span class="nc" id="L64">            cb.equal(root.get(&quot;status&quot;), Listing.ListingStatus.ACTIVE));</span>
+
+        // Filtre par modération - Section 3.4
+<span class="nc" id="L67">        spec = spec.and((root, query1, cb) -&gt; </span>
+<span class="nc" id="L68">            cb.equal(root.get(&quot;isModerated&quot;), true));</span>
+
+        // Filtre par mot-clé - Section 3.2
+<span class="nc bnc" id="L71" title="All 4 branches missed.">        if (query != null &amp;&amp; !query.trim().isEmpty()) {</span>
+<span class="nc" id="L72">            spec = spec.and((root, query1, cb) -&gt; </span>
+<span class="nc" id="L73">                cb.or(</span>
+<span class="nc" id="L74">                    cb.like(cb.lower(root.get(&quot;title&quot;)), &quot;%&quot; + query.toLowerCase() + &quot;%&quot;),</span>
+<span class="nc" id="L75">                    cb.like(cb.lower(root.get(&quot;description&quot;)), &quot;%&quot; + query.toLowerCase() + &quot;%&quot;)</span>
+                ));
+        }
+
+        // Filtre par catégorie - Section 3.2
+<span class="nc bnc" id="L80" title="All 4 branches missed.">        if (category != null &amp;&amp; !category.trim().isEmpty()) {</span>
+<span class="nc" id="L81">            spec = spec.and((root, query1, cb) -&gt; </span>
+<span class="nc" id="L82">                cb.equal(root.get(&quot;category&quot;), Listing.ListingCategory.fromValue(category)));</span>
+        }
+
+        // Filtre par lieu - Section 3.2
+<span class="nc bnc" id="L86" title="All 4 branches missed.">        if (location != null &amp;&amp; !location.trim().isEmpty()) {</span>
+<span class="nc" id="L87">            spec = spec.and((root, query1, cb) -&gt; </span>
+<span class="nc" id="L88">                cb.like(cb.lower(root.get(&quot;locationText&quot;)), &quot;%&quot; + location.toLowerCase() + &quot;%&quot;));</span>
+        }
+
+        // Filtre par date - Section 3.2
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (dateFrom != null) {</span>
+<span class="nc" id="L93">            LocalDateTime dateTimeFrom = dateFrom.atStartOfDay();</span>
+<span class="nc" id="L94">            spec = spec.and((root, query1, cb) -&gt; </span>
+<span class="nc" id="L95">                cb.greaterThanOrEqualTo(root.get(&quot;foundAt&quot;), dateTimeFrom));</span>
+        }
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (dateTo != null) {</span>
+<span class="nc" id="L99">            LocalDateTime dateTimeTo = dateTo.atTime(23, 59, 59);</span>
+<span class="nc" id="L100">            spec = spec.and((root, query1, cb) -&gt; </span>
+<span class="nc" id="L101">                cb.lessThanOrEqualTo(root.get(&quot;foundAt&quot;), dateTimeTo));</span>
+        }
+
+<span class="nc" id="L104">        Page&lt;Listing&gt; listings = listingRepository.findAll(spec, pageable);</span>
+        
+<span class="nc" id="L106">        List&lt;ListingResponse&gt; listingResponses = listings.getContent().stream()</span>
+<span class="nc" id="L107">            .map(modelMapper::mapListingToListingResponse)</span>
+<span class="nc" id="L108">            .collect(Collectors.toList());</span>
+
+<span class="nc" id="L110">        return modelMapper.createPagedResponse(</span>
+            listingResponses,
+<span class="nc" id="L112">            pageable.getPageNumber() + 1,</span>
+<span class="nc" id="L113">            pageable.getPageSize(),</span>
+<span class="nc" id="L114">            listings.getTotalElements()</span>
+        );
+    }
+
+    /**
+     * Obtenir une annonce par son ID
+     */
+    @Transactional(readOnly = true)
+    public ListingResponse getListingById(String id) {
+<span class="nc" id="L123">        Listing listing = listingRepository.findById(id)</span>
+<span class="nc" id="L124">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Annonce&quot;, &quot;id&quot;, id));</span>
+        
+<span class="nc" id="L126">        return modelMapper.mapListingToListingResponse(listing);</span>
+    }
+
+    /**
+     * Créer une nouvelle annonce - Section 3.2
+     */
+     public ListingResponse createListing(CreateListingRequest request, String userId) {
+<span class="nc" id="L133">        System.out.println(&quot;🔧 CREATE LISTING:&quot;);</span>
+<span class="nc" id="L134">        System.out.println(&quot;  - Catégorie reçue: '&quot; + request.getCategory() + &quot;'&quot;);</span>
+        
+        // ✅ Conversion avec gestion d'erreur
+        Listing.ListingCategory category;
+        try {
+<span class="nc" id="L139">            category = Listing.ListingCategory.fromValue(request.getCategory());</span>
+<span class="nc" id="L140">            System.out.println(&quot;  - Catégorie convertie: &quot; + category.name() + &quot; (&quot; + category.getValue() + &quot;)&quot;);</span>
+<span class="nc" id="L141">        } catch (Exception e) {</span>
+<span class="nc" id="L142">            System.err.println(&quot;❌ Erreur conversion catégorie: &quot; + e.getMessage());</span>
+<span class="nc" id="L143">            throw new IllegalArgumentException(&quot;Catégorie invalide: &quot; + request.getCategory());</span>
+<span class="nc" id="L144">        }</span>
+        
+<span class="nc" id="L146">        Listing listing = new Listing();</span>
+        // ... autres champs ...
+<span class="nc" id="L148">        listing.setCategory(category); // ✅ Le converter s'occupera de sauvegarder la bonne valeur</span>
+        
+<span class="nc" id="L150">        Listing saved = listingRepository.save(listing);</span>
+<span class="nc" id="L151">        System.out.println(&quot;✅ Annonce sauvée avec catégorie: &quot; + saved.getCategory().getValue());</span>
+        
+<span class="nc" id="L153">        return modelMapper.mapListingToListingResponse(saved);</span>
+    }
+
+    /**
+     * Mettre à jour une annonce
+     */
+    public ListingResponse updateListing(String id, UpdateListingRequest request, String userId) {
+<span class="nc" id="L160">        Listing listing = listingRepository.findById(id)</span>
+<span class="nc" id="L161">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Annonce&quot;, &quot;id&quot;, id));</span>
+
+        // Vérifier que l'utilisateur est le propriétaire
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        if (!listing.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L165">            throw new SecurityException(&quot;Vous n'êtes pas autorisé à modifier cette annonce&quot;);</span>
+        }
+
+        // Mettre à jour les champs modifiables
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (request.getTitle() != null) {</span>
+<span class="nc" id="L170">            listing.setTitle(request.getTitle());</span>
+        }
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (request.getCategory() != null) {</span>
+<span class="nc" id="L173">            listing.setCategory(Listing.ListingCategory.fromValue(request.getCategory()));</span>
+        }
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        if (request.getLocationText() != null) {</span>
+<span class="nc" id="L176">            listing.setLocationText(request.getLocationText());</span>
+        }
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (request.getLatitude() != null) {</span>
+<span class="nc" id="L179">            listing.setLatitude(request.getLatitude());</span>
+        }
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (request.getLongitude() != null) {</span>
+<span class="nc" id="L182">            listing.setLongitude(request.getLongitude());</span>
+        }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">        if (request.getFoundAt() != null) {</span>
+<span class="nc" id="L185">            listing.setFoundAt(request.getFoundAt());</span>
+        }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        if (request.getDescription() != null) {</span>
+<span class="nc" id="L188">            listing.setDescription(request.getDescription());</span>
+        }
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (request.getImageUrl() != null) {</span>
+<span class="nc" id="L191">            listing.setImageUrl(request.getImageUrl());</span>
+        }
+
+<span class="nc" id="L194">        Listing updatedListing = listingRepository.save(listing);</span>
+<span class="nc" id="L195">        return modelMapper.mapListingToListingResponse(updatedListing);</span>
+    }
+
+    /**
+     * Supprimer une annonce (soft delete)
+     */
+    public void deleteListing(String id, String userId) {
+<span class="nc" id="L202">        Listing listing = listingRepository.findById(id)</span>
+<span class="nc" id="L203">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Annonce&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc bnc" id="L205" title="All 2 branches missed.">        if (!listing.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L206">            throw new SecurityException(&quot;Vous n'êtes pas autorisé à supprimer cette annonce&quot;);</span>
+        }
+
+<span class="nc" id="L209">        listing.setStatus(Listing.ListingStatus.SUPPRIME);</span>
+<span class="nc" id="L210">        listingRepository.save(listing);</span>
+<span class="nc" id="L211">    }</span>
+
+    /**
+     * Incrémenter le compteur de vues
+     */
+    @Transactional
+    public void incrementViewCount(String id) {
+<span class="nc" id="L218">        Listing listing = listingRepository.findById(id)</span>
+<span class="nc" id="L219">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Annonce&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc" id="L221">        listing.incrementViewCount();</span>
+<span class="nc" id="L222">        listingRepository.save(listing);</span>
+<span class="nc" id="L223">    }</span>
+
+    /**
+     * Obtenir les annonces d'un utilisateur
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;ListingResponse&gt; getUserListings(String userId, String status, Pageable pageable) {
+<span class="nc" id="L230">        User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L231">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId));</span>
+
+        Page&lt;Listing&gt; listings;
+        
+<span class="nc bnc" id="L235" title="All 4 branches missed.">        if (status != null &amp;&amp; !status.trim().isEmpty()) {</span>
+<span class="nc" id="L236">            Listing.ListingStatus listingStatus = Listing.ListingStatus.fromValue(status);</span>
+<span class="nc" id="L237">            listings = listingRepository.findByFinderUserAndStatusOrderByCreatedAtDesc(</span>
+                user, listingStatus, pageable);
+<span class="nc" id="L239">        } else {</span>
+<span class="nc" id="L240">            listings = listingRepository.findByFinderUserAndStatusNotOrderByCreatedAtDesc(</span>
+                user, Listing.ListingStatus.SUPPRIME, pageable);
+        }
+
+<span class="nc" id="L244">        List&lt;ListingResponse&gt; listingResponses = listings.getContent().stream()</span>
+<span class="nc" id="L245">            .map(modelMapper::mapListingToListingResponse)</span>
+<span class="nc" id="L246">            .collect(Collectors.toList());</span>
+
+<span class="nc" id="L248">        return modelMapper.createPagedResponse(</span>
+            listingResponses,
+<span class="nc" id="L250">            pageable.getPageNumber() + 1,</span>
+<span class="nc" id="L251">            pageable.getPageSize(),</span>
+<span class="nc" id="L252">            listings.getTotalElements()</span>
+        );
+    }
+
+    /**
+     * Déclencher les notifications pour une nouvelle annonce - Section 3.3
+     * SIMPLIFIÉ - notification générale sans ciblage spécifique
+     */
+    private void triggerNotificationsForNewListing(Listing listing) {
+        try {
+            // Rechercher tous les utilisateurs propriétaires actifs
+            // Requête simplifiée pour éviter l'erreur findByRole
+<span class="nc" id="L264">            List&lt;User&gt; allUsers = userRepository.findAll();</span>
+<span class="nc" id="L265">            List&lt;User&gt; interestedUsers = allUsers.stream()</span>
+<span class="nc bnc" id="L266" title="All 4 branches missed.">                .filter(user -&gt; user.getRole() == User.UserRole.PROPRIETAIRE &amp;&amp; user.getActive())</span>
+<span class="nc" id="L267">                .collect(Collectors.toList());</span>
+            
+            // Pour chaque utilisateur propriétaire, envoyer une notification
+<span class="nc bnc" id="L270" title="All 2 branches missed.">            for (User user : interestedUsers) {</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                if (user.getEmailVerified()) {</span>
+<span class="nc" id="L272">                    notificationService.notifyObjectFound(user, listing);</span>
+                }
+<span class="nc" id="L274">            }</span>
+<span class="nc" id="L275">        } catch (Exception e) {</span>
+<span class="nc" id="L276">            System.err.println(&quot;Erreur lors de l'envoi des notifications: &quot; + e.getMessage());</span>
+<span class="nc" id="L277">        }</span>
+<span class="nc" id="L278">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

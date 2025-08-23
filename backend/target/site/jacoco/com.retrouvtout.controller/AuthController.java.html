@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">AuthController.java</span></div><h1>AuthController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.dto.request.LoginRequest;
+import com.retrouvtout.dto.request.RegisterRequest;
+import com.retrouvtout.dto.request.RefreshTokenRequest;
+import com.retrouvtout.dto.response.AuthResponse;
+import com.retrouvtout.dto.response.ApiResponse;
+import com.retrouvtout.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * ✅ CONTRÔLEUR D'AUTHENTIFICATION CORRIGÉ
+ * Suppression des validations trop strictes causant l'erreur 500
+ */
+@RestController
+@RequestMapping(&quot;/api/auth&quot;)
+@Tag(name = &quot;Authentication&quot;, description = &quot;API d'authentification&quot;)
+@CrossOrigin(origins = {&quot;*&quot;}, maxAge = 3600)
+public class AuthController {
+
+    private final AuthService authService;
+
+    @Autowired
+<span class="nc" id="L35">    public AuthController(AuthService authService) {</span>
+<span class="nc" id="L36">        this.authService = authService;</span>
+<span class="nc" id="L37">    }</span>
+
+    /**
+     * ✅ CONNEXION SIMPLIFIÉE pour éviter l'erreur 500
+     */
+    @PostMapping(&quot;/login&quot;)
+    @Operation(summary = &quot;Connexion d'un utilisateur&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;AuthResponse&gt;&gt; login(
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletRequest request) {
+        
+        try {
+<span class="nc" id="L49">            System.out.println(&quot;🚀 Tentative de connexion pour: &quot; + loginRequest.getEmail());</span>
+            
+            // ✅ Validation basique uniquement
+<span class="nc bnc" id="L52" title="All 4 branches missed.">            if (loginRequest.getEmail() == null || loginRequest.getEmail().trim().isEmpty()) {</span>
+<span class="nc" id="L53">                return ResponseEntity.badRequest()</span>
+<span class="nc" id="L54">                    .body(new ApiResponse&lt;&gt;(false, &quot;L'email est obligatoire&quot;, null));</span>
+            }
+            
+<span class="nc bnc" id="L57" title="All 4 branches missed.">            if (loginRequest.getPassword() == null || loginRequest.getPassword().isEmpty()) {</span>
+<span class="nc" id="L58">                return ResponseEntity.badRequest()</span>
+<span class="nc" id="L59">                    .body(new ApiResponse&lt;&gt;(false, &quot;Le mot de passe est obligatoire&quot;, null));</span>
+            }
+
+            // Appel du service d'authentification
+<span class="nc" id="L63">            AuthResponse authResponse = authService.login(loginRequest, getClientIp(request));</span>
+            
+<span class="nc" id="L65">            System.out.println(&quot;✅ Connexion réussie pour: &quot; + loginRequest.getEmail());</span>
+            
+<span class="nc" id="L67">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Connexion réussie&quot;, authResponse));</span>
+            
+<span class="nc" id="L69">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L70">            System.out.println(&quot;❌ Erreur de validation: &quot; + e.getMessage());</span>
+<span class="nc" id="L71">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L72">                .body(new ApiResponse&lt;&gt;(false, e.getMessage(), null));</span>
+                
+<span class="nc" id="L74">        } catch (org.springframework.security.authentication.BadCredentialsException e) {</span>
+<span class="nc" id="L75">            System.out.println(&quot;❌ Identifiants incorrects pour: &quot; + loginRequest.getEmail());</span>
+<span class="nc" id="L76">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L77">                .body(new ApiResponse&lt;&gt;(false, &quot;Email ou mot de passe incorrect&quot;, null));</span>
+                
+<span class="nc" id="L79">        } catch (IllegalStateException e) {</span>
+<span class="nc" id="L80">            System.out.println(&quot;❌ Compte désactivé pour: &quot; + loginRequest.getEmail());</span>
+<span class="nc" id="L81">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L82">                .body(new ApiResponse&lt;&gt;(false, e.getMessage(), null));</span>
+                
+<span class="nc" id="L84">        } catch (Exception e) {</span>
+<span class="nc" id="L85">            System.err.println(&quot;❌ Erreur inattendue lors de la connexion: &quot; + e.getMessage());</span>
+<span class="nc" id="L86">            e.printStackTrace();</span>
+            
+<span class="nc" id="L88">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L89">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur interne du serveur. Veuillez réessayer.&quot;, null));</span>
+        }
+    }
+
+    /**
+     * ✅ INSCRIPTION SIMPLIFIÉE
+     */
+    @PostMapping(&quot;/register&quot;)
+    @Operation(summary = &quot;Inscription d'un nouvel utilisateur&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;AuthResponse&gt;&gt; register(
+            @Valid @RequestBody RegisterRequest registerRequest,
+            HttpServletRequest request) {
+        
+        try {
+<span class="nc" id="L103">            System.out.println(&quot;🚀 Tentative d'inscription pour: &quot; + registerRequest.getEmail());</span>
+            
+            // ✅ Validation basique uniquement
+<span class="nc bnc" id="L106" title="All 4 branches missed.">            if (registerRequest.getName() == null || registerRequest.getName().trim().isEmpty()) {</span>
+<span class="nc" id="L107">                return ResponseEntity.badRequest()</span>
+<span class="nc" id="L108">                    .body(new ApiResponse&lt;&gt;(false, &quot;Le nom est obligatoire&quot;, null));</span>
+            }
+            
+<span class="nc bnc" id="L111" title="All 4 branches missed.">            if (registerRequest.getEmail() == null || registerRequest.getEmail().trim().isEmpty()) {</span>
+<span class="nc" id="L112">                return ResponseEntity.badRequest()</span>
+<span class="nc" id="L113">                    .body(new ApiResponse&lt;&gt;(false, &quot;L'email est obligatoire&quot;, null));</span>
+            }
+            
+<span class="nc bnc" id="L116" title="All 4 branches missed.">            if (registerRequest.getPassword() == null || registerRequest.getPassword().length() &lt; 6) {</span>
+<span class="nc" id="L117">                return ResponseEntity.badRequest()</span>
+<span class="nc" id="L118">                    .body(new ApiResponse&lt;&gt;(false, &quot;Le mot de passe doit contenir au moins 6 caractères&quot;, null));</span>
+            }
+
+            // Appel du service d'authentification
+<span class="nc" id="L122">            AuthResponse authResponse = authService.register(registerRequest, getClientIp(request));</span>
+            
+<span class="nc" id="L124">            System.out.println(&quot;✅ Inscription réussie pour: &quot; + registerRequest.getEmail());</span>
+            
+<span class="nc" id="L126">            return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L127">                .body(new ApiResponse&lt;&gt;(true, &quot;Inscription réussie&quot;, authResponse));</span>
+                
+<span class="nc" id="L129">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L130">            System.out.println(&quot;❌ Erreur métier lors de l'inscription: &quot; + e.getMessage());</span>
+<span class="nc" id="L131">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L132">                .body(new ApiResponse&lt;&gt;(false, e.getMessage(), null));</span>
+                
+<span class="nc" id="L134">        } catch (Exception e) {</span>
+<span class="nc" id="L135">            System.err.println(&quot;❌ Erreur inattendue lors de l'inscription: &quot; + e.getMessage());</span>
+<span class="nc" id="L136">            e.printStackTrace();</span>
+            
+<span class="nc" id="L138">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L139">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur interne du serveur. Veuillez réessayer.&quot;, null));</span>
+        }
+    }
+
+    /**
+     * ✅ RAFRAÎCHISSEMENT DE TOKEN
+     */
+    @PostMapping(&quot;/refresh&quot;)
+    @Operation(summary = &quot;Rafraîchissement du token d'accès&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;AuthResponse&gt;&gt; refreshToken(
+            @Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+        
+        try {
+<span class="nc bnc" id="L152" title="All 4 branches missed.">            if (refreshTokenRequest.getRefreshToken() == null || refreshTokenRequest.getRefreshToken().trim().isEmpty()) {</span>
+<span class="nc" id="L153">                return ResponseEntity.badRequest()</span>
+<span class="nc" id="L154">                    .body(new ApiResponse&lt;&gt;(false, &quot;Token de rafraîchissement manquant&quot;, null));</span>
+            }
+
+<span class="nc" id="L157">            AuthResponse authResponse = authService.refreshToken(refreshTokenRequest.getRefreshToken());</span>
+            
+<span class="nc" id="L159">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Token rafraîchi avec succès&quot;, authResponse));</span>
+            
+<span class="nc" id="L161">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L162">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L163">                .body(new ApiResponse&lt;&gt;(false, &quot;Token de rafraîchissement invalide&quot;, null));</span>
+                
+<span class="nc" id="L165">        } catch (Exception e) {</span>
+<span class="nc" id="L166">            System.err.println(&quot;❌ Erreur lors du refresh: &quot; + e.getMessage());</span>
+<span class="nc" id="L167">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L168">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur lors du rafraîchissement&quot;, null));</span>
+        }
+    }
+
+    /**
+     * ✅ DÉCONNEXION
+     */
+    @PostMapping(&quot;/logout&quot;)
+    @Operation(summary = &quot;Déconnexion de l'utilisateur&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; logout(
+            @RequestHeader(value = &quot;Authorization&quot;, required = false) String authHeader) {
+        
+        try {
+<span class="nc bnc" id="L181" title="All 4 branches missed.">            if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="nc" id="L182">                String token = authHeader.substring(7);</span>
+<span class="nc" id="L183">                authService.logout(token);</span>
+            }
+            
+<span class="nc" id="L186">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Déconnexion réussie&quot;, null));</span>
+            
+<span class="nc" id="L188">        } catch (Exception e) {</span>
+            // La déconnexion ne doit jamais échouer
+<span class="nc" id="L190">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Déconnexion réussie&quot;, null));</span>
+        }
+    }
+
+    /**
+     * ✅ ENDPOINT DE TEST
+     */
+    @GetMapping(&quot;/test&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testAuth() {
+<span class="nc" id="L199">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L200">        response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L201">        response.put(&quot;message&quot;, &quot;Endpoints d'authentification disponibles&quot;);</span>
+<span class="nc" id="L202">        response.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
+<span class="nc" id="L203">        response.put(&quot;endpoints&quot;, new String[]{</span>
+            &quot;POST /api/auth/register&quot;,
+            &quot;POST /api/auth/login&quot;, 
+            &quot;POST /api/auth/refresh&quot;,
+            &quot;POST /api/auth/logout&quot;
+        });
+        
+<span class="nc" id="L210">        return ResponseEntity.ok(response);</span>
+    }
+
+    /**
+     * Obtenir l'adresse IP du client
+     */
+    private String getClientIp(HttpServletRequest request) {
+<span class="nc" id="L217">        String xForwardedFor = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="nc bnc" id="L218" title="All 4 branches missed.">        if (xForwardedFor != null &amp;&amp; !xForwardedFor.isEmpty()) {</span>
+<span class="nc" id="L219">            return xForwardedFor.split(&quot;,&quot;)[0].trim();</span>
+        }
+        
+<span class="nc" id="L222">        String xRealIp = request.getHeader(&quot;X-Real-IP&quot;);</span>
+<span class="nc bnc" id="L223" title="All 4 branches missed.">        if (xRealIp != null &amp;&amp; !xRealIp.isEmpty()) {</span>
+<span class="nc" id="L224">            return xRealIp;</span>
+        }
+        
+<span class="nc" id="L227">        return request.getRemoteAddr();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

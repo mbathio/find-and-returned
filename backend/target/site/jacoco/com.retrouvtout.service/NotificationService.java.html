@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">NotificationService.java</span></div><h1>NotificationService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.entity.User;
+import com.retrouvtout.entity.Listing;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+/**
+ * Service de notifications conforme au cahier des charges - Section 3.3
+ * Alertes email/SMS et notifications push
+ */
+@Service
+public class NotificationService {
+
+    private final EmailService emailService;
+    private final SmsService smsService;
+
+    @Value(&quot;${app.notifications.email.enabled:true}&quot;)
+    private boolean emailNotificationsEnabled;
+
+    @Value(&quot;${app.notifications.sms.enabled:false}&quot;)
+    private boolean smsNotificationsEnabled;
+
+    @Value(&quot;${app.notifications.push.enabled:false}&quot;)
+    private boolean pushNotificationsEnabled;
+
+    @Autowired
+<span class="nc" id="L30">    public NotificationService(EmailService emailService, SmsService smsService) {</span>
+<span class="nc" id="L31">        this.emailService = emailService;</span>
+<span class="nc" id="L32">        this.smsService = smsService;</span>
+<span class="nc" id="L33">    }</span>
+
+    /**
+     * Envoyer notification email - Section 3.3
+     * Alertes email aux propriétaires lorsqu'un objet correspondant est retrouvé
+     */
+    @Async
+    public void sendEmailAlert(User user, Listing listing) {
+<span class="nc bnc" id="L41" title="All 4 branches missed.">        if (!emailNotificationsEnabled || !user.getEmailVerified()) {</span>
+<span class="nc" id="L42">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L46">            String subject = &quot;Objet retrouvé correspondant à votre recherche - Retrouv'Tout&quot;;</span>
+<span class="nc" id="L47">            String message = String.format(</span>
+                &quot;Bonjour %s,\n\nUn objet correspondant à votre recherche a été trouvé :\n\n&quot; +
+                &quot;Titre : %s\nLieu : %s\nCatégorie : %s\n\n&quot; +
+                &quot;Connectez-vous à votre compte pour contacter la personne qui l'a trouvé.\n\n&quot; +
+                &quot;Cordialement,\nL'équipe Retrouv'Tout&quot;,
+<span class="nc" id="L52">                user.getName(), listing.getTitle(), listing.getLocationText(), </span>
+<span class="nc" id="L53">                listing.getCategory().getValue()</span>
+            );
+
+<span class="nc" id="L56">            emailService.sendNotificationEmail(user, subject, message);</span>
+<span class="nc" id="L57">        } catch (Exception e) {</span>
+<span class="nc" id="L58">            System.err.println(&quot;Erreur envoi notification email: &quot; + e.getMessage());</span>
+<span class="nc" id="L59">        }</span>
+<span class="nc" id="L60">    }</span>
+
+    /**
+     * Envoyer notification SMS - Section 3.3
+     * Alertes SMS aux propriétaires
+     */
+    @Async
+    public void sendSmsAlert(User user, Listing listing) {
+<span class="nc bnc" id="L68" title="All 6 branches missed.">        if (!smsNotificationsEnabled || user.getPhone() == null || user.getPhone().isEmpty()) {</span>
+<span class="nc" id="L69">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L73">            String message = String.format(</span>
+                &quot;Retrouv'Tout: Objet trouvé correspondant à votre recherche: %s à %s. Connectez-vous pour plus d'infos.&quot;,
+<span class="nc" id="L75">                listing.getTitle(), listing.getLocationText()</span>
+            );
+
+<span class="nc" id="L78">            smsService.sendSms(user.getPhone(), message);</span>
+<span class="nc" id="L79">        } catch (Exception e) {</span>
+<span class="nc" id="L80">            System.err.println(&quot;Erreur envoi notification SMS: &quot; + e.getMessage());</span>
+<span class="nc" id="L81">        }</span>
+<span class="nc" id="L82">    }</span>
+
+    /**
+     * Envoyer notification push - Section 3.3
+     * Notifications push sur l'application
+     */
+    @Async
+    public void sendPushNotification(String userId, String title, String body, String url) {
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (!pushNotificationsEnabled) {</span>
+<span class="nc" id="L91">            return;</span>
+        }
+
+        try {
+            // Implémentation basique pour les notifications push
+            // En production, utiliser Firebase Cloud Messaging ou service similaire
+<span class="nc" id="L97">            System.out.println(String.format(</span>
+                &quot;Notification Push pour %s: %s - %s (URL: %s)&quot;,
+                userId, title, body, url
+            ));
+<span class="nc" id="L101">        } catch (Exception e) {</span>
+<span class="nc" id="L102">            System.err.println(&quot;Erreur envoi notification push: &quot; + e.getMessage());</span>
+<span class="nc" id="L103">        }</span>
+<span class="nc" id="L104">    }</span>
+
+    /**
+     * Notifier quand un objet correspondant est trouvé - Section 3.3
+     * Envoi automatique de notifications aux propriétaires concernés
+     */
+    @Async
+    public void notifyObjectFound(User user, Listing listing) {
+        // Email
+<span class="nc" id="L113">        sendEmailAlert(user, listing);</span>
+        
+        // SMS
+<span class="nc" id="L116">        sendSmsAlert(user, listing);</span>
+        
+        // Push
+<span class="nc" id="L119">        sendPushNotification(</span>
+<span class="nc" id="L120">            user.getId(), </span>
+            &quot;Objet trouvé !&quot;, 
+<span class="nc" id="L122">            String.format(&quot;Objet correspondant trouvé : %s&quot;, listing.getTitle()),</span>
+<span class="nc" id="L123">            &quot;/annonces/&quot; + listing.getId()</span>
+        );
+<span class="nc" id="L125">    }</span>
+
+    /**
+     * Notifier d'un nouveau message - Section 3.5 (messagerie intégrée)
+     */
+    @Async
+    public void notifyNewMessage(User recipient, User sender, String listingTitle) {
+<span class="nc bnc" id="L132" title="All 4 branches missed.">        if (emailNotificationsEnabled &amp;&amp; recipient.getEmailVerified()) {</span>
+            try {
+<span class="nc" id="L134">                String subject = &quot;Nouveau message - Retrouv'Tout&quot;;</span>
+<span class="nc" id="L135">                String message = String.format(</span>
+                    &quot;Bonjour %s,\n\nVous avez reçu un nouveau message de %s concernant: %s\n\n&quot; +
+                    &quot;Connectez-vous pour répondre.\n\nCordialement,\nL'équipe Retrouv'Tout&quot;,
+<span class="nc" id="L138">                    recipient.getName(), sender.getName(), listingTitle</span>
+                );
+
+<span class="nc" id="L141">                emailService.sendNotificationEmail(recipient, subject, message);</span>
+<span class="nc" id="L142">            } catch (Exception e) {</span>
+<span class="nc" id="L143">                System.err.println(&quot;Erreur envoi notification message: &quot; + e.getMessage());</span>
+<span class="nc" id="L144">            }</span>
+        }
+
+        // Notification push pour nouveau message
+<span class="nc" id="L148">        sendPushNotification(</span>
+<span class="nc" id="L149">            recipient.getId(), </span>
+            &quot;Nouveau message&quot;, 
+<span class="nc" id="L151">            String.format(&quot;Message de %s&quot;, sender.getName()),</span>
+            &quot;/messages&quot;
+        );
+<span class="nc" id="L154">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

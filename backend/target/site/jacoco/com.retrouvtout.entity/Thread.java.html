@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Thread.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.entity</a> &gt; <span class="el_source">Thread.java</span></div><h1>Thread.java</h1><pre class="source lang-java linenums">package com.retrouvtout.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Entité représentant une conversation
+ * Conforme au cahier des charges - Section 3.5 (Messagerie intégrée)
+ * Communication directe via la plateforme - SIMPLIFIÉE
+ */
+@Entity
+@Table(name = &quot;threads&quot;, indexes = {
+    @Index(name = &quot;idx_threads_listing&quot;, columnList = &quot;listing_id&quot;),
+    @Index(name = &quot;idx_threads_owner&quot;, columnList = &quot;owner_user_id&quot;),
+    @Index(name = &quot;idx_threads_finder&quot;, columnList = &quot;finder_user_id&quot;),
+    @Index(name = &quot;idx_threads_status&quot;, columnList = &quot;status&quot;)
+})
+@EntityListeners(AuditingEntityListener.class)
+public class Thread {
+
+    @Id
+    @Column(name = &quot;id&quot;, length = 36)
+    private String id;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;listing_id&quot;, nullable = false)
+    private Listing listing;
+
+    /**
+     * Propriétaire de l'objet - Section 3.1
+     * Celui qui a perdu l'objet et contacte le retrouveur
+     */
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;owner_user_id&quot;, nullable = false)
+    private User ownerUser;
+
+    /**
+     * Retrouveur - Section 3.1
+     * Celui qui a trouvé l'objet et publié l'annonce
+     */
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;finder_user_id&quot;, nullable = false)
+    private User finderUser;
+
+    /**
+     * Statut simple de la conversation
+     */
+<span class="nc" id="L57">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;status&quot;, nullable = false)
+    private ThreadStatus status = ThreadStatus.ACTIVE;
+
+    @Column(name = &quot;last_message_at&quot;)
+    private LocalDateTime lastMessageAt;
+
+    @CreatedDate
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = &quot;updated_at&quot;, nullable = false)
+    private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = &quot;thread&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List&lt;Message&gt; messages;
+
+    /**
+     * Statuts simplifiés conformes au cahier des charges
+     */
+<span class="nc" id="L78">    public enum ThreadStatus {</span>
+<span class="nc" id="L79">        ACTIVE(&quot;active&quot;),</span>
+<span class="nc" id="L80">        CLOSED(&quot;closed&quot;);</span>
+
+        private final String value;
+
+<span class="nc" id="L84">        ThreadStatus(String value) { </span>
+<span class="nc" id="L85">            this.value = value; </span>
+<span class="nc" id="L86">        }</span>
+
+        public String getValue() { 
+<span class="nc" id="L89">            return value; </span>
+        }
+
+        public static ThreadStatus fromValue(String value) {
+<span class="nc bnc" id="L93" title="All 2 branches missed.">            for (ThreadStatus status : ThreadStatus.values()) {</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                if (status.value.equals(value)) return status;</span>
+            }
+<span class="nc" id="L96">            throw new IllegalArgumentException(&quot;Statut de thread invalide: &quot; + value);</span>
+        }
+    }
+
+    // Constructeurs
+<span class="nc" id="L101">    public Thread() {}</span>
+
+    // Getters et setters
+<span class="nc" id="L104">    public String getId() { return id; }</span>
+<span class="nc" id="L105">    public void setId(String id) { this.id = id; }</span>
+
+<span class="nc" id="L107">    public Listing getListing() { return listing; }</span>
+<span class="nc" id="L108">    public void setListing(Listing listing) { this.listing = listing; }</span>
+
+<span class="nc" id="L110">    public User getOwnerUser() { return ownerUser; }</span>
+<span class="nc" id="L111">    public void setOwnerUser(User ownerUser) { this.ownerUser = ownerUser; }</span>
+
+<span class="nc" id="L113">    public User getFinderUser() { return finderUser; }</span>
+<span class="nc" id="L114">    public void setFinderUser(User finderUser) { this.finderUser = finderUser; }</span>
+
+<span class="nc" id="L116">    public ThreadStatus getStatus() { return status; }</span>
+<span class="nc" id="L117">    public void setStatus(ThreadStatus status) { this.status = status; }</span>
+
+<span class="nc" id="L119">    public LocalDateTime getLastMessageAt() { return lastMessageAt; }</span>
+<span class="nc" id="L120">    public void setLastMessageAt(LocalDateTime lastMessageAt) { this.lastMessageAt = lastMessageAt; }</span>
+
+<span class="nc" id="L122">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
+<span class="nc" id="L123">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
+
+<span class="nc" id="L125">    public LocalDateTime getUpdatedAt() { return updatedAt; }</span>
+<span class="nc" id="L126">    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }</span>
+
+<span class="nc" id="L128">    public List&lt;Message&gt; getMessages() { return messages; }</span>
+<span class="nc" id="L129">    public void setMessages(List&lt;Message&gt; messages) { this.messages = messages; }</span>
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L134">            id = java.util.UUID.randomUUID().toString();</span>
+        }
+<span class="nc" id="L136">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

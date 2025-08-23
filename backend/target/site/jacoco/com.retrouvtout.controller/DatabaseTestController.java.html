@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatabaseTestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">DatabaseTestController.java</span></div><h1>DatabaseTestController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.entity.User;
+import com.retrouvtout.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * ✅ Contrôleur de test pour vérifier la base de données
+ * À SUPPRIMER une fois les tests terminés
+ */
+@RestController
+@RequestMapping(&quot;/api/db-test&quot;)
+@CrossOrigin(origins = {&quot;*&quot;})
+<span class="nc" id="L23">public class DatabaseTestController {</span>
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    /**
+     * Test de connexion à la base de données
+     */
+    @GetMapping(&quot;/connection&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testConnection() {
+<span class="nc" id="L36">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+        
+<span class="nc" id="L38">        try (Connection connection = dataSource.getConnection()) {</span>
+<span class="nc" id="L39">            response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L40">            response.put(&quot;connected&quot;, true);</span>
+<span class="nc" id="L41">            response.put(&quot;url&quot;, connection.getMetaData().getURL());</span>
+<span class="nc" id="L42">            response.put(&quot;driver&quot;, connection.getMetaData().getDriverName());</span>
+<span class="nc" id="L43">            response.put(&quot;database&quot;, connection.getCatalog());</span>
+            
+<span class="nc" id="L45">        } catch (Exception e) {</span>
+<span class="nc" id="L46">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L47">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L48">        }</span>
+        
+<span class="nc" id="L50">        return ResponseEntity.ok(response);</span>
+    }
+
+    /**
+     * Test de la table users
+     */
+    @GetMapping(&quot;/users-table&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testUsersTable() {
+<span class="nc" id="L58">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+        
+<span class="nc" id="L60">        try (Connection connection = dataSource.getConnection();</span>
+<span class="nc" id="L61">             Statement stmt = connection.createStatement()) {</span>
+            
+            // Vérifier si la table existe
+<span class="nc" id="L64">            ResultSet rs = stmt.executeQuery(&quot;SHOW TABLES LIKE 'users'&quot;);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            if (rs.next()) {</span>
+<span class="nc" id="L66">                response.put(&quot;table_exists&quot;, true);</span>
+                
+                // Obtenir la structure de la table
+<span class="nc" id="L69">                ResultSet columns = stmt.executeQuery(&quot;DESCRIBE users&quot;);</span>
+<span class="nc" id="L70">                StringBuilder structure = new StringBuilder();</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">                while (columns.next()) {</span>
+<span class="nc" id="L72">                    structure.append(columns.getString(&quot;Field&quot;))</span>
+<span class="nc" id="L73">                             .append(&quot; &quot;)</span>
+<span class="nc" id="L74">                             .append(columns.getString(&quot;Type&quot;))</span>
+<span class="nc" id="L75">                             .append(&quot;, &quot;);</span>
+                }
+<span class="nc" id="L77">                response.put(&quot;structure&quot;, structure.toString());</span>
+                
+                // Compter les utilisateurs
+<span class="nc" id="L80">                ResultSet count = stmt.executeQuery(&quot;SELECT COUNT(*) as total FROM users&quot;);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">                if (count.next()) {</span>
+<span class="nc" id="L82">                    response.put(&quot;user_count&quot;, count.getInt(&quot;total&quot;));</span>
+                }
+                
+<span class="nc" id="L85">            } else {</span>
+<span class="nc" id="L86">                response.put(&quot;table_exists&quot;, false);</span>
+            }
+            
+<span class="nc" id="L89">            response.put(&quot;success&quot;, true);</span>
+            
+<span class="nc" id="L91">        } catch (Exception e) {</span>
+<span class="nc" id="L92">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L93">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L94">        }</span>
+        
+<span class="nc" id="L96">        return ResponseEntity.ok(response);</span>
+    }
+
+    /**
+     * Test du repository
+     */
+    @GetMapping(&quot;/repository&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testRepository() {
+<span class="nc" id="L104">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+        
+        try {
+<span class="nc" id="L107">            long count = userRepository.count();</span>
+<span class="nc" id="L108">            response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L109">            response.put(&quot;repository_working&quot;, true);</span>
+<span class="nc" id="L110">            response.put(&quot;user_count&quot;, count);</span>
+            
+            // Test de recherche par email
+<span class="nc" id="L113">            boolean exists = userRepository.existsByEmailAndActiveTrue(&quot;test@example.com&quot;);</span>
+<span class="nc" id="L114">            response.put(&quot;email_search_working&quot;, true);</span>
+<span class="nc" id="L115">            response.put(&quot;test_email_exists&quot;, exists);</span>
+            
+<span class="nc" id="L117">        } catch (Exception e) {</span>
+<span class="nc" id="L118">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L119">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L120">            e.printStackTrace();</span>
+<span class="nc" id="L121">        }</span>
+        
+<span class="nc" id="L123">        return ResponseEntity.ok(response);</span>
+    }
+
+    /**
+     * Test de création d'utilisateur simple
+     */
+    @PostMapping(&quot;/create-test-user&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; createTestUser() {
+<span class="nc" id="L131">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+        
+        try {
+            // Vérifier si l'utilisateur test existe déjà
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            if (userRepository.existsByEmailAndActiveTrue(&quot;test@retrouvtout.dev&quot;)) {</span>
+<span class="nc" id="L136">                response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L137">                response.put(&quot;message&quot;, &quot;Utilisateur test existe déjà&quot;);</span>
+<span class="nc" id="L138">                return ResponseEntity.ok(response);</span>
+            }
+            
+            // Créer un utilisateur test
+<span class="nc" id="L142">            User testUser = new User();</span>
+<span class="nc" id="L143">            testUser.setId(java.util.UUID.randomUUID().toString());</span>
+<span class="nc" id="L144">            testUser.setName(&quot;Utilisateur Test&quot;);</span>
+<span class="nc" id="L145">            testUser.setEmail(&quot;test@retrouvtout.dev&quot;);</span>
+<span class="nc" id="L146">            testUser.setPasswordHash(&quot;$2a$12$dummy.hash.for.test&quot;); // Hash fictif</span>
+<span class="nc" id="L147">            testUser.setRole(User.UserRole.MIXTE);</span>
+<span class="nc" id="L148">            testUser.setEmailVerified(false);</span>
+<span class="nc" id="L149">            testUser.setActive(true);</span>
+            
+<span class="nc" id="L151">            User savedUser = userRepository.save(testUser);</span>
+            
+<span class="nc" id="L153">            response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L154">            response.put(&quot;message&quot;, &quot;Utilisateur test créé avec succès&quot;);</span>
+<span class="nc" id="L155">            response.put(&quot;user_id&quot;, savedUser.getId());</span>
+<span class="nc" id="L156">            response.put(&quot;user_email&quot;, savedUser.getEmail());</span>
+<span class="nc" id="L157">            response.put(&quot;user_role&quot;, savedUser.getRole().getValue());</span>
+            
+<span class="nc" id="L159">        } catch (Exception e) {</span>
+<span class="nc" id="L160">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L161">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L162">            e.printStackTrace();</span>
+<span class="nc" id="L163">        }</span>
+        
+<span class="nc" id="L165">        return ResponseEntity.ok(response);</span>
+    }
+
+    /**
+     * Test des contraintes de validation
+     */
+    @GetMapping(&quot;/test-constraints&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testConstraints() {
+<span class="nc" id="L173">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+        
+        try {
+            // Test 1: Email unique
+<span class="nc" id="L177">            response.put(&quot;testing&quot;, &quot;email_unique_constraint&quot;);</span>
+            
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            if (userRepository.existsByEmailAndActiveTrue(&quot;test@retrouvtout.dev&quot;)) {</span>
+<span class="nc" id="L180">                response.put(&quot;unique_email_constraint&quot;, &quot;working&quot;);</span>
+            } else {
+<span class="nc" id="L182">                response.put(&quot;unique_email_constraint&quot;, &quot;no_test_user&quot;);</span>
+            }
+            
+            // Test 2: Enum role
+<span class="nc" id="L186">            response.put(&quot;enum_roles&quot;, new String[]{&quot;retrouveur&quot;, &quot;proprietaire&quot;, &quot;mixte&quot;});</span>
+            
+<span class="nc" id="L188">            response.put(&quot;success&quot;, true);</span>
+            
+<span class="nc" id="L190">        } catch (Exception e) {</span>
+<span class="nc" id="L191">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L192">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L193">        }</span>
+        
+<span class="nc" id="L195">        return ResponseEntity.ok(response);</span>
+    }
+
+    /**
+     * Nettoyer les données de test
+     */
+    @DeleteMapping(&quot;/cleanup&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; cleanup() {
+<span class="nc" id="L203">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+        
+        try {
+            // Supprimer l'utilisateur test
+<span class="nc" id="L207">            userRepository.findByEmailAndActiveTrue(&quot;test@retrouvtout.dev&quot;)</span>
+<span class="nc" id="L208">                .ifPresent(user -&gt; userRepository.delete(user));</span>
+            
+<span class="nc" id="L210">            response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L211">            response.put(&quot;message&quot;, &quot;Données de test nettoyées&quot;);</span>
+            
+<span class="nc" id="L213">        } catch (Exception e) {</span>
+<span class="nc" id="L214">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L215">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L216">        }</span>
+        
+<span class="nc" id="L218">        return ResponseEntity.ok(response);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

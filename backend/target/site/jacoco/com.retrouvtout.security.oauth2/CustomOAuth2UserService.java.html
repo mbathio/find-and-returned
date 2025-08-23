@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomOAuth2UserService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.security.oauth2</a> &gt; <span class="el_source">CustomOAuth2UserService.java</span></div><h1>CustomOAuth2UserService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.security.oauth2;
+
+import com.retrouvtout.entity.OAuthAccount;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.exception.OAuth2AuthenticationProcessingException;
+import com.retrouvtout.repository.OAuthAccountRepository;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.security.UserPrincipal;
+import com.retrouvtout.security.oauth2.user.OAuth2UserInfo;
+import com.retrouvtout.security.oauth2.user.OAuth2UserInfoFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.Optional;
+
+/**
+ * Service personnalisé pour l'authentification OAuth2
+ * CORRIGÉ - suppression du rôle MIXTE non conforme
+ */
+@Service
+@Transactional
+<span class="nc" id="L30">public class CustomOAuth2UserService extends DefaultOAuth2UserService {</span>
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private OAuthAccountRepository oAuthAccountRepository;
+
+    @Override
+    public OAuth2User loadUser(OAuth2UserRequest oAuth2UserRequest) throws OAuth2AuthenticationException {
+<span class="nc" id="L40">        OAuth2User oAuth2User = super.loadUser(oAuth2UserRequest);</span>
+
+        try {
+<span class="nc" id="L43">            return processOAuth2User(oAuth2UserRequest, oAuth2User);</span>
+<span class="nc" id="L44">        } catch (AuthenticationException ex) {</span>
+<span class="nc" id="L45">            throw ex;</span>
+<span class="nc" id="L46">        } catch (Exception ex) {</span>
+<span class="nc" id="L47">            throw new InternalAuthenticationServiceException(ex.getMessage(), ex.getCause());</span>
+        }
+    }
+
+    private OAuth2User processOAuth2User(OAuth2UserRequest oAuth2UserRequest, OAuth2User oAuth2User) {
+<span class="nc" id="L52">        OAuth2UserInfo oAuth2UserInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(</span>
+<span class="nc" id="L53">                oAuth2UserRequest.getClientRegistration().getRegistrationId(), </span>
+<span class="nc" id="L54">                oAuth2User.getAttributes()</span>
+        );
+        
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (!StringUtils.hasText(oAuth2UserInfo.getEmail())) {</span>
+<span class="nc" id="L58">            throw new OAuth2AuthenticationProcessingException(&quot;Email non trouvé dans la réponse OAuth2&quot;);</span>
+        }
+
+<span class="nc" id="L61">        Optional&lt;User&gt; userOptional = userRepository.findByEmailAndActiveTrue(oAuth2UserInfo.getEmail());</span>
+        User user;
+        
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (userOptional.isPresent()) {</span>
+<span class="nc" id="L65">            user = userOptional.get();</span>
+<span class="nc" id="L66">            user = updateExistingUser(user, oAuth2UserInfo);</span>
+        } else {
+<span class="nc" id="L68">            user = registerNewUser(oAuth2UserRequest, oAuth2UserInfo);</span>
+        }
+
+        // Créer un UserPrincipal qui implémente OAuth2User
+<span class="nc" id="L72">        return new OAuth2UserPrincipal(UserPrincipal.create(user), oAuth2User.getAttributes());</span>
+    }
+
+    private User registerNewUser(OAuth2UserRequest oAuth2UserRequest, OAuth2UserInfo oAuth2UserInfo) {
+<span class="nc" id="L76">        User user = new User();</span>
+<span class="nc" id="L77">        user.setId(java.util.UUID.randomUUID().toString());</span>
+<span class="nc" id="L78">        user.setName(oAuth2UserInfo.getName());</span>
+<span class="nc" id="L79">        user.setEmail(oAuth2UserInfo.getEmail());</span>
+<span class="nc" id="L80">        user.setEmailVerified(true); // OAuth2 emails are pre-verified</span>
+        // Rôle par défaut conforme au cahier des charges
+<span class="nc" id="L82">        user.setRole(User.UserRole.RETROUVEUR);</span>
+<span class="nc" id="L83">        user.setActive(true);</span>
+        
+<span class="nc" id="L85">        user = userRepository.save(user);</span>
+
+        // Créer le compte OAuth2
+<span class="nc" id="L88">        OAuthAccount oAuthAccount = new OAuthAccount();</span>
+<span class="nc" id="L89">        oAuthAccount.setUser(user);</span>
+<span class="nc" id="L90">        oAuthAccount.setProvider(oAuth2UserRequest.getClientRegistration().getRegistrationId());</span>
+<span class="nc" id="L91">        oAuthAccount.setProviderUserId(oAuth2UserInfo.getId());</span>
+        
+<span class="nc" id="L93">        oAuthAccountRepository.save(oAuthAccount);</span>
+
+<span class="nc" id="L95">        return user;</span>
+    }
+
+    private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {
+<span class="nc" id="L99">        existingUser.setName(oAuth2UserInfo.getName());</span>
+<span class="nc" id="L100">        return userRepository.save(existingUser);</span>
+    }
+
+    /**
+     * Wrapper pour UserPrincipal qui implémente OAuth2User
+     */
+    public static class OAuth2UserPrincipal extends UserPrincipal implements OAuth2User {
+        private java.util.Map&lt;String, Object&gt; attributes;
+
+        public OAuth2UserPrincipal(UserPrincipal userPrincipal, java.util.Map&lt;String, Object&gt; attributes) {
+<span class="nc" id="L110">            super(userPrincipal.getId(), userPrincipal.getName(), userPrincipal.getEmail(), </span>
+<span class="nc" id="L111">                  userPrincipal.getPassword(), userPrincipal.getAuthorities(), </span>
+<span class="nc" id="L112">                  userPrincipal.isEnabled(), userPrincipal.isEmailVerified());</span>
+<span class="nc" id="L113">            this.attributes = attributes;</span>
+<span class="nc" id="L114">        }</span>
+
+        @Override
+        public java.util.Map&lt;String, Object&gt; getAttributes() {
+<span class="nc" id="L118">            return attributes;</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="nc" id="L123">            return super.getName();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

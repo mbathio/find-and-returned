@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModelMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.util</a> &gt; <span class="el_source">ModelMapper.java</span></div><h1>ModelMapper.java</h1><pre class="source lang-java linenums">package com.retrouvtout.util;
+
+import com.retrouvtout.dto.response.*;
+import com.retrouvtout.entity.*;
+import org.springframework.stereotype.Component;
+
+import java.time.format.DateTimeFormatter;
+
+/**
+ * Utilitaire de mapping entre entités et DTOs
+ * ✅ CORRECTION FINALE : Mapping du rôle avec @JsonValue
+ */
+@Component
+<span class="nc" id="L14">public class ModelMapper {</span>
+
+<span class="nc" id="L16">    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;</span>
+
+    /**
+     * Mapper User vers UserResponse - Section 3.1 (gestion utilisateurs)
+     * ✅ CORRECTION: Le rôle sera automatiquement sérialisé avec @JsonValue
+     */
+    public UserResponse mapUserToUserResponse(User user) {
+<span class="nc bnc" id="L23" title="All 2 branches missed.">        if (user == null) return null;</span>
+
+<span class="nc" id="L25">        UserResponse response = new UserResponse();</span>
+<span class="nc" id="L26">        response.setId(user.getId());</span>
+<span class="nc" id="L27">        response.setName(user.getName());</span>
+<span class="nc" id="L28">        response.setEmail(user.getEmail());</span>
+<span class="nc" id="L29">        response.setPhone(user.getPhone());</span>
+        // ✅ user.getRole().getValue() sera appelé automatiquement grâce à @JsonValue
+<span class="nc" id="L31">        response.setRole(user.getRole().getValue()); </span>
+<span class="nc" id="L32">        response.setEmailVerified(user.getEmailVerified());</span>
+<span class="nc" id="L33">        response.setActive(user.getActive());</span>
+<span class="nc" id="L34">        response.setCreatedAt(user.getCreatedAt());</span>
+<span class="nc" id="L35">        response.setLastLoginAt(user.getLastLoginAt());</span>
+
+<span class="nc" id="L37">        return response;</span>
+    }
+
+    /**
+     * Mapper Listing vers ListingResponse - EXACTEMENT conforme au frontend
+     */
+    public ListingResponse mapListingToListingResponse(Listing listing) {
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (listing == null) return null;</span>
+
+<span class="nc" id="L46">        ListingResponse response = new ListingResponse();</span>
+<span class="nc" id="L47">        response.setId(listing.getId());</span>
+<span class="nc" id="L48">        response.setTitle(listing.getTitle());</span>
+<span class="nc" id="L49">        response.setCategory(listing.getCategory().getValue());</span>
+<span class="nc" id="L50">        response.setLocationText(listing.getLocationText());</span>
+<span class="nc" id="L51">        response.setLatitude(listing.getLatitude());</span>
+<span class="nc" id="L52">        response.setLongitude(listing.getLongitude());</span>
+        
+        // Conversion des dates en format ISO string pour le frontend
+<span class="nc" id="L55">        response.setFoundAt(listing.getFoundAt().format(ISO_FORMATTER));</span>
+<span class="nc" id="L56">        response.setCreatedAt(listing.getCreatedAt().format(ISO_FORMATTER));</span>
+<span class="nc" id="L57">        response.setUpdatedAt(listing.getUpdatedAt().format(ISO_FORMATTER));</span>
+        
+<span class="nc" id="L59">        response.setDescription(listing.getDescription());</span>
+<span class="nc" id="L60">        response.setImageUrl(listing.getImageUrl());</span>
+        
+        // Conversion du statut pour le frontend (resolu -&gt; resolved)
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        String frontendStatus = listing.getStatus() == Listing.ListingStatus.RESOLU ? </span>
+<span class="nc" id="L64">            &quot;resolved&quot; : listing.getStatus().getValue();</span>
+<span class="nc" id="L65">        response.setStatus(frontendStatus);</span>
+        
+        // ID utilisateur simple comme attendu par le frontend
+<span class="nc" id="L68">        response.setFinderUserId(listing.getFinderUser().getId());</span>
+
+<span class="nc" id="L70">        return response;</span>
+    }
+
+    /**
+     * Mapper Thread vers ThreadResponse - Section 3.5 (messagerie)
+     * ✅ CORRECTION: Mapping du rôle utilisateur avec @JsonValue
+     */
+    public ThreadResponse mapThreadToThreadResponse(com.retrouvtout.entity.Thread thread) {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (thread == null) return null;</span>
+
+<span class="nc" id="L80">        ThreadResponse response = new ThreadResponse();</span>
+<span class="nc" id="L81">        response.setId(thread.getId());</span>
+<span class="nc" id="L82">        response.setStatus(thread.getStatus().getValue());</span>
+<span class="nc" id="L83">        response.setLastMessageAt(thread.getLastMessageAt());</span>
+<span class="nc" id="L84">        response.setCreatedAt(thread.getCreatedAt());</span>
+<span class="nc" id="L85">        response.setUpdatedAt(thread.getUpdatedAt());</span>
+
+        // Mapper l'annonce liée
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (thread.getListing() != null) {</span>
+<span class="nc" id="L89">            response.setListing(mapListingToListingResponse(thread.getListing()));</span>
+        }
+
+        // Mapper les utilisateurs (masquage des infos personnelles - Section 3.4)
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (thread.getOwnerUser() != null) {</span>
+<span class="nc" id="L94">            UserResponse ownerUser = new UserResponse();</span>
+<span class="nc" id="L95">            ownerUser.setId(thread.getOwnerUser().getId());</span>
+<span class="nc" id="L96">            ownerUser.setName(thread.getOwnerUser().getName());</span>
+            // ✅ CORRECTION: Utilisation de getValue() pour le rôle
+<span class="nc" id="L98">            ownerUser.setRole(thread.getOwnerUser().getRole().getValue());</span>
+<span class="nc" id="L99">            response.setOwnerUser(ownerUser);</span>
+        }
+
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (thread.getFinderUser() != null) {</span>
+<span class="nc" id="L103">            UserResponse finderUser = new UserResponse();</span>
+<span class="nc" id="L104">            finderUser.setId(thread.getFinderUser().getId());</span>
+<span class="nc" id="L105">            finderUser.setName(thread.getFinderUser().getName());</span>
+            // ✅ CORRECTION: Utilisation de getValue() pour le rôle
+<span class="nc" id="L107">            finderUser.setRole(thread.getFinderUser().getRole().getValue());</span>
+<span class="nc" id="L108">            response.setFinderUser(finderUser);</span>
+        }
+
+<span class="nc" id="L111">        return response;</span>
+    }
+
+    /**
+     * Mapper Message vers MessageResponse - Section 3.5 (messagerie)
+     * ✅ CORRECTION: Mapping du rôle utilisateur avec @JsonValue
+     */
+    public MessageResponse mapMessageToMessageResponse(Message message) {
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (message == null) return null;</span>
+
+<span class="nc" id="L121">        MessageResponse response = new MessageResponse();</span>
+<span class="nc" id="L122">        response.setId(message.getId());</span>
+<span class="nc" id="L123">        response.setThreadId(message.getThread().getId());</span>
+<span class="nc" id="L124">        response.setBody(message.getBody());</span>
+<span class="nc" id="L125">        response.setMessageType(message.getMessageType().getValue());</span>
+<span class="nc" id="L126">        response.setIsRead(message.getIsRead());</span>
+<span class="nc" id="L127">        response.setReadAt(message.getReadAt());</span>
+<span class="nc" id="L128">        response.setCreatedAt(message.getCreatedAt());</span>
+
+        // Mapper l'expéditeur (informations limitées - Section 3.4)
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (message.getSenderUser() != null) {</span>
+<span class="nc" id="L132">            UserResponse senderUser = new UserResponse();</span>
+<span class="nc" id="L133">            senderUser.setId(message.getSenderUser().getId());</span>
+<span class="nc" id="L134">            senderUser.setName(message.getSenderUser().getName());</span>
+            // ✅ CORRECTION: Utilisation de getValue() pour le rôle
+<span class="nc" id="L136">            senderUser.setRole(message.getSenderUser().getRole().getValue());</span>
+<span class="nc" id="L137">            response.setSenderUser(senderUser);</span>
+        }
+
+<span class="nc" id="L140">        return response;</span>
+    }
+
+    /**
+     * Créer une PagedResponse conforme au frontend
+     */
+    public &lt;T&gt; PagedResponse&lt;T&gt; createPagedResponse(
+            java.util.List&lt;T&gt; items, 
+            int page, 
+            int pageSize, 
+            long totalElements) {
+        
+<span class="nc" id="L152">        int totalPages = (int) Math.ceil((double) totalElements / pageSize);</span>
+
+<span class="nc" id="L154">        return new PagedResponse&lt;&gt;(items, totalElements, page, totalPages);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

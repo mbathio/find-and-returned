@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Listing.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.entity</a> &gt; <span class="el_source">Listing.java</span></div><h1>Listing.java</h1><pre class="source lang-java linenums">// backend/src/main/java/com/retrouvtout/entity/Listing.java
+
+package com.retrouvtout.entity;
+
+import com.retrouvtout.converter.ListingCategoryConverter;
+import com.retrouvtout.converter.ListingStatusConverter;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * ✅ Entité Listing CORRIGÉE avec Converter JPA
+ */
+@Entity
+@Table(name = &quot;listings&quot;, indexes = {
+    @Index(name = &quot;idx_listings_finder&quot;, columnList = &quot;finder_user_id&quot;),
+    @Index(name = &quot;idx_listings_category&quot;, columnList = &quot;category&quot;),
+    @Index(name = &quot;idx_listings_status&quot;, columnList = &quot;status&quot;),
+    @Index(name = &quot;idx_listings_found_at&quot;, columnList = &quot;found_at&quot;),
+    @Index(name = &quot;idx_listings_location&quot;, columnList = &quot;latitude, longitude&quot;),
+    @Index(name = &quot;idx_listings_moderated&quot;, columnList = &quot;is_moderated&quot;)
+})
+@EntityListeners(AuditingEntityListener.class)
+public class Listing {
+
+    @Id
+    @Column(name = &quot;id&quot;, length = 36)
+    private String id;
+
+    @NotNull(message = &quot;L'utilisateur retrouveur est obligatoire&quot;)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;finder_user_id&quot;, nullable = false)
+    private User finderUser;
+
+    @NotNull(message = &quot;Le type d'objet est obligatoire&quot;)
+    @Size(max = 180, message = &quot;Le type d'objet ne peut pas dépasser 180 caractères&quot;)
+    @Column(name = &quot;title&quot;, nullable = false, length = 180)
+    private String title;
+
+    /**
+     * ✅ CORRECTION MAJEURE : Utilisation du Converter JPA
+     * Suppression de @Enumerated(EnumType.STRING)
+     * Ajout de @Convert pour utiliser notre converter personnalisé
+     */
+    @NotNull(message = &quot;La catégorie est obligatoire&quot;)
+    @Convert(converter = ListingCategoryConverter.class) // ✅ Utilise notre converter
+    @Column(name = &quot;category&quot;, nullable = false, length = 50) // ✅ Taille suffisante pour &quot;electronique&quot;
+    private ListingCategory category;
+
+    @NotNull(message = &quot;Le lieu de découverte est obligatoire&quot;)
+    @Size(max = 255, message = &quot;Le lieu ne peut pas dépasser 255 caractères&quot;)
+    @Column(name = &quot;location_text&quot;, nullable = false, length = 255)
+    private String locationText;
+
+    @Column(name = &quot;latitude&quot;, precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = &quot;longitude&quot;, precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    @NotNull(message = &quot;La date de découverte est obligatoire&quot;)
+    @Column(name = &quot;found_at&quot;, nullable = false)
+    private LocalDateTime foundAt;
+
+    @NotNull(message = &quot;La description est obligatoire&quot;)
+    @Column(name = &quot;description&quot;, nullable = false, columnDefinition = &quot;TEXT&quot;)
+    private String description;
+
+    @Size(max = 512, message = &quot;L'URL de l'image ne peut pas dépasser 512 caractères&quot;)
+    @Column(name = &quot;image_url&quot;, length = 512)
+    private String imageUrl;
+
+    // ✅ Status aussi avec converter (optionnel)
+<span class="nc" id="L81">    @Convert(converter = ListingStatusConverter.class)</span>
+    @Column(name = &quot;status&quot;, nullable = false)
+    private ListingStatus status = ListingStatus.ACTIVE;
+
+<span class="nc" id="L85">    @Column(name = &quot;views_count&quot;, nullable = false)</span>
+<span class="nc" id="L86">    private Long viewsCount = 0L;</span>
+
+<span class="nc" id="L88">    @Column(name = &quot;is_moderated&quot;, nullable = false)</span>
+<span class="nc" id="L89">    private Boolean isModerated = false;</span>
+
+    @Column(name = &quot;moderated_at&quot;)
+    private LocalDateTime moderatedAt;
+
+    @CreatedDate
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = &quot;updated_at&quot;, nullable = false)
+    private LocalDateTime updatedAt;
+
+    // Relations
+    @OneToMany(mappedBy = &quot;listing&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List&lt;ListingImage&gt; images;
+
+    @OneToMany(mappedBy = &quot;listing&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List&lt;Thread&gt; threads;
+
+    /**
+     * ✅ Enum ListingCategory GARDÉ TEL QUEL (déjà correct)
+     */
+<span class="nc" id="L112">    public enum ListingCategory {</span>
+<span class="nc" id="L113">        CLES(&quot;cles&quot;),</span>
+<span class="nc" id="L114">        ELECTRONIQUE(&quot;electronique&quot;),</span>
+<span class="nc" id="L115">        BAGAGERIE(&quot;bagagerie&quot;),</span>
+<span class="nc" id="L116">        DOCUMENTS(&quot;documents&quot;),</span>
+<span class="nc" id="L117">        VETEMENTS(&quot;vetements&quot;),</span>
+<span class="nc" id="L118">        AUTRE(&quot;autre&quot;);</span>
+
+        private final String value;
+
+<span class="nc" id="L122">        ListingCategory(String value) {</span>
+<span class="nc" id="L123">            this.value = value;</span>
+<span class="nc" id="L124">        }</span>
+
+        public String getValue() {
+<span class="nc" id="L127">            return value;</span>
+        }
+
+        public static ListingCategory fromValue(String value) {
+<span class="nc bnc" id="L131" title="All 4 branches missed.">            if (value == null || value.trim().isEmpty()) {</span>
+<span class="nc" id="L132">                return AUTRE; // ✅ Valeur par défaut</span>
+            }
+            
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            for (ListingCategory category : ListingCategory.values()) {</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                if (category.value.equalsIgnoreCase(value.trim())) {</span>
+<span class="nc" id="L137">                    return category;</span>
+                }
+            }
+            
+            // ✅ Log pour debug
+<span class="nc" id="L142">            System.err.println(&quot;❌ Catégorie inconnue: '&quot; + value + &quot;' - utilisation d'AUTRE par défaut&quot;);</span>
+<span class="nc" id="L143">            return AUTRE; // ✅ Fallback au lieu d'exception</span>
+        }
+
+        /**
+         * ✅ Méthode utilitaire pour validation côté API
+         */
+        public static boolean isValidValue(String value) {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (value == null) return false;</span>
+<span class="nc" id="L151">            return java.util.Arrays.stream(values())</span>
+<span class="nc" id="L152">                    .anyMatch(cat -&gt; cat.value.equalsIgnoreCase(value.trim()));</span>
+        }
+    }
+
+    /**
+     * ✅ Enum ListingStatus avec même principe
+     */
+<span class="nc" id="L159">    public enum ListingStatus {</span>
+<span class="nc" id="L160">        ACTIVE(&quot;active&quot;),</span>
+<span class="nc" id="L161">        RESOLU(&quot;resolved&quot;), // ✅ Correction : &quot;resolved&quot; pour correspondre au frontend</span>
+<span class="nc" id="L162">        SUSPENDU(&quot;suspended&quot;),</span>
+<span class="nc" id="L163">        SUPPRIME(&quot;deleted&quot;);</span>
+
+        private final String value;
+
+<span class="nc" id="L167">        ListingStatus(String value) {</span>
+<span class="nc" id="L168">            this.value = value;</span>
+<span class="nc" id="L169">        }</span>
+
+        public String getValue() {
+<span class="nc" id="L172">            return value;</span>
+        }
+
+        public static ListingStatus fromValue(String value) {
+<span class="nc bnc" id="L176" title="All 4 branches missed.">            if (value == null || value.trim().isEmpty()) {</span>
+<span class="nc" id="L177">                return ACTIVE;</span>
+            }
+            
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            for (ListingStatus status : ListingStatus.values()) {</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">                if (status.value.equalsIgnoreCase(value.trim())) {</span>
+<span class="nc" id="L182">                    return status;</span>
+                }
+            }
+            
+<span class="nc" id="L186">            System.err.println(&quot;❌ Status inconnu: '&quot; + value + &quot;' - utilisation d'ACTIVE par défaut&quot;);</span>
+<span class="nc" id="L187">            return ACTIVE;</span>
+        }
+    }
+
+    // ✅ Constructeurs
+<span class="nc" id="L192">    public Listing() {}</span>
+
+    // ✅ Getters et Setters (gardés tels quels)
+<span class="nc" id="L195">    public String getId() { return id; }</span>
+<span class="nc" id="L196">    public void setId(String id) { this.id = id; }</span>
+
+<span class="nc" id="L198">    public User getFinderUser() { return finderUser; }</span>
+<span class="nc" id="L199">    public void setFinderUser(User finderUser) { this.finderUser = finderUser; }</span>
+
+<span class="nc" id="L201">    public String getTitle() { return title; }</span>
+<span class="nc" id="L202">    public void setTitle(String title) { this.title = title; }</span>
+
+<span class="nc" id="L204">    public ListingCategory getCategory() { return category; }</span>
+<span class="nc" id="L205">    public void setCategory(ListingCategory category) { this.category = category; }</span>
+
+<span class="nc" id="L207">    public String getLocationText() { return locationText; }</span>
+<span class="nc" id="L208">    public void setLocationText(String locationText) { this.locationText = locationText; }</span>
+
+<span class="nc" id="L210">    public BigDecimal getLatitude() { return latitude; }</span>
+<span class="nc" id="L211">    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }</span>
+
+<span class="nc" id="L213">    public BigDecimal getLongitude() { return longitude; }</span>
+<span class="nc" id="L214">    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }</span>
+
+<span class="nc" id="L216">    public LocalDateTime getFoundAt() { return foundAt; }</span>
+<span class="nc" id="L217">    public void setFoundAt(LocalDateTime foundAt) { this.foundAt = foundAt; }</span>
+
+<span class="nc" id="L219">    public String getDescription() { return description; }</span>
+<span class="nc" id="L220">    public void setDescription(String description) { this.description = description; }</span>
+
+<span class="nc" id="L222">    public String getImageUrl() { return imageUrl; }</span>
+<span class="nc" id="L223">    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }</span>
+
+<span class="nc" id="L225">    public ListingStatus getStatus() { return status; }</span>
+<span class="nc" id="L226">    public void setStatus(ListingStatus status) { this.status = status; }</span>
+
+<span class="nc" id="L228">    public Long getViewsCount() { return viewsCount; }</span>
+<span class="nc" id="L229">    public void setViewsCount(Long viewsCount) { this.viewsCount = viewsCount; }</span>
+
+<span class="nc" id="L231">    public Boolean getIsModerated() { return isModerated; }</span>
+<span class="nc" id="L232">    public void setIsModerated(Boolean isModerated) { this.isModerated = isModerated; }</span>
+
+<span class="nc" id="L234">    public LocalDateTime getModeratedAt() { return moderatedAt; }</span>
+<span class="nc" id="L235">    public void setModeratedAt(LocalDateTime moderatedAt) { this.moderatedAt = moderatedAt; }</span>
+
+<span class="nc" id="L237">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
+<span class="nc" id="L238">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
+
+<span class="nc" id="L240">    public LocalDateTime getUpdatedAt() { return updatedAt; }</span>
+<span class="nc" id="L241">    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }</span>
+
+<span class="nc" id="L243">    public List&lt;ListingImage&gt; getImages() { return images; }</span>
+<span class="nc" id="L244">    public void setImages(List&lt;ListingImage&gt; images) { this.images = images; }</span>
+
+<span class="nc" id="L246">    public List&lt;Thread&gt; getThreads() { return threads; }</span>
+<span class="nc" id="L247">    public void setThreads(List&lt;Thread&gt; threads) { this.threads = threads; }</span>
+
+    // ✅ Méthodes utilitaires
+    public void incrementViewCount() {
+<span class="nc bnc" id="L251" title="All 2 branches missed.">        this.viewsCount = (this.viewsCount == null ? 0L : this.viewsCount) + 1L;</span>
+<span class="nc" id="L252">    }</span>
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc bnc" id="L256" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L257">            id = java.util.UUID.randomUUID().toString();</span>
+        }
+<span class="nc bnc" id="L259" title="All 2 branches missed.">        if (createdAt == null) {</span>
+<span class="nc" id="L260">            createdAt = LocalDateTime.now();</span>
+        }
+<span class="nc bnc" id="L262" title="All 2 branches missed.">        if (updatedAt == null) {</span>
+<span class="nc" id="L263">            updatedAt = LocalDateTime.now();</span>
+        }
+<span class="nc bnc" id="L265" title="All 2 branches missed.">        if (viewsCount == null) {</span>
+<span class="nc" id="L266">            viewsCount = 0L;</span>
+        }
+<span class="nc" id="L268">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L272">        updatedAt = LocalDateTime.now();</span>
+<span class="nc" id="L273">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">UserController.java</span></div><h1>UserController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.dto.response.ApiResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.dto.response.UserResponse;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.security.UserPrincipal;
+import com.retrouvtout.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * ✅ CONTRÔLEUR UTILISATEUR CORRIGÉ - VERSION COMPLÈTE
+ * Correction du mapping : /api/users au lieu de /users
+ */
+@RestController
+@RequestMapping(&quot;/api/users&quot;) // ✅ CORRECTION : /api/users au lieu de /users
+@Tag(name = &quot;Users&quot;, description = &quot;API de gestion des utilisateurs&quot;)
+@CrossOrigin(origins = {&quot;*&quot;}) // ✅ CORS permissif en dev
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+<span class="nc" id="L39">    public UserController(UserService userService) {</span>
+<span class="nc" id="L40">        this.userService = userService;</span>
+<span class="nc" id="L41">    }</span>
+
+    /**
+     * ✅ CORRECTION : Obtenir le profil utilisateur avec gestion d'erreur robuste
+     */
+    @GetMapping(&quot;/me&quot;)
+    @Operation(summary = &quot;Obtenir mon profil&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Profil récupéré&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;UserResponse&gt;&gt; getCurrentUser(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        
+        try {
+            // ✅ VALIDATION : Vérifier que l'utilisateur principal existe
+<span class="nc bnc" id="L59" title="All 2 branches missed.">            if (userPrincipal == null) {</span>
+<span class="nc" id="L60">                System.err.println(&quot;❌ getCurrentUser: userPrincipal est null&quot;);</span>
+<span class="nc" id="L61">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L62">                    .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non authentifié&quot;, null));</span>
+            }
+
+            // ✅ VALIDATION : Vérifier que l'ID utilisateur existe
+<span class="nc bnc" id="L66" title="All 4 branches missed.">            if (userPrincipal.getId() == null || userPrincipal.getId().isEmpty()) {</span>
+<span class="nc" id="L67">                System.err.println(&quot;❌ getCurrentUser: userId est null ou vide&quot;);</span>
+<span class="nc" id="L68">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L69">                    .body(new ApiResponse&lt;&gt;(false, &quot;ID utilisateur invalide&quot;, null));</span>
+            }
+
+<span class="nc" id="L72">            System.out.println(&quot;✅ getCurrentUser: Récupération pour userId = &quot; + userPrincipal.getId());</span>
+
+<span class="nc" id="L74">            UserResponse user = userService.getUserById(userPrincipal.getId());</span>
+            
+<span class="nc" id="L76">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Profil récupéré avec succès&quot;,
+                user
+            ));
+            
+<span class="nc" id="L82">        } catch (Exception e) {</span>
+            // ✅ LOG pour debug
+<span class="nc" id="L84">            System.err.println(&quot;❌ Erreur dans getCurrentUser: &quot; + e.getMessage());</span>
+<span class="nc" id="L85">            e.printStackTrace();</span>
+            
+<span class="nc" id="L87">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L88">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur lors de la récupération du profil&quot;, null));</span>
+        }
+    }
+
+    /**
+     * ✅ CORRECTION : Mettre à jour le profil avec validation robuste
+     */
+    @PutMapping(&quot;/me&quot;)
+    @Operation(summary = &quot;Mettre à jour mon profil&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Profil mis à jour&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;UserResponse&gt;&gt; updateCurrentUser(
+            @RequestBody UpdateUserRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        
+        try {
+            // ✅ VALIDATION : Vérifier l'authentification
+<span class="nc bnc" id="L110" title="All 4 branches missed.">            if (userPrincipal == null || userPrincipal.getId() == null) {</span>
+<span class="nc" id="L111">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L112">                    .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non authentifié&quot;, null));</span>
+            }
+
+<span class="nc" id="L115">            User.UserRole role = null;</span>
+<span class="nc bnc" id="L116" title="All 4 branches missed.">            if (request.getRole() != null &amp;&amp; !request.getRole().trim().isEmpty()) {</span>
+<span class="nc" id="L117">                role = User.UserRole.fromValue(request.getRole());</span>
+            }
+            
+<span class="nc" id="L120">            UserResponse updatedUser = userService.updateUser(</span>
+<span class="nc" id="L121">                userPrincipal.getId(),</span>
+<span class="nc" id="L122">                request.getName(),</span>
+<span class="nc" id="L123">                request.getPhone(),</span>
+                role
+            );
+            
+<span class="nc" id="L127">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Profil mis à jour avec succès&quot;,
+                updatedUser
+            ));
+<span class="nc" id="L132">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L133">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L134">                .body(new ApiResponse&lt;&gt;(false, e.getMessage(), null));</span>
+<span class="nc" id="L135">        } catch (Exception e) {</span>
+<span class="nc" id="L136">            System.err.println(&quot;❌ Erreur dans updateCurrentUser: &quot; + e.getMessage());</span>
+<span class="nc" id="L137">            e.printStackTrace();</span>
+            
+<span class="nc" id="L139">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L140">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur lors de la mise à jour&quot;, null));</span>
+        }
+    }
+
+    /**
+     * Changer le mot de passe
+     */
+    @PutMapping(&quot;/me/password&quot;)
+    @Operation(summary = &quot;Changer mon mot de passe&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Mot de passe changé&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;400&quot;, description = &quot;Ancien mot de passe incorrect&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;401&quot;, description = &quot;Non authentifié&quot;)
+    })
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; changePassword(
+            @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        
+        try {
+            // ✅ VALIDATION : Vérifier l'authentification
+<span class="nc bnc" id="L162" title="All 4 branches missed.">            if (userPrincipal == null || userPrincipal.getId() == null) {</span>
+<span class="nc" id="L163">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L164">                    .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non authentifié&quot;, null));</span>
+            }
+
+<span class="nc" id="L167">            userService.changePassword(</span>
+<span class="nc" id="L168">                userPrincipal.getId(),</span>
+<span class="nc" id="L169">                request.getOldPassword(),</span>
+<span class="nc" id="L170">                request.getNewPassword()</span>
+            );
+            
+<span class="nc" id="L173">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Mot de passe changé avec succès&quot;,
+                null
+            ));
+<span class="nc" id="L178">        } catch (IllegalArgumentException | IllegalStateException e) {</span>
+<span class="nc" id="L179">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L180">                .body(new ApiResponse&lt;&gt;(false, e.getMessage(), null));</span>
+<span class="nc" id="L181">        } catch (Exception e) {</span>
+<span class="nc" id="L182">            System.err.println(&quot;❌ Erreur dans changePassword: &quot; + e.getMessage());</span>
+<span class="nc" id="L183">            e.printStackTrace();</span>
+            
+<span class="nc" id="L185">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L186">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur lors du changement de mot de passe&quot;, null));</span>
+        }
+    }
+
+    /**
+     * Obtenir un utilisateur public par son ID
+     */
+    @GetMapping(&quot;/{id}/public&quot;)
+    @Operation(summary = &quot;Obtenir le profil public d'un utilisateur&quot;)
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;200&quot;, description = &quot;Profil public récupéré&quot;),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = &quot;404&quot;, description = &quot;Utilisateur non trouvé&quot;)
+    })
+    public ResponseEntity&lt;ApiResponse&lt;UserResponse&gt;&gt; getPublicUser(
+            @Parameter(description = &quot;ID de l'utilisateur&quot;)
+            @PathVariable String id) {
+        
+        try {
+<span class="nc" id="L204">            UserResponse user = userService.getUserById(id);</span>
+            // Masquer les informations sensibles pour la version publique
+<span class="nc" id="L206">            user.setEmail(null);</span>
+<span class="nc" id="L207">            user.setPhone(null);</span>
+            
+<span class="nc" id="L209">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Profil public récupéré&quot;,
+                user
+            ));
+<span class="nc" id="L214">        } catch (Exception e) {</span>
+<span class="nc" id="L215">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L216">                .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non trouvé&quot;, null));</span>
+        }
+    }
+
+    // ✅ CLASSES INTERNES POUR LES REQUÊTES
+<span class="nc" id="L221">    public static class UpdateUserRequest {</span>
+        private String name;
+        private String phone;
+        private String role;
+
+        // Getters et setters
+<span class="nc" id="L227">        public String getName() { return name; }</span>
+<span class="nc" id="L228">        public void setName(String name) { this.name = name; }</span>
+
+<span class="nc" id="L230">        public String getPhone() { return phone; }</span>
+<span class="nc" id="L231">        public void setPhone(String phone) { this.phone = phone; }</span>
+
+<span class="nc" id="L233">        public String getRole() { return role; }</span>
+<span class="nc" id="L234">        public void setRole(String role) { this.role = role; }</span>
+    }
+
+<span class="nc" id="L237">    public static class ChangePasswordRequest {</span>
+        private String oldPassword;
+        private String newPassword;
+
+        // Getters et setters
+<span class="nc" id="L242">        public String getOldPassword() { return oldPassword; }</span>
+<span class="nc" id="L243">        public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }</span>
+
+<span class="nc" id="L245">        public String getNewPassword() { return newPassword; }</span>
+<span class="nc" id="L246">        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

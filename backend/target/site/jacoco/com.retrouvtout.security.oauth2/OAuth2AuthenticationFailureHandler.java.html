@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OAuth2AuthenticationFailureHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.security.oauth2</a> &gt; <span class="el_source">OAuth2AuthenticationFailureHandler.java</span></div><h1>OAuth2AuthenticationFailureHandler.java</h1><pre class="source lang-java linenums">// OAuth2AuthenticationFailureHandler.java
+package com.retrouvtout.security.oauth2;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.io.IOException;
+
+/**
+ * Gestionnaire d'échec OAuth2
+ */
+@Component
+<span class="nc" id="L19">public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {</span>
+
+    @Value(&quot;${app.frontend.url}&quot;)
+    private String frontendUrl;
+
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
+                                       AuthenticationException exception) throws IOException, ServletException {
+        
+<span class="nc" id="L28">        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + &quot;/auth&quot;)</span>
+<span class="nc" id="L29">                .queryParam(&quot;error&quot;, exception.getLocalizedMessage())</span>
+<span class="nc" id="L30">                .build().toUriString();</span>
+
+<span class="nc" id="L32">        getRedirectStrategy().sendRedirect(request, response, targetUrl);</span>
+<span class="nc" id="L33">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.retrouvtout.exception;
+
+import com.retrouvtout.dto.response.ApiResponse;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * ✅ GESTIONNAIRE GLOBAL DES EXCEPTIONS AVEC DEBUG AVANCÉ
+ * Logs détaillés pour identifier l'origine de l'erreur 500
+ */
+@RestControllerAdvice
+<span class="nc" id="L24">public class GlobalExceptionHandler {</span>
+
+    /**
+     * ✅ Gestion des erreurs de validation des données JSON
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException ex, WebRequest request) {
+        
+<span class="nc" id="L33">        System.err.println(&quot;❌ ERREUR JSON: &quot; + ex.getMessage());</span>
+<span class="nc" id="L34">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L36">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(</span>
+            false, 
+            &quot;Données JSON invalides ou malformées&quot;, 
+            null
+        );
+<span class="nc" id="L41">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * ✅ Gestion des erreurs de contrainte de base de données
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex, WebRequest request) {
+        
+<span class="nc" id="L51">        System.err.println(&quot;❌ ERREUR BASE DE DONNÉES: &quot; + ex.getMessage());</span>
+<span class="nc" id="L52">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L54">        String message = &quot;Erreur de données&quot;;</span>
+        
+        // Analyser le message d'erreur pour donner des détails utiles
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (ex.getMessage() != null) {</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            if (ex.getMessage().contains(&quot;email&quot;)) {</span>
+<span class="nc" id="L59">                message = &quot;Cette adresse email est déjà utilisée&quot;;</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            } else if (ex.getMessage().contains(&quot;phone&quot;)) {</span>
+<span class="nc" id="L61">                message = &quot;Ce numéro de téléphone est déjà utilisé&quot;;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            } else if (ex.getMessage().contains(&quot;Duplicate entry&quot;)) {</span>
+<span class="nc" id="L63">                message = &quot;Ces informations sont déjà utilisées par un autre utilisateur&quot;;</span>
+            }
+        }
+        
+<span class="nc" id="L67">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, message, null);</span>
+<span class="nc" id="L68">        return new ResponseEntity&lt;&gt;(response, HttpStatus.CONFLICT);</span>
+    }
+
+    /**
+     * ✅ GESTION AMÉLIORÉE DES ERREURS DE VALIDATION
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        
+<span class="nc" id="L78">        System.err.println(&quot;❌ ERREUR DE VALIDATION: &quot; + ex.getMessage());</span>
+<span class="nc" id="L79">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L81">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L82">        ex.getBindingResult().getAllErrors().forEach((error) -&gt; {</span>
+<span class="nc" id="L83">            String fieldName = ((FieldError) error).getField();</span>
+<span class="nc" id="L84">            String errorMessage = error.getDefaultMessage();</span>
+<span class="nc" id="L85">            errors.put(fieldName, errorMessage);</span>
+<span class="nc" id="L86">            System.err.println(&quot;  - Champ '&quot; + fieldName + &quot;': &quot; + errorMessage);</span>
+<span class="nc" id="L87">        });</span>
+
+        // Message principal basé sur la première erreur
+<span class="nc" id="L90">        String mainMessage = &quot;Erreurs de validation&quot;;</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (!errors.isEmpty()) {</span>
+<span class="nc" id="L92">            mainMessage = errors.values().iterator().next();</span>
+        }
+
+<span class="nc" id="L95">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, mainMessage, errors);</span>
+<span class="nc" id="L96">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Gestion des ressources non trouvées
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleResourceNotFoundException(
+            ResourceNotFoundException ex, WebRequest request) {
+        
+<span class="nc" id="L106">        System.err.println(&quot;❌ RESSOURCE NON TROUVÉE: &quot; + ex.getMessage());</span>
+        
+<span class="nc" id="L108">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L109">        return new ResponseEntity&lt;&gt;(response, HttpStatus.NOT_FOUND);</span>
+    }
+
+    /**
+     * Gestion des requêtes malformées
+     */
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleBadRequestException(
+            BadRequestException ex, WebRequest request) {
+        
+<span class="nc" id="L119">        System.err.println(&quot;❌ REQUÊTE MALFORMÉE: &quot; + ex.getMessage());</span>
+<span class="nc" id="L120">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L122">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L123">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Gestion des erreurs d'authentification
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleAuthenticationException(
+            AuthenticationException ex, WebRequest request) {
+        
+<span class="nc" id="L133">        System.err.println(&quot;❌ ERREUR D'AUTHENTIFICATION: &quot; + ex.getMessage());</span>
+<span class="nc" id="L134">        ex.printStackTrace();</span>
+        
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        String message = ex instanceof BadCredentialsException ? </span>
+<span class="nc" id="L137">            &quot;Identifiants invalides&quot; : &quot;Erreur d'authentification&quot;;</span>
+        
+<span class="nc" id="L139">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, message, null);</span>
+<span class="nc" id="L140">        return new ResponseEntity&lt;&gt;(response, HttpStatus.UNAUTHORIZED);</span>
+    }
+
+    /**
+     * Gestion des erreurs d'autorisation
+     */
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleSecurityException(
+            SecurityException ex, WebRequest request) {
+        
+<span class="nc" id="L150">        System.err.println(&quot;❌ ERREUR DE SÉCURITÉ: &quot; + ex.getMessage());</span>
+<span class="nc" id="L151">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L153">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L154">        return new ResponseEntity&lt;&gt;(response, HttpStatus.FORBIDDEN);</span>
+    }
+
+    /**
+     * ✅ GESTION AMÉLIORÉE DES ARGUMENTS ILLÉGAUX
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleIllegalArgumentException(
+            IllegalArgumentException ex, WebRequest request) {
+        
+<span class="nc" id="L164">        System.err.println(&quot;❌ ARGUMENT ILLÉGAL: &quot; + ex.getMessage());</span>
+<span class="nc" id="L165">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L167">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L168">        return new ResponseEntity&lt;&gt;(response, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    /**
+     * Gestion des états illégaux
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleIllegalStateException(
+            IllegalStateException ex, WebRequest request) {
+        
+<span class="nc" id="L178">        System.err.println(&quot;❌ ÉTAT ILLÉGAL: &quot; + ex.getMessage());</span>
+<span class="nc" id="L179">        ex.printStackTrace();</span>
+        
+<span class="nc" id="L181">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(false, ex.getMessage(), null);</span>
+<span class="nc" id="L182">        return new ResponseEntity&lt;&gt;(response, HttpStatus.CONFLICT);</span>
+    }
+
+    /**
+     * ✅ GESTION AMÉLIORÉE DES RuntimeException
+     */
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleRuntimeException(
+            RuntimeException ex, WebRequest request) {
+        
+<span class="nc" id="L192">        System.err.println(&quot;❌ RUNTIME EXCEPTION: &quot; + ex.getClass().getSimpleName() + &quot;: &quot; + ex.getMessage());</span>
+<span class="nc" id="L193">        ex.printStackTrace();</span>
+        
+        // Log de la stack trace complète pour debug
+<span class="nc" id="L196">        System.err.println(&quot;📍 Stack trace complète:&quot;);</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        for (StackTraceElement element : ex.getStackTrace()) {</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            if (element.getClassName().contains(&quot;retrouvtout&quot;)) {</span>
+<span class="nc" id="L199">                System.err.println(&quot;  at &quot; + element.toString());</span>
+            }
+        }
+        
+<span class="nc" id="L203">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(</span>
+            false, 
+<span class="nc bnc" id="L205" title="All 2 branches missed.">            ex.getMessage() != null ? ex.getMessage() : &quot;Une erreur interne s'est produite&quot;, </span>
+            null
+        );
+<span class="nc" id="L208">        return new ResponseEntity&lt;&gt;(response, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+    }
+
+    /**
+     * ✅ GESTION DE TOUTES LES AUTRES EXCEPTIONS AVEC DEBUG MAXIMUM
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleGlobalException(
+            Exception ex, WebRequest request) {
+        
+<span class="nc" id="L218">        System.err.println(&quot;❌ EXCEPTION NON GÉRÉE: &quot; + ex.getClass().getSimpleName() + &quot;: &quot; + ex.getMessage());</span>
+<span class="nc" id="L219">        System.err.println(&quot;📍 URL de la requête: &quot; + request.getDescription(false));</span>
+        
+        // Log de la stack trace complète
+<span class="nc" id="L222">        System.err.println(&quot;📍 Stack trace complète:&quot;);</span>
+<span class="nc" id="L223">        ex.printStackTrace();</span>
+        
+        // Log des causes imbriquées
+<span class="nc" id="L226">        Throwable cause = ex.getCause();</span>
+<span class="nc" id="L227">        int level = 1;</span>
+<span class="nc bnc" id="L228" title="All 4 branches missed.">        while (cause != null &amp;&amp; level &lt;= 3) {</span>
+<span class="nc" id="L229">            System.err.println(&quot;📍 Cause niveau &quot; + level + &quot;: &quot; + cause.getClass().getSimpleName() + &quot;: &quot; + cause.getMessage());</span>
+<span class="nc" id="L230">            cause = cause.getCause();</span>
+<span class="nc" id="L231">            level++;</span>
+        }
+        
+<span class="nc" id="L234">        ApiResponse&lt;Object&gt; response = new ApiResponse&lt;&gt;(</span>
+            false, 
+            &quot;Une erreur interne s'est produite. Veuillez réessayer.&quot;, 
+            null
+        );
+<span class="nc" id="L239">        return new ResponseEntity&lt;&gt;(response, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

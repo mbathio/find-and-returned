@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListingResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.dto.response</a> &gt; <span class="el_source">ListingResponse.java</span></div><h1>ListingResponse.java</h1><pre class="source lang-java linenums">package com.retrouvtout.dto.response;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/**
+ * DTO de réponse pour les annonces
+ * Structure EXACTEMENT conforme au frontend Listing interface
+ */
+public class ListingResponse {
+    
+    private String id;
+    private String title;
+    private String category;
+    
+    @JsonProperty(&quot;locationText&quot;)
+    private String locationText;
+    
+    private BigDecimal latitude;
+    private BigDecimal longitude;
+    
+    @JsonProperty(&quot;foundAt&quot;)
+    private String foundAt; // ISO string format pour le frontend
+    
+    private String description;
+    
+    @JsonProperty(&quot;imageUrl&quot;)
+    private String imageUrl;
+    
+    private String status; // &quot;active&quot; ou &quot;resolved&quot; pour correspondre au frontend
+    
+    @JsonProperty(&quot;finderUserId&quot;)
+    private String finderUserId; // ID simple pour correspondre au frontend
+    
+    @JsonProperty(&quot;createdAt&quot;)
+    private String createdAt; // ISO string format
+    
+    @JsonProperty(&quot;updatedAt&quot;)
+    private String updatedAt; // ISO string format
+    
+    // Constructeurs
+<span class="nc" id="L44">    public ListingResponse() {}</span>
+    
+    // Getters et Setters
+<span class="nc" id="L47">    public String getId() { return id; }</span>
+<span class="nc" id="L48">    public void setId(String id) { this.id = id; }</span>
+    
+<span class="nc" id="L50">    public String getTitle() { return title; }</span>
+<span class="nc" id="L51">    public void setTitle(String title) { this.title = title; }</span>
+    
+<span class="nc" id="L53">    public String getCategory() { return category; }</span>
+<span class="nc" id="L54">    public void setCategory(String category) { this.category = category; }</span>
+    
+<span class="nc" id="L56">    public String getLocationText() { return locationText; }</span>
+<span class="nc" id="L57">    public void setLocationText(String locationText) { this.locationText = locationText; }</span>
+    
+<span class="nc" id="L59">    public BigDecimal getLatitude() { return latitude; }</span>
+<span class="nc" id="L60">    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }</span>
+    
+<span class="nc" id="L62">    public BigDecimal getLongitude() { return longitude; }</span>
+<span class="nc" id="L63">    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }</span>
+    
+<span class="nc" id="L65">    public String getFoundAt() { return foundAt; }</span>
+<span class="nc" id="L66">    public void setFoundAt(String foundAt) { this.foundAt = foundAt; }</span>
+    
+<span class="nc" id="L68">    public String getDescription() { return description; }</span>
+<span class="nc" id="L69">    public void setDescription(String description) { this.description = description; }</span>
+    
+<span class="nc" id="L71">    public String getImageUrl() { return imageUrl; }</span>
+<span class="nc" id="L72">    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }</span>
+    
+<span class="nc" id="L74">    public String getStatus() { return status; }</span>
+<span class="nc" id="L75">    public void setStatus(String status) { this.status = status; }</span>
+    
+<span class="nc" id="L77">    public String getFinderUserId() { return finderUserId; }</span>
+<span class="nc" id="L78">    public void setFinderUserId(String finderUserId) { this.finderUserId = finderUserId; }</span>
+    
+<span class="nc" id="L80">    public String getCreatedAt() { return createdAt; }</span>
+<span class="nc" id="L81">    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }</span>
+    
+<span class="nc" id="L83">    public String getUpdatedAt() { return updatedAt; }</span>
+<span class="nc" id="L84">    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

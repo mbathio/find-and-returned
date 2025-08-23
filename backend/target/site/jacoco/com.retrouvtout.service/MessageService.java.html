@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MessageService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.service</a> &gt; <span class="el_source">MessageService.java</span></div><h1>MessageService.java</h1><pre class="source lang-java linenums">package com.retrouvtout.service;
+
+import com.retrouvtout.dto.request.CreateMessageRequest;
+import com.retrouvtout.dto.response.MessageResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.entity.Message;
+import com.retrouvtout.entity.Thread;
+import com.retrouvtout.entity.User;
+import com.retrouvtout.exception.ResourceNotFoundException;
+import com.retrouvtout.repository.MessageRepository;
+import com.retrouvtout.repository.ThreadRepository;
+import com.retrouvtout.repository.UserRepository;
+import com.retrouvtout.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * ✅ SERVICE MESSAGES CORRIGÉ AVEC DEBUG MAXIMAL
+ * Gestion d'erreur robuste pour éviter les 500
+ */
+@Service
+@Transactional
+public class MessageService {
+
+    private final MessageRepository messageRepository;
+    private final ThreadRepository threadRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final EmailService emailService;
+    private final NotificationService notificationService;
+
+    @Autowired
+    public MessageService(MessageRepository messageRepository,
+                         ThreadRepository threadRepository,
+                         UserRepository userRepository,
+                         ModelMapper modelMapper,
+                         SimpMessagingTemplate messagingTemplate,
+                         EmailService emailService,
+<span class="nc" id="L48">                         NotificationService notificationService) {</span>
+<span class="nc" id="L49">        this.messageRepository = messageRepository;</span>
+<span class="nc" id="L50">        this.threadRepository = threadRepository;</span>
+<span class="nc" id="L51">        this.userRepository = userRepository;</span>
+<span class="nc" id="L52">        this.modelMapper = modelMapper;</span>
+<span class="nc" id="L53">        this.messagingTemplate = messagingTemplate;</span>
+<span class="nc" id="L54">        this.emailService = emailService;</span>
+<span class="nc" id="L55">        this.notificationService = notificationService;</span>
+<span class="nc" id="L56">    }</span>
+
+    /**
+     * ✅ CORRECTION MAJEURE : Obtenir le nombre de messages non lus avec debug complet
+     */
+    @Transactional(readOnly = true)
+    public long getUnreadMessageCount(String userId) {
+<span class="nc" id="L63">        System.out.println(&quot;🔧 MessageService.getUnreadMessageCount - DÉBUT&quot;);</span>
+<span class="nc" id="L64">        System.out.println(&quot;📍 UserId reçu: '&quot; + userId + &quot;'&quot;);</span>
+        
+        try {
+            // ✅ VALIDATION 1 : Vérifier l'userId
+<span class="nc bnc" id="L68" title="All 4 branches missed.">            if (userId == null || userId.trim().isEmpty()) {</span>
+<span class="nc" id="L69">                System.err.println(&quot;❌ UserId est null ou vide&quot;);</span>
+<span class="nc" id="L70">                return 0L;</span>
+            }
+<span class="nc" id="L72">            System.out.println(&quot;✅ UserId valide: &quot; + userId);</span>
+            
+            // ✅ VALIDATION 2 : Vérifier que l'utilisateur existe
+            User user;
+            try {
+<span class="nc" id="L77">                user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L78">                    .orElse(null);</span>
+                
+<span class="nc bnc" id="L80" title="All 2 branches missed.">                if (user == null) {</span>
+<span class="nc" id="L81">                    System.err.println(&quot;❌ Utilisateur non trouvé avec ID: &quot; + userId);</span>
+<span class="nc" id="L82">                    System.err.println(&quot;📍 Vérifiez que l'utilisateur existe en base&quot;);</span>
+<span class="nc" id="L83">                    return 0L;</span>
+                }
+<span class="nc" id="L85">                System.out.println(&quot;✅ Utilisateur trouvé: &quot; + user.getName() + &quot; (&quot; + user.getEmail() + &quot;)&quot;);</span>
+                
+<span class="nc" id="L87">            } catch (Exception userError) {</span>
+<span class="nc" id="L88">                System.err.println(&quot;❌ ERREUR lors de la recherche utilisateur:&quot;);</span>
+<span class="nc" id="L89">                System.err.println(&quot;📍 Message: &quot; + userError.getMessage());</span>
+<span class="nc" id="L90">                userError.printStackTrace();</span>
+<span class="nc" id="L91">                return 0L;</span>
+<span class="nc" id="L92">            }</span>
+            
+            // ✅ VALIDATION 3 : Vérifier que le repository existe
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            if (messageRepository == null) {</span>
+<span class="nc" id="L96">                System.err.println(&quot;❌ MessageRepository est null - problème d'injection&quot;);</span>
+<span class="nc" id="L97">                return 0L;</span>
+            }
+<span class="nc" id="L99">            System.out.println(&quot;✅ MessageRepository injecté correctement&quot;);</span>
+            
+            // ✅ APPEL REPOSITORY avec try/catch
+<span class="nc" id="L102">            System.out.println(&quot;🚀 Appel messageRepository.countUnreadMessagesForUser...&quot;);</span>
+            long count;
+            try {
+<span class="nc" id="L105">                count = messageRepository.countUnreadMessagesForUser(user);</span>
+<span class="nc" id="L106">                System.out.println(&quot;✅ Repository terminé - Count: &quot; + count);</span>
+                
+<span class="nc" id="L108">            } catch (Exception repoError) {</span>
+<span class="nc" id="L109">                System.err.println(&quot;❌ ERREUR DANS LE REPOSITORY:&quot;);</span>
+<span class="nc" id="L110">                System.err.println(&quot;📍 Message: &quot; + repoError.getMessage());</span>
+<span class="nc" id="L111">                System.err.println(&quot;📍 Classe: &quot; + repoError.getClass().getSimpleName());</span>
+<span class="nc" id="L112">                repoError.printStackTrace();</span>
+                
+                // ✅ Vérification si la méthode existe bien
+                try {
+<span class="nc" id="L116">                    System.out.println(&quot;🔍 Vérification de la méthode countUnreadMessagesForUser...&quot;);</span>
+<span class="nc" id="L117">                    var method = messageRepository.getClass().getMethod(&quot;countUnreadMessagesForUser&quot;, User.class);</span>
+<span class="nc" id="L118">                    System.out.println(&quot;✅ Méthode trouvée: &quot; + method.getName());</span>
+<span class="nc" id="L119">                } catch (Exception methodError) {</span>
+<span class="nc" id="L120">                    System.err.println(&quot;❌ MÉTHODE MANQUANTE: countUnreadMessagesForUser n'existe pas!&quot;);</span>
+<span class="nc" id="L121">                    System.err.println(&quot;📍 Il faut l'ajouter dans MessageRepository&quot;);</span>
+<span class="nc" id="L122">                }</span>
+                
+<span class="nc" id="L124">                return 0L;</span>
+<span class="nc" id="L125">            }</span>
+            
+<span class="nc" id="L127">            System.out.println(&quot;✅ getUnreadMessageCount terminé avec succès: &quot; + count);</span>
+<span class="nc" id="L128">            return count;</span>
+            
+<span class="nc" id="L130">        } catch (Exception globalError) {</span>
+<span class="nc" id="L131">            System.err.println(&quot;❌ ERREUR GLOBALE dans getUnreadMessageCount:&quot;);</span>
+<span class="nc" id="L132">            System.err.println(&quot;📍 Message: &quot; + globalError.getMessage());</span>
+<span class="nc" id="L133">            System.err.println(&quot;📍 Classe: &quot; + globalError.getClass().getSimpleName());</span>
+<span class="nc" id="L134">            globalError.printStackTrace();</span>
+<span class="nc" id="L135">            return 0L;</span>
+            
+        } finally {
+<span class="nc" id="L138">            System.out.println(&quot;🔧 MessageService.getUnreadMessageCount - FIN&quot;);</span>
+        }
+    }
+
+    /**
+     * ✅ Créer un nouveau message avec debug
+     */
+    public MessageResponse createMessage(CreateMessageRequest request, String userId) {
+<span class="nc" id="L146">        System.out.println(&quot;🔧 MessageService.createMessage - userId: &quot; + userId + &quot;, threadId: &quot; + request.getThreadId());</span>
+        
+        try {
+<span class="nc" id="L149">            User sender = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L150">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L151">                    System.err.println(&quot;❌ Utilisateur sender non trouvé: &quot; + userId);</span>
+<span class="nc" id="L152">                    return new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId);</span>
+                });
+<span class="nc" id="L154">            System.out.println(&quot;✅ Sender trouvé: &quot; + sender.getName());</span>
+
+<span class="nc" id="L156">            Thread thread = threadRepository.findById(request.getThreadId())</span>
+<span class="nc" id="L157">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L158">                    System.err.println(&quot;❌ Thread non trouvé: &quot; + request.getThreadId());</span>
+<span class="nc" id="L159">                    return new ResourceNotFoundException(&quot;Thread&quot;, &quot;id&quot;, request.getThreadId());</span>
+                });
+<span class="nc" id="L161">            System.out.println(&quot;✅ Thread trouvé: &quot; + thread.getId());</span>
+
+            // Vérifier que l'utilisateur fait partie du thread
+<span class="nc bnc" id="L164" title="All 2 branches missed.">            if (!thread.getOwnerUser().getId().equals(userId) &amp;&amp; </span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">                !thread.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L166">                System.err.println(&quot;❌ Utilisateur &quot; + userId + &quot; n'appartient pas au thread &quot; + thread.getId());</span>
+<span class="nc" id="L167">                throw new SecurityException(&quot;Vous n'êtes pas autorisé à envoyer un message dans ce thread&quot;);</span>
+            }
+
+            // Créer le message
+<span class="nc" id="L171">            Message message = new Message();</span>
+<span class="nc" id="L172">            message.setId(java.util.UUID.randomUUID().toString());</span>
+<span class="nc" id="L173">            message.setThread(thread);</span>
+<span class="nc" id="L174">            message.setSenderUser(sender);</span>
+<span class="nc" id="L175">            message.setBody(request.getBody());</span>
+<span class="nc" id="L176">            message.setMessageType(Message.MessageType.fromValue(request.getMessageType()));</span>
+<span class="nc" id="L177">            message.setIsRead(false);</span>
+
+<span class="nc" id="L179">            Message savedMessage = messageRepository.save(message);</span>
+<span class="nc" id="L180">            System.out.println(&quot;✅ Message sauvé: &quot; + savedMessage.getId());</span>
+
+            // Mettre à jour la date du dernier message du thread
+<span class="nc" id="L183">            thread.setLastMessageAt(LocalDateTime.now());</span>
+<span class="nc" id="L184">            threadRepository.save(thread);</span>
+
+            // Convertir en DTO
+<span class="nc" id="L187">            MessageResponse messageResponse = modelMapper.mapMessageToMessageResponse(savedMessage);</span>
+
+            // Envoyer notification en temps réel via WebSocket
+            try {
+<span class="nc" id="L191">                sendRealtimeNotification(thread, messageResponse, userId);</span>
+<span class="nc" id="L192">            } catch (Exception notifError) {</span>
+<span class="nc" id="L193">                System.err.println(&quot;⚠️ Erreur notification temps réel: &quot; + notifError.getMessage());</span>
+<span class="nc" id="L194">            }</span>
+
+            // Envoyer notification email au destinataire
+            try {
+<span class="nc" id="L198">                sendEmailNotification(thread, sender, userId);</span>
+<span class="nc" id="L199">            } catch (Exception emailError) {</span>
+<span class="nc" id="L200">                System.err.println(&quot;⚠️ Erreur notification email: &quot; + emailError.getMessage());</span>
+<span class="nc" id="L201">            }</span>
+
+            // Envoyer notification push
+            try {
+<span class="nc" id="L205">                sendPushNotification(thread, savedMessage, userId);</span>
+<span class="nc" id="L206">            } catch (Exception pushError) {</span>
+<span class="nc" id="L207">                System.err.println(&quot;⚠️ Erreur notification push: &quot; + pushError.getMessage());</span>
+<span class="nc" id="L208">            }</span>
+
+<span class="nc" id="L210">            return messageResponse;</span>
+            
+<span class="nc" id="L212">        } catch (Exception error) {</span>
+<span class="nc" id="L213">            System.err.println(&quot;❌ Erreur dans createMessage: &quot; + error.getMessage());</span>
+<span class="nc" id="L214">            error.printStackTrace();</span>
+<span class="nc" id="L215">            throw error;</span>
+        }
+    }
+
+    /**
+     * ✅ Obtenir les messages d'un thread avec debug
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;MessageResponse&gt; getThreadMessages(String threadId, String userId, Pageable pageable) {
+<span class="nc" id="L224">        System.out.println(&quot;🔧 MessageService.getThreadMessages - threadId: &quot; + threadId + &quot;, userId: &quot; + userId);</span>
+        
+        try {
+<span class="nc" id="L227">            Thread thread = threadRepository.findById(threadId)</span>
+<span class="nc" id="L228">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L229">                    System.err.println(&quot;❌ Thread non trouvé: &quot; + threadId);</span>
+<span class="nc" id="L230">                    return new ResourceNotFoundException(&quot;Thread&quot;, &quot;id&quot;, threadId);</span>
+                });
+
+            // Vérifier l'accès
+<span class="nc bnc" id="L234" title="All 2 branches missed.">            if (!thread.getOwnerUser().getId().equals(userId) &amp;&amp; </span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">                !thread.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L236">                System.err.println(&quot;❌ Utilisateur &quot; + userId + &quot; n'appartient pas au thread &quot; + threadId);</span>
+<span class="nc" id="L237">                throw new SecurityException(&quot;Vous n'êtes pas autorisé à accéder à ce thread&quot;);</span>
+            }
+
+<span class="nc" id="L240">            Page&lt;Message&gt; messages = messageRepository.findByThreadOrderByCreatedAtAsc(thread, pageable);</span>
+<span class="nc" id="L241">            System.out.println(&quot;✅ Messages récupérés: &quot; + messages.getContent().size());</span>
+            
+            // Conversion manuelle en PagedResponse
+<span class="nc" id="L244">            List&lt;MessageResponse&gt; messageResponses = messages.getContent().stream()</span>
+<span class="nc" id="L245">                .map(modelMapper::mapMessageToMessageResponse)</span>
+<span class="nc" id="L246">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L248">            return modelMapper.createPagedResponse(</span>
+                messageResponses,
+<span class="nc" id="L250">                pageable.getPageNumber() + 1,</span>
+<span class="nc" id="L251">                pageable.getPageSize(),</span>
+<span class="nc" id="L252">                messages.getTotalElements()</span>
+            );
+            
+<span class="nc" id="L255">        } catch (Exception error) {</span>
+<span class="nc" id="L256">            System.err.println(&quot;❌ Erreur dans getThreadMessages: &quot; + error.getMessage());</span>
+<span class="nc" id="L257">            error.printStackTrace();</span>
+<span class="nc" id="L258">            throw error;</span>
+        }
+    }
+
+    /**
+     * ✅ Marquer tous les messages d'un thread comme lus avec debug
+     */
+    public void markThreadAsRead(String threadId, String userId) {
+<span class="nc" id="L266">        System.out.println(&quot;🔧 MessageService.markThreadAsRead - threadId: &quot; + threadId + &quot;, userId: &quot; + userId);</span>
+        
+        try {
+<span class="nc" id="L269">            Thread thread = threadRepository.findById(threadId)</span>
+<span class="nc" id="L270">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L271">                    System.err.println(&quot;❌ Thread non trouvé: &quot; + threadId);</span>
+<span class="nc" id="L272">                    return new ResourceNotFoundException(&quot;Thread&quot;, &quot;id&quot;, threadId);</span>
+                });
+
+            // Vérifier l'accès
+<span class="nc bnc" id="L276" title="All 2 branches missed.">            if (!thread.getOwnerUser().getId().equals(userId) &amp;&amp; </span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">                !thread.getFinderUser().getId().equals(userId)) {</span>
+<span class="nc" id="L278">                System.err.println(&quot;❌ Utilisateur &quot; + userId + &quot; n'appartient pas au thread &quot; + threadId);</span>
+<span class="nc" id="L279">                throw new SecurityException(&quot;Vous n'êtes pas autorisé à accéder à ce thread&quot;);</span>
+            }
+
+<span class="nc" id="L282">            User user = userRepository.findByIdAndActiveTrue(userId)</span>
+<span class="nc" id="L283">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L284">                    System.err.println(&quot;❌ Utilisateur non trouvé: &quot; + userId);</span>
+<span class="nc" id="L285">                    return new ResourceNotFoundException(&quot;Utilisateur&quot;, &quot;id&quot;, userId);</span>
+                });
+
+            // Marquer tous les messages non lus comme lus
+<span class="nc" id="L289">            messageRepository.markAllAsReadInThreadForUser(thread, user);</span>
+<span class="nc" id="L290">            System.out.println(&quot;✅ Messages marqués comme lus pour le thread: &quot; + threadId);</span>
+            
+<span class="nc" id="L292">        } catch (Exception error) {</span>
+<span class="nc" id="L293">            System.err.println(&quot;❌ Erreur dans markThreadAsRead: &quot; + error.getMessage());</span>
+<span class="nc" id="L294">            error.printStackTrace();</span>
+<span class="nc" id="L295">            throw error;</span>
+<span class="nc" id="L296">        }</span>
+<span class="nc" id="L297">    }</span>
+
+    // ✅ Méthodes utilitaires privées avec gestion d'erreur
+
+    private void sendRealtimeNotification(Thread thread, MessageResponse message, String senderId) {
+        try {
+            // Déterminer le destinataire
+<span class="nc bnc" id="L304" title="All 2 branches missed.">            String recipientId = thread.getOwnerUser().getId().equals(senderId) ?</span>
+<span class="nc" id="L305">                thread.getFinderUser().getId() : thread.getOwnerUser().getId();</span>
+
+            // Envoyer via WebSocket
+<span class="nc" id="L308">            messagingTemplate.convertAndSendToUser(</span>
+                recipientId,
+                &quot;/queue/messages&quot;,
+                message
+            );
+
+            // Envoyer notification de nouveau message
+<span class="nc" id="L315">            messagingTemplate.convertAndSendToUser(</span>
+                recipientId,
+                &quot;/queue/notifications&quot;,
+                new NotificationMessage(&quot;new_message&quot;, &quot;Nouveau message reçu&quot;, message)
+            );
+<span class="nc" id="L320">        } catch (Exception e) {</span>
+<span class="nc" id="L321">            System.err.println(&quot;Erreur notification temps réel: &quot; + e.getMessage());</span>
+<span class="nc" id="L322">        }</span>
+<span class="nc" id="L323">    }</span>
+
+    private void sendEmailNotification(Thread thread, User sender, String senderId) {
+        try {
+            // Déterminer le destinataire
+<span class="nc bnc" id="L328" title="All 2 branches missed.">            User recipient = thread.getOwnerUser().getId().equals(senderId) ?</span>
+<span class="nc" id="L329">                thread.getFinderUser() : thread.getOwnerUser();</span>
+
+<span class="nc bnc" id="L331" title="All 2 branches missed.">            if (recipient.getEmailVerified()) {</span>
+<span class="nc" id="L332">                String threadSubject = thread.getListing().getTitle();</span>
+<span class="nc" id="L333">                emailService.sendNewMessageNotification(recipient, sender, threadSubject);</span>
+            }
+<span class="nc" id="L335">        } catch (Exception e) {</span>
+<span class="nc" id="L336">            System.err.println(&quot;Erreur notification email: &quot; + e.getMessage());</span>
+<span class="nc" id="L337">        }</span>
+<span class="nc" id="L338">    }</span>
+
+    private void sendPushNotification(Thread thread, Message message, String senderId) {
+        try {
+            // Déterminer le destinataire
+<span class="nc bnc" id="L343" title="All 2 branches missed.">            String recipientId = thread.getOwnerUser().getId().equals(senderId) ?</span>
+<span class="nc" id="L344">                thread.getFinderUser().getId() : thread.getOwnerUser().getId();</span>
+
+<span class="nc" id="L346">            String title = &quot;Nouveau message&quot;;</span>
+<span class="nc" id="L347">            String body = String.format(&quot;Message concernant: %s&quot;, thread.getListing().getTitle());</span>
+<span class="nc" id="L348">            String url = &quot;/messages/&quot; + thread.getId();</span>
+
+<span class="nc" id="L350">            notificationService.sendPushNotification(recipientId, title, body, url);</span>
+<span class="nc" id="L351">        } catch (Exception e) {</span>
+<span class="nc" id="L352">            System.err.println(&quot;Erreur notification push: &quot; + e.getMessage());</span>
+<span class="nc" id="L353">        }</span>
+<span class="nc" id="L354">    }</span>
+
+    /**
+     * Classe pour les notifications WebSocket
+     */
+    public static class NotificationMessage {
+        private String type;
+        private String title;
+        private Object data;
+
+<span class="nc" id="L364">        public NotificationMessage(String type, String title, Object data) {</span>
+<span class="nc" id="L365">            this.type = type;</span>
+<span class="nc" id="L366">            this.title = title;</span>
+<span class="nc" id="L367">            this.data = data;</span>
+<span class="nc" id="L368">        }</span>
+
+        // Getters et setters
+<span class="nc" id="L371">        public String getType() { return type; }</span>
+<span class="nc" id="L372">        public void setType(String type) { this.type = type; }</span>
+
+<span class="nc" id="L374">        public String getTitle() { return title; }</span>
+<span class="nc" id="L375">        public void setTitle(String title) { this.title = title; }</span>
+
+<span class="nc" id="L377">        public Object getData() { return data; }</span>
+<span class="nc" id="L378">        public void setData(Object data) { this.data = data; }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

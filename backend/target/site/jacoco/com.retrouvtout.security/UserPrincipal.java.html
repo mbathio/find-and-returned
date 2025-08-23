@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserPrincipal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.security</a> &gt; <span class="el_source">UserPrincipal.java</span></div><h1>UserPrincipal.java</h1><pre class="source lang-java linenums">package com.retrouvtout.security;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.retrouvtout.entity.User;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Classe principale pour l'utilisateur dans Spring Security
+ * Rôles STRICTEMENT conformes au cahier des charges
+ */
+public class UserPrincipal implements UserDetails {
+    
+    protected String id;
+    protected String name;
+    protected String email;
+    
+    @JsonIgnore
+    protected String password;
+    
+    protected Collection&lt;? extends GrantedAuthority&gt; authorities;
+    protected boolean active;
+    protected boolean emailVerified;
+
+    // Constructeur par défaut protégé pour les sous-classes
+<span class="nc" id="L32">    protected UserPrincipal() {}</span>
+
+    public UserPrincipal(String id, String name, String email, String password, 
+                        Collection&lt;? extends GrantedAuthority&gt; authorities, 
+<span class="nc" id="L36">                        boolean active, boolean emailVerified) {</span>
+<span class="nc" id="L37">        this.id = id;</span>
+<span class="nc" id="L38">        this.name = name;</span>
+<span class="nc" id="L39">        this.email = email;</span>
+<span class="nc" id="L40">        this.password = password;</span>
+<span class="nc" id="L41">        this.authorities = authorities;</span>
+<span class="nc" id="L42">        this.active = active;</span>
+<span class="nc" id="L43">        this.emailVerified = emailVerified;</span>
+<span class="nc" id="L44">    }</span>
+
+    /**
+     * Créer un UserPrincipal à partir d'un User
+     * Rôles STRICTEMENT conformes au cahier des charges - Section 3.1
+     */
+    public static UserPrincipal create(User user) {
+<span class="nc" id="L51">        List&lt;GrantedAuthority&gt; authorities = new ArrayList&lt;&gt;();</span>
+        
+        // Ajouter le rôle de base pour tous les utilisateurs authentifiés
+<span class="nc" id="L54">        authorities.add(new SimpleGrantedAuthority(&quot;ROLE_USER&quot;));</span>
+        
+        // Ajouter des rôles spécifiques selon le type d'utilisateur
+        // UNIQUEMENT les deux rôles définis dans le cahier des charges
+<span class="nc bnc" id="L58" title="All 3 branches missed.">        switch (user.getRole()) {</span>
+            case RETROUVEUR:
+<span class="nc" id="L60">                authorities.add(new SimpleGrantedAuthority(&quot;ROLE_FINDER&quot;));</span>
+<span class="nc" id="L61">                break;</span>
+            case PROPRIETAIRE:
+<span class="nc" id="L63">                authorities.add(new SimpleGrantedAuthority(&quot;ROLE_OWNER&quot;));</span>
+                break;
+        }
+
+<span class="nc" id="L67">        return new UserPrincipal(</span>
+<span class="nc" id="L68">                user.getId(),</span>
+<span class="nc" id="L69">                user.getName(),</span>
+<span class="nc" id="L70">                user.getEmail(),</span>
+<span class="nc" id="L71">                user.getPasswordHash(),</span>
+                authorities,
+<span class="nc" id="L73">                user.getActive(),</span>
+<span class="nc" id="L74">                user.getEmailVerified()</span>
+        );
+    }
+
+    public String getId() {
+<span class="nc" id="L79">        return id;</span>
+    }
+
+    public String getName() {
+<span class="nc" id="L83">        return name;</span>
+    }
+
+    public String getEmail() {
+<span class="nc" id="L87">        return email;</span>
+    }
+
+    @Override
+    public String getUsername() {
+<span class="nc" id="L92">        return email;</span>
+    }
+
+    @Override
+    public String getPassword() {
+<span class="nc" id="L97">        return password;</span>
+    }
+
+    @Override
+    public Collection&lt;? extends GrantedAuthority&gt; getAuthorities() {
+<span class="nc" id="L102">        return authorities;</span>
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+<span class="nc" id="L107">        return true;</span>
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+<span class="nc" id="L112">        return active;</span>
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+<span class="nc" id="L117">        return true;</span>
+    }
+
+    @Override
+    public boolean isEnabled() {
+<span class="nc" id="L122">        return active;</span>
+    }
+
+    public boolean isEmailVerified() {
+<span class="nc" id="L126">        return emailVerified;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L132" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L133">        UserPrincipal that = (UserPrincipal) o;</span>
+<span class="nc" id="L134">        return Objects.equals(id, that.id);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L139">        return Objects.hash(id);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

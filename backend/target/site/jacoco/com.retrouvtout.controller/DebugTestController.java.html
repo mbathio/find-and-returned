@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DebugTestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">DebugTestController.java</span></div><h1>DebugTestController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.dto.request.RegisterRequest;
+import com.retrouvtout.dto.response.ApiResponse;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * ✅ CONTRÔLEUR DE DEBUG POUR IDENTIFIER LES PROBLÈMES
+ * À supprimer une fois les problèmes résolus
+ */
+@RestController
+@RequestMapping(&quot;/api/debug&quot;)
+@CrossOrigin(origins = {&quot;*&quot;})
+<span class="nc" id="L18">public class DebugTestController {</span>
+
+    /**
+     * Test de réception des données d'inscription
+     */
+    @PostMapping(&quot;/register-test&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Map&lt;String, Object&gt;&gt;&gt; testRegisterData(
+            @RequestBody RegisterRequest registerRequest) {
+        
+        try {
+<span class="nc" id="L28">            System.out.println(&quot;🔧 TEST REGISTER - Données reçues:&quot;);</span>
+<span class="nc" id="L29">            System.out.println(&quot;  - Nom: '&quot; + registerRequest.getName() + &quot;'&quot;);</span>
+<span class="nc" id="L30">            System.out.println(&quot;  - Email: '&quot; + registerRequest.getEmail() + &quot;'&quot;);</span>
+<span class="nc bnc" id="L31" title="All 2 branches missed.">            System.out.println(&quot;  - Mot de passe: '&quot; + (registerRequest.getPassword() != null ? &quot;[DÉFINI - &quot; + registerRequest.getPassword().length() + &quot; chars]&quot; : &quot;[NULL]&quot;) + &quot;'&quot;);</span>
+<span class="nc" id="L32">            System.out.println(&quot;  - Téléphone: '&quot; + registerRequest.getPhone() + &quot;'&quot;);</span>
+<span class="nc" id="L33">            System.out.println(&quot;  - Rôle: '&quot; + registerRequest.getRole() + &quot;'&quot;);</span>
+            
+<span class="nc" id="L35">            Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L36">            result.put(&quot;name&quot;, registerRequest.getName());</span>
+<span class="nc" id="L37">            result.put(&quot;email&quot;, registerRequest.getEmail());</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">            result.put(&quot;passwordLength&quot;, registerRequest.getPassword() != null ? registerRequest.getPassword().length() : 0);</span>
+<span class="nc" id="L39">            result.put(&quot;phone&quot;, registerRequest.getPhone());</span>
+<span class="nc" id="L40">            result.put(&quot;role&quot;, registerRequest.getRole());</span>
+<span class="nc" id="L41">            result.put(&quot;status&quot;, &quot;Données reçues correctement&quot;);</span>
+            
+<span class="nc" id="L43">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Test réussi&quot;, result));</span>
+            
+<span class="nc" id="L45">        } catch (Exception e) {</span>
+<span class="nc" id="L46">            System.err.println(&quot;❌ ERREUR DANS TEST REGISTER: &quot; + e.getMessage());</span>
+<span class="nc" id="L47">            e.printStackTrace();</span>
+            
+<span class="nc" id="L49">            Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L50">            error.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L51">            error.put(&quot;class&quot;, e.getClass().getSimpleName());</span>
+            
+<span class="nc" id="L53">            return ResponseEntity.status(500)</span>
+<span class="nc" id="L54">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur dans le test&quot;, error));</span>
+        }
+    }
+
+    /**
+     * Test de validation des données
+     */
+    @PostMapping(&quot;/validate-test&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Map&lt;String, Object&gt;&gt;&gt; testValidation(
+            @RequestBody Map&lt;String, Object&gt; rawData) {
+        
+        try {
+<span class="nc" id="L66">            System.out.println(&quot;🔧 TEST VALIDATION - Données brutes reçues:&quot;);</span>
+<span class="nc" id="L67">            rawData.forEach((key, value) -&gt; {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">                System.out.println(&quot;  - &quot; + key + &quot;: '&quot; + value + &quot;' (&quot; + (value != null ? value.getClass().getSimpleName() : &quot;null&quot;) + &quot;)&quot;);</span>
+<span class="nc" id="L69">            });</span>
+            
+<span class="nc" id="L71">            Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L72">            result.put(&quot;receivedFields&quot;, rawData.keySet());</span>
+<span class="nc" id="L73">            result.put(&quot;totalFields&quot;, rawData.size());</span>
+<span class="nc" id="L74">            result.put(&quot;status&quot;, &quot;Données brutes reçues&quot;);</span>
+            
+<span class="nc" id="L76">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Validation réussie&quot;, result));</span>
+            
+<span class="nc" id="L78">        } catch (Exception e) {</span>
+<span class="nc" id="L79">            System.err.println(&quot;❌ ERREUR DANS TEST VALIDATION: &quot; + e.getMessage());</span>
+<span class="nc" id="L80">            e.printStackTrace();</span>
+            
+<span class="nc" id="L82">            Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L83">            error.put(&quot;error&quot;, e.getMessage());</span>
+<span class="nc" id="L84">            error.put(&quot;class&quot;, e.getClass().getSimpleName());</span>
+            
+<span class="nc" id="L86">            return ResponseEntity.status(500)</span>
+<span class="nc" id="L87">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur dans la validation&quot;, error));</span>
+        }
+    }
+
+    /**
+     * Test de connectivité simple
+     */
+    @GetMapping(&quot;/ping&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;String&gt;&gt; ping() {
+<span class="nc" id="L96">        System.out.println(&quot;🔧 PING reçu&quot;);</span>
+<span class="nc" id="L97">        return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Pong&quot;, &quot;Debug controller actif&quot;));</span>
+    }
+
+    /**
+     * Test des en-têtes de requête
+     */
+    @PostMapping(&quot;/headers-test&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Map&lt;String, Object&gt;&gt;&gt; testHeaders(
+            @RequestHeader Map&lt;String, String&gt; headers,
+            @RequestBody(required = false) String body) {
+        
+<span class="nc" id="L108">        System.out.println(&quot;🔧 TEST HEADERS:&quot;);</span>
+<span class="nc" id="L109">        headers.forEach((key, value) -&gt; {</span>
+<span class="nc" id="L110">            System.out.println(&quot;  - &quot; + key + &quot;: &quot; + value);</span>
+<span class="nc" id="L111">        });</span>
+        
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        System.out.println(&quot;🔧 BODY LENGTH: &quot; + (body != null ? body.length() : 0));</span>
+        
+<span class="nc" id="L115">        Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L116">        result.put(&quot;headers&quot;, headers);</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        result.put(&quot;bodyLength&quot;, body != null ? body.length() : 0);</span>
+<span class="nc" id="L118">        result.put(&quot;contentType&quot;, headers.get(&quot;content-type&quot;));</span>
+        
+<span class="nc" id="L120">        return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Headers analysés&quot;, result));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

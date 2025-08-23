@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MessageController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RetrouvTout Backend</a> &gt; <a href="index.source.html" class="el_package">com.retrouvtout.controller</a> &gt; <span class="el_source">MessageController.java</span></div><h1>MessageController.java</h1><pre class="source lang-java linenums">package com.retrouvtout.controller;
+
+import com.retrouvtout.dto.request.CreateMessageRequest;
+import com.retrouvtout.dto.response.ApiResponse;
+import com.retrouvtout.dto.response.MessageResponse;
+import com.retrouvtout.dto.response.PagedResponse;
+import com.retrouvtout.security.UserPrincipal;
+import com.retrouvtout.service.MessageService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+
+/**
+ * ✅ CONTRÔLEUR MESSAGES CORRIGÉ POUR ÉVITER LES 500
+ * Debug maximal et gestion d'erreur robuste
+ */
+@RestController
+@RequestMapping(&quot;/api/messages&quot;)
+@Tag(name = &quot;Messages&quot;, description = &quot;API de messagerie intégrée sécurisée&quot;)
+@CrossOrigin(origins = {&quot;*&quot;}) // ✅ CORS permissif en dev
+public class MessageController {
+
+    private final MessageService messageService;
+
+    @Autowired
+<span class="nc" id="L37">    public MessageController(MessageService messageService) {</span>
+<span class="nc" id="L38">        this.messageService = messageService;</span>
+<span class="nc" id="L39">    }</span>
+
+    /**
+     * ✅ CORRECTION MAJEURE : Obtenir le nombre de messages non lus avec debug complet
+     */
+    @GetMapping(&quot;/unread-count&quot;)
+    @Operation(summary = &quot;Obtenir le nombre de messages non lus&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Long&gt;&gt; getUnreadCount(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // ✅ DÉBUT DEBUG
+<span class="nc" id="L52">        System.out.println(&quot;🔧 getUnreadCount - DÉBUT&quot;);</span>
+        
+        try {
+            // ✅ VALIDATION 1 : Vérifier userPrincipal
+<span class="nc bnc" id="L56" title="All 2 branches missed.">            if (userPrincipal == null) {</span>
+<span class="nc" id="L57">                System.err.println(&quot;❌ getUnreadCount: userPrincipal est null&quot;);</span>
+<span class="nc" id="L58">                System.err.println(&quot;📍 Vérifiez l'authentification JWT&quot;);</span>
+<span class="nc" id="L59">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L60">                    .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non authentifié&quot;, 0L));</span>
+            }
+<span class="nc" id="L62">            System.out.println(&quot;✅ UserPrincipal trouvé: &quot; + userPrincipal.getId());</span>
+
+            // ✅ VALIDATION 2 : Vérifier l'ID utilisateur
+<span class="nc bnc" id="L65" title="All 4 branches missed.">            if (userPrincipal.getId() == null || userPrincipal.getId().isEmpty()) {</span>
+<span class="nc" id="L66">                System.err.println(&quot;❌ getUnreadCount: userId est null ou vide&quot;);</span>
+<span class="nc" id="L67">                System.err.println(&quot;📍 ID récupéré: '&quot; + userPrincipal.getId() + &quot;'&quot;);</span>
+<span class="nc" id="L68">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L69">                    .body(new ApiResponse&lt;&gt;(false, &quot;ID utilisateur invalide&quot;, 0L));</span>
+            }
+<span class="nc" id="L71">            System.out.println(&quot;✅ UserID validé: &quot; + userPrincipal.getId());</span>
+
+            // ✅ APPEL SERVICE avec try/catch
+<span class="nc" id="L74">            System.out.println(&quot;🚀 Appel messageService.getUnreadMessageCount...&quot;);</span>
+            long unreadCount;
+            try {
+<span class="nc" id="L77">                unreadCount = messageService.getUnreadMessageCount(userPrincipal.getId());</span>
+<span class="nc" id="L78">                System.out.println(&quot;✅ Service terminé - Count: &quot; + unreadCount);</span>
+<span class="nc" id="L79">            } catch (Exception serviceError) {</span>
+<span class="nc" id="L80">                System.err.println(&quot;❌ ERREUR DANS LE SERVICE:&quot;);</span>
+<span class="nc" id="L81">                System.err.println(&quot;📍 Message: &quot; + serviceError.getMessage());</span>
+<span class="nc" id="L82">                System.err.println(&quot;📍 Classe: &quot; + serviceError.getClass().getSimpleName());</span>
+<span class="nc" id="L83">                serviceError.printStackTrace();</span>
+                
+                // Retourner 0 plutôt qu'une erreur 500 pour éviter de casser l'UI
+<span class="nc" id="L86">                return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                    true, 
+                    &quot;Compte récupéré avec erreur (défaut: 0)&quot;, 
+<span class="nc" id="L89">                    0L</span>
+                ));
+<span class="nc" id="L91">            }</span>
+            
+            // ✅ RÉPONSE RÉUSSIE
+<span class="nc" id="L94">            System.out.println(&quot;✅ getUnreadCount: Succès avec &quot; + unreadCount + &quot; messages non lus&quot;);</span>
+            
+<span class="nc" id="L96">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Nombre de messages non lus récupéré&quot;,
+<span class="nc" id="L99">                unreadCount</span>
+            ));
+            
+<span class="nc" id="L102">        } catch (Exception globalError) {</span>
+            // ✅ GESTION D'ERREUR GLOBALE avec debug maximal
+<span class="nc" id="L104">            System.err.println(&quot;❌ ERREUR GLOBALE dans getUnreadCount:&quot;);</span>
+<span class="nc" id="L105">            System.err.println(&quot;📍 Message: &quot; + globalError.getMessage());</span>
+<span class="nc" id="L106">            System.err.println(&quot;📍 Classe: &quot; + globalError.getClass().getSimpleName());</span>
+<span class="nc" id="L107">            System.err.println(&quot;📍 Stack trace:&quot;);</span>
+<span class="nc" id="L108">            globalError.printStackTrace();</span>
+            
+            // ✅ JAMAIS retourner 500 pour cette endpoint critique
+<span class="nc" id="L111">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Nombre de messages non lus récupéré (avec erreur)&quot;,
+<span class="nc" id="L114">                0L</span>
+            ));
+        } finally {
+<span class="nc" id="L117">            System.out.println(&quot;🔧 getUnreadCount - FIN&quot;);</span>
+        }
+    }
+
+    /**
+     * ✅ Endpoint de debug pour tester l'authentification
+     */
+    @GetMapping(&quot;/debug-auth&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; debugAuth(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        
+        try {
+<span class="nc" id="L129">            System.out.println(&quot;🔧 DEBUG AUTH:&quot;);</span>
+            
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (userPrincipal == null) {</span>
+<span class="nc" id="L132">                System.out.println(&quot;❌ UserPrincipal: null&quot;);</span>
+<span class="nc" id="L133">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L134">                    .body(new ApiResponse&lt;&gt;(false, &quot;Non authentifié&quot;, null));</span>
+            }
+            
+<span class="nc" id="L137">            System.out.println(&quot;✅ UserPrincipal ID: &quot; + userPrincipal.getId());</span>
+<span class="nc" id="L138">            System.out.println(&quot;✅ UserPrincipal Name: &quot; + userPrincipal.getName());</span>
+<span class="nc" id="L139">            System.out.println(&quot;✅ UserPrincipal Email: &quot; + userPrincipal.getEmail());</span>
+            
+<span class="nc" id="L141">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(true, &quot;Auth OK&quot;, Map.of(</span>
+<span class="nc" id="L142">                &quot;id&quot;, userPrincipal.getId(),</span>
+<span class="nc" id="L143">                &quot;name&quot;, userPrincipal.getName(),</span>
+<span class="nc" id="L144">                &quot;email&quot;, userPrincipal.getEmail()</span>
+            )));
+            
+<span class="nc" id="L147">        } catch (Exception e) {</span>
+<span class="nc" id="L148">            System.err.println(&quot;❌ Erreur debug auth: &quot; + e.getMessage());</span>
+<span class="nc" id="L149">            e.printStackTrace();</span>
+<span class="nc" id="L150">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L151">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur debug&quot;, null));</span>
+        }
+    }
+
+    /**
+     * Envoyer un message avec validation robuste
+     */
+    @PostMapping
+    @Operation(summary = &quot;Envoyer un message via la messagerie intégrée&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;MessageResponse&gt;&gt; createMessage(
+            @Valid @RequestBody CreateMessageRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L167">            System.out.println(&quot;🔧 createMessage - DÉBUT pour userId: &quot; + </span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                (userPrincipal != null ? userPrincipal.getId() : &quot;null&quot;));</span>
+
+            // ✅ VALIDATION : Vérifier l'authentification
+<span class="nc bnc" id="L171" title="All 4 branches missed.">            if (userPrincipal == null || userPrincipal.getId() == null) {</span>
+<span class="nc" id="L172">                System.err.println(&quot;❌ createMessage: Utilisateur non authentifié&quot;);</span>
+<span class="nc" id="L173">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L174">                    .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non authentifié&quot;, null));</span>
+            }
+
+<span class="nc" id="L177">            MessageResponse message = messageService.createMessage(request, userPrincipal.getId());</span>
+            
+<span class="nc" id="L179">            System.out.println(&quot;✅ createMessage: Message créé avec ID: &quot; + message.getId());</span>
+            
+<span class="nc" id="L181">            return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L182">                .body(new ApiResponse&lt;&gt;(</span>
+                    true,
+                    &quot;Message envoyé avec succès&quot;,
+                    message
+                ));
+<span class="nc" id="L187">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L188">            System.err.println(&quot;❌ createMessage - Argument invalide: &quot; + e.getMessage());</span>
+<span class="nc" id="L189">            return ResponseEntity.badRequest()</span>
+<span class="nc" id="L190">                .body(new ApiResponse&lt;&gt;(false, e.getMessage(), null));</span>
+<span class="nc" id="L191">        } catch (SecurityException e) {</span>
+<span class="nc" id="L192">            System.err.println(&quot;❌ createMessage - Sécurité: &quot; + e.getMessage());</span>
+<span class="nc" id="L193">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L194">                .body(new ApiResponse&lt;&gt;(false, &quot;Vous n'êtes pas autorisé à envoyer ce message&quot;, null));</span>
+<span class="nc" id="L195">        } catch (Exception e) {</span>
+<span class="nc" id="L196">            System.err.println(&quot;❌ Erreur dans createMessage: &quot; + e.getMessage());</span>
+<span class="nc" id="L197">            e.printStackTrace();</span>
+            
+<span class="nc" id="L199">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L200">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur lors de l'envoi du message&quot;, null));</span>
+        }
+    }
+
+    /**
+     * Obtenir les messages d'une conversation avec validation robuste
+     */
+    @GetMapping(&quot;/thread/{threadId}&quot;)
+    @Operation(summary = &quot;Obtenir les messages d'une conversation&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;PagedResponse&lt;MessageResponse&gt;&gt;&gt; getThreadMessages(
+            @PathVariable String threadId,
+            @RequestParam(defaultValue = &quot;1&quot;) int page,
+            @RequestParam(defaultValue = &quot;50&quot;) int pageSize,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L218">            System.out.println(&quot;🔧 getThreadMessages - threadId: &quot; + threadId + </span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                &quot;, userId: &quot; + (userPrincipal != null ? userPrincipal.getId() : &quot;null&quot;));</span>
+
+            // ✅ VALIDATION : Vérifier l'authentification
+<span class="nc bnc" id="L222" title="All 4 branches missed.">            if (userPrincipal == null || userPrincipal.getId() == null) {</span>
+<span class="nc" id="L223">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L224">                    .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non authentifié&quot;, null));</span>
+            }
+
+<span class="nc bnc" id="L227" title="All 2 branches missed.">            if (page &lt; 1) page = 1;</span>
+<span class="nc bnc" id="L228" title="All 4 branches missed.">            if (pageSize &lt; 1 || pageSize &gt; 100) pageSize = 50;</span>
+
+<span class="nc" id="L230">            Pageable pageable = PageRequest.of(page - 1, pageSize, </span>
+<span class="nc" id="L231">                Sort.by(Sort.Direction.ASC, &quot;createdAt&quot;));</span>
+
+<span class="nc" id="L233">            PagedResponse&lt;MessageResponse&gt; messages = messageService.getThreadMessages(</span>
+<span class="nc" id="L234">                threadId, userPrincipal.getId(), pageable);</span>
+
+<span class="nc" id="L236">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Messages récupérés avec succès&quot;,
+                messages
+            ));
+<span class="nc" id="L241">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L242">            System.err.println(&quot;❌ getThreadMessages - Thread non trouvé: &quot; + e.getMessage());</span>
+<span class="nc" id="L243">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L244">                .body(new ApiResponse&lt;&gt;(false, &quot;Conversation non trouvée&quot;, null));</span>
+<span class="nc" id="L245">        } catch (SecurityException e) {</span>
+<span class="nc" id="L246">            System.err.println(&quot;❌ getThreadMessages - Sécurité: &quot; + e.getMessage());</span>
+<span class="nc" id="L247">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L248">                .body(new ApiResponse&lt;&gt;(false, &quot;Vous n'êtes pas autorisé à accéder à cette conversation&quot;, null));</span>
+<span class="nc" id="L249">        } catch (Exception e) {</span>
+<span class="nc" id="L250">            System.err.println(&quot;❌ Erreur dans getThreadMessages: &quot; + e.getMessage());</span>
+<span class="nc" id="L251">            e.printStackTrace();</span>
+            
+<span class="nc" id="L253">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L254">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur lors de la récupération des messages&quot;, null));</span>
+        }
+    }
+
+    /**
+     * Marquer les messages comme lus avec validation robuste
+     */
+    @PatchMapping(&quot;/thread/{threadId}/read&quot;)
+    @Operation(summary = &quot;Marquer les messages d'une conversation comme lus&quot;)
+    @SecurityRequirement(name = &quot;bearerAuth&quot;)
+    @PreAuthorize(&quot;hasRole('USER')&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; markThreadAsRead(
+            @PathVariable String threadId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        try {
+<span class="nc" id="L270">            System.out.println(&quot;🔧 markThreadAsRead - threadId: &quot; + threadId + </span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                &quot;, userId: &quot; + (userPrincipal != null ? userPrincipal.getId() : &quot;null&quot;));</span>
+
+            // ✅ VALIDATION : Vérifier l'authentification
+<span class="nc bnc" id="L274" title="All 4 branches missed.">            if (userPrincipal == null || userPrincipal.getId() == null) {</span>
+<span class="nc" id="L275">                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="nc" id="L276">                    .body(new ApiResponse&lt;&gt;(false, &quot;Utilisateur non authentifié&quot;, null));</span>
+            }
+
+<span class="nc" id="L279">            messageService.markThreadAsRead(threadId, userPrincipal.getId());</span>
+            
+<span class="nc" id="L281">            return ResponseEntity.ok(new ApiResponse&lt;&gt;(</span>
+                true,
+                &quot;Messages marqués comme lus&quot;,
+                null
+            ));
+<span class="nc" id="L286">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L287">            System.err.println(&quot;❌ markThreadAsRead - Thread non trouvé: &quot; + e.getMessage());</span>
+<span class="nc" id="L288">            return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="nc" id="L289">                .body(new ApiResponse&lt;&gt;(false, &quot;Conversation non trouvée&quot;, null));</span>
+<span class="nc" id="L290">        } catch (SecurityException e) {</span>
+<span class="nc" id="L291">            System.err.println(&quot;❌ markThreadAsRead - Sécurité: &quot; + e.getMessage());</span>
+<span class="nc" id="L292">            return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L293">                .body(new ApiResponse&lt;&gt;(false, &quot;Vous n'êtes pas autorisé à accéder à cette conversation&quot;, null));</span>
+<span class="nc" id="L294">        } catch (Exception e) {</span>
+<span class="nc" id="L295">            System.err.println(&quot;❌ Erreur dans markThreadAsRead: &quot; + e.getMessage());</span>
+<span class="nc" id="L296">            e.printStackTrace();</span>
+            
+<span class="nc" id="L298">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L299">                .body(new ApiResponse&lt;&gt;(false, &quot;Erreur lors du marquage comme lu&quot;, null));</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
