@@ -3,6 +3,7 @@ package com.retrouvtout.config;
 import com.retrouvtout.security.JwtAuthenticationEntryPoint;
 import com.retrouvtout.security.JwtAuthenticationFilter;
 import com.retrouvtout.security.CustomUserDetailsService;
+import com.retrouvtout.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +33,6 @@ import java.util.List;
 
 /**
  * Configuration de sécurité Spring Security conforme au cahier des charges
- * Fonctionnalités strictement limitées aux exigences spécifiées
  */
 @Configuration
 @EnableWebSecurity
@@ -42,20 +42,23 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
+    private final JwtTokenProvider tokenProvider;
 
     @Value("${app.cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService customUserDetailsService,
-                         JwtAuthenticationEntryPoint unauthorizedHandler) {
+                         JwtAuthenticationEntryPoint unauthorizedHandler,
+                         JwtTokenProvider tokenProvider) {
         this.customUserDetailsService = customUserDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
+        this.tokenProvider = tokenProvider;
     }
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter();
+        return new JwtAuthenticationFilter(tokenProvider, customUserDetailsService);
     }
 
     @Bean
@@ -69,13 +72,9 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    /**
-     * Configuration CORS pour la communication avec le frontend
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
@@ -88,14 +87,10 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
+
         return source;
     }
 
-    /**
-     * Configuration de sécurité conforme au cahier des charges
-     * Sections 3.1 (authentification), 3.4 (sécurité), 3.5 (communication)
-     */
     @Bean
     @Order(100)
     public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {
@@ -107,40 +102,22 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Endpoints publics
                 .requestMatchers("/", "/health", "/actuator/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/api-docs/**").permitAll()
-                
-                // Section 3.1 - Inscription/Connexion
                 .requestMatchers("/api/auth/**").permitAll()
-                
-                // Section 3.2 - Recherche publique d'annonces
                 .requestMatchers(HttpMethod.GET, "/api/listings").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/listings/{id}").permitAll()
-                
-                // Section 3.2 - Publication d'annonces (authentification requise)
                 .requestMatchers(HttpMethod.POST, "/api/listings").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/listings/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/listings/**").authenticated()
-                
-                // Section 3.1 - Gestion profil utilisateur
                 .requestMatchers("/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
-                
-                // Section 3.5 - Messagerie intégrée
                 .requestMatchers("/api/threads/**").authenticated()
                 .requestMatchers("/api/messages/**").authenticated()
-                
-                // Section 3.2 - Upload de photos pour annonces
                 .requestMatchers(HttpMethod.POST, "/api/upload/**").authenticated()
-                .requestMatchers("/api/files/**").permitAll() // Accès public aux images
-                
-                // Section 3.3 - Notifications (pour utilisateurs authentifiés)
+                .requestMatchers("/api/files/**").permitAll()
                 .requestMatchers("/api/notifications/**").authenticated()
-                
-                // Section 3.5 - WebSocket pour messagerie temps réel
                 .requestMatchers("/ws/**").permitAll()
-                
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers

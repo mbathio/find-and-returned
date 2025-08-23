@@ -1,4 +1,4 @@
-// src/services/auth.ts - CORRECTION DES HOOKS POUR SYNCHRONISER AVEC LE CONTEXTE
+// src/services/auth.ts
 import { apiClient } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -30,7 +30,7 @@ export interface RegisterRequest {
 export interface AuthResponse {
   access_token: string;
   refresh_token: string;
-  token_type: string;
+  token_type: string; // "Bearer"
   expires_in: number;
   user: User;
 }
@@ -46,17 +46,14 @@ class AuthService {
   login = async (credentials: LoginRequest): Promise<AuthResponse> => {
     console.log("🚀 AuthService.login - Tentative de connexion");
 
-    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+    const res = await apiClient.post<ApiResponse<AuthResponse>>(
       "/auth/login",
       credentials
     );
 
-    console.log("✅ AuthService.login - Réponse reçue:", response);
+    console.log("✅ AuthService.login - Réponse reçue:", res);
 
-    // ✅ CORRECTION : Accès correct aux données dans ApiResponse<AuthResponse>
-    const authData = response.data;
-
-    // Sauvegarder les tokens immédiatement
+    const authData = res.data; // <- ApiResponse<AuthResponse> -> data: AuthResponse
     this.saveAuthData(authData);
 
     return authData;
@@ -65,28 +62,27 @@ class AuthService {
   register = async (userData: RegisterRequest): Promise<AuthResponse> => {
     console.log("🚀 AuthService.register - Tentative d'inscription");
 
-    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+    const res = await apiClient.post<ApiResponse<AuthResponse>>(
       "/auth/register",
       userData
     );
 
-    console.log("✅ AuthService.register - Réponse reçue:", response);
+    console.log("✅ AuthService.register - Réponse reçue:", res);
 
-    const authData = response.data;
-
-    // Sauvegarder les tokens immédiatement
+    const authData = res.data;
     this.saveAuthData(authData);
 
     return authData;
+    // PS: si l'API n'authentifie pas à l'inscription, adapte en conséquence
   };
 
   refreshToken = async (refreshToken: string): Promise<AuthResponse> => {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+    const res = await apiClient.post<ApiResponse<AuthResponse>>(
       "/auth/refresh",
       { refreshToken }
     );
 
-    const authData = response.data;
+    const authData = res.data;
     this.saveAuthData(authData);
     return authData;
   };
@@ -109,20 +105,17 @@ class AuthService {
       "🔍 AuthService.getCurrentUser - Récupération utilisateur actuel"
     );
 
-    const response = await apiClient.get<ApiResponse<User>>("/users/me");
+    const res = await apiClient.get<ApiResponse<User>>("/users/me");
 
-    console.log(
-      "✅ AuthService.getCurrentUser - Utilisateur récupéré:",
-      response
-    );
+    console.log("✅ AuthService.getCurrentUser - Utilisateur récupéré:", res);
 
-    return response.data;
+    return res.data;
   };
 
-  saveAuthData = (authResponse: AuthResponse): void => {
+  /** ====== Local storage helpers ====== */
+  private saveAuthData = (authResponse: AuthResponse): void => {
     console.log("💾 Sauvegarde des données d'authentification");
 
-    // Sauvegarder les tokens avec les noms corrects
     localStorage.setItem("auth_token", authResponse.access_token);
     localStorage.setItem("refresh_token", authResponse.refresh_token);
     localStorage.setItem("user", JSON.stringify(authResponse.user));
@@ -134,15 +127,14 @@ class AuthService {
     });
   };
 
-  clearAuthData = (): void => {
+  private clearAuthData = (): void => {
     console.log("🧹 Nettoyage des données d'authentification");
-
     localStorage.removeItem("auth_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
   };
 
-  getStoredUser = (): User | null => {
+  private getStoredUser = (): User | null => {
     const userStr = localStorage.getItem("user");
     return userStr ? JSON.parse(userStr) : null;
   };
@@ -151,7 +143,8 @@ class AuthService {
     const token = localStorage.getItem("auth_token");
     const user = this.getStoredUser();
 
-    const isAuth = !!(token && user);
+    const isAuth =
+      !!token && token !== "null" && token !== "undefined" && !!user;
 
     if (import.meta.env.DEV) {
       console.log("🔐 Vérification authentification:", {
@@ -165,14 +158,15 @@ class AuthService {
   };
 
   getToken = (): string | null => {
-    return localStorage.getItem("auth_token");
+    const t = localStorage.getItem("auth_token");
+    if (!t || t === "null" || t === "undefined") return null;
+    return t;
   };
 }
 
 export const authService = new AuthService();
 
-// ✅ CORRECTION : Hooks qui utilisent le contexte AuthContext
-// Ces hooks doivent être utilisés AVEC useAuth() dans les composants
+/** ========= React Query hooks ========= */
 export const useLogin = () => {
   const queryClient = useQueryClient();
 
@@ -180,11 +174,6 @@ export const useLogin = () => {
     mutationFn: authService.login,
     onSuccess: (data) => {
       console.log("✅ useLogin.onSuccess - Connexion réussie, data:", data);
-
-      // ✅ IMPORTANT : Ne pas essayer d'accéder au contexte ici
-      // Le composant qui utilise ce hook doit appeler authContext.login()
-
-      // Mettre à jour React Query
       queryClient.setQueryData(["currentUser"], data.user);
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },
@@ -204,11 +193,6 @@ export const useRegister = () => {
         "✅ useRegister.onSuccess - Inscription réussie, data:",
         data
       );
-
-      // ✅ IMPORTANT : Ne pas essayer d'accéder au contexte ici
-      // Le composant qui utilise ce hook doit appeler authContext.login()
-
-      // Mettre à jour React Query
       queryClient.setQueryData(["currentUser"], data.user);
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },
@@ -225,15 +209,13 @@ export const useLogout = () => {
     mutationFn: authService.logout,
     onSuccess: () => {
       console.log("✅ useLogout.onSuccess - Déconnexion réussie");
-
       queryClient.clear();
       window.location.href = "/";
     },
     onError: (error) => {
       console.error("❌ useLogout.onError:", error);
-
       // Même en cas d'erreur, nettoyer localement
-      authService.clearAuthData();
+      authService["clearAuthData"]?.();
       queryClient.clear();
       window.location.href = "/";
     },

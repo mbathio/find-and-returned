@@ -1,8 +1,10 @@
-// src/lib/api.ts - VERSION CORRIGÉE AVEC MÉTHODE PATCH
+// src/lib/api.ts
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8081/api";
 
 console.log("🔧 API_BASE_URL configuré:", API_BASE_URL);
+
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 
 class ApiError extends Error {
   constructor(
@@ -15,10 +17,16 @@ class ApiError extends Error {
   }
 }
 
-import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+/** Champs utilitaires ajoutés par nous sur la config axios */
+type RetriableConfig = AxiosRequestConfig & { _retry?: boolean };
 
 class ApiClient {
   private client: AxiosInstance;
+
+  /** Gestion de rafraîchissement (anti-boucle / anti-spam) */
+  private isRefreshing = false;
+  private refreshQueue: Array<(token: string) => void> = [];
+  private rejectQueue: Array<(err: any) => void> = [];
 
   constructor() {
     this.client = axios.create({
@@ -29,15 +37,29 @@ class ApiClient {
       },
     });
 
+    // ✅ Si on a déjà un token, on initialise le header par défaut au boot
+    const bootToken = this.getStoredAccessToken();
+    if (bootToken) {
+      this.client.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${bootToken}`;
+    }
+
     this.setupInterceptors();
   }
 
+  /** ============ Interceptors ============ */
   private setupInterceptors() {
-    // Request interceptor pour ajouter le token
+    // ➤ Request: injecter l'Authorization si présent
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem("auth_token");
-        if (token && config.headers) {
+        const token = this.getStoredAccessToken();
+        if (
+          token &&
+          token !== "null" &&
+          token !== "undefined" &&
+          config.headers
+        ) {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
@@ -47,6 +69,15 @@ class ApiClient {
               config.url
             }`
           );
+          // Log du header d’auth (utile pour déboguer les 401)
+          if (config.headers?.Authorization) {
+            console.log(
+              "👉 Authorization header:",
+              config.headers.Authorization
+            );
+          } else {
+            console.log("👉 Authorization header: (absent)");
+          }
           if (config.data) console.log(`📦 Request data:`, config.data);
         }
 
@@ -58,7 +89,7 @@ class ApiClient {
       }
     );
 
-    // Response interceptor pour gérer les erreurs et refresh token
+    // ➤ Response: gérer 401 + refresh avec queue
     this.client.interceptors.response.use(
       (response) => {
         if (import.meta.env.DEV) {
@@ -69,85 +100,152 @@ class ApiClient {
         }
         return response;
       },
-      async (error) => {
+      async (error: AxiosError) => {
+        const originalRequest = (error.config || {}) as RetriableConfig;
+
         if (import.meta.env.DEV) {
           console.error(
-            `❌ API Error: ${error.response?.status || "Network"} ${
-              error.config?.url
+            `❌ API Error: ${error.response?.status ?? "Network"} ${
+              originalRequest.url
             }`,
             error.message
           );
           console.error(`📦 Error response:`, error.response?.data);
         }
 
-        const originalRequest = error.config;
-
-        // ✅ CORRECTION : Gestion du refresh token avec la bonne structure de données
+        // Si 401 → tenter refresh (une seule fois par requête)
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
-            const refreshToken = localStorage.getItem("refresh_token");
-            if (refreshToken) {
-              console.log("🔄 Tentative de refresh du token...");
+            const refreshedToken = await this.getOrRefreshToken();
 
-              const refreshResponse = await this.refreshAuthToken(refreshToken);
+            // Mettre à jour l'entête pour la requête originale
+            originalRequest.headers = originalRequest.headers || {};
+            (
+              originalRequest.headers as any
+            ).Authorization = `Bearer ${refreshedToken}`;
 
-              // ✅ CORRECTION : Accès correct aux données dans ApiResponse<AuthResponse>
-              const authData = refreshResponse.data.data; // data.data car ApiResponse<AuthResponse>
-              const newAccessToken = authData.accessToken; // camelCase comme défini dans AuthResponse
-              const newRefreshToken = authData.refreshToken;
+            // Mettre à jour le default pour les futures
+            this.client.defaults.headers.common[
+              "Authorization"
+            ] = `Bearer ${refreshedToken}`;
 
-              console.log("✅ Token rafraîchi avec succès");
-
-              // Sauvegarder les nouveaux tokens
-              localStorage.setItem("auth_token", newAccessToken);
-              if (newRefreshToken) {
-                localStorage.setItem("refresh_token", newRefreshToken);
-              }
-
-              // Mettre à jour l'header pour la requête originale
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
-              // Mettre à jour l'header par défaut pour les futures requêtes
-              this.client.defaults.headers.common[
-                "Authorization"
-              ] = `Bearer ${newAccessToken}`;
-
-              // Réessayer la requête originale
-              return this.client(originalRequest);
-            }
+            // Réessayer la requête originale
+            return this.client(originalRequest);
           } catch (refreshError) {
             console.error("❌ Échec du refresh token:", refreshError);
-            // Nettoyer les tokens et rediriger
             this.clearAuthAndRedirect();
             return Promise.reject(refreshError);
           }
         }
 
+        // Pour les autres cas, lever une ApiError propre
         throw new ApiError(
           error.response?.status || 500,
+          // @ts-ignore
           error.response?.data?.message ||
             error.message ||
             "Une erreur est survenue",
+          // @ts-ignore
           error.response
         );
       }
     );
   }
 
-  private async refreshAuthToken(refreshToken: string) {
-    // ✅ Faire la requête de refresh sans intercepteur pour éviter la boucle
-    return axios.post(
-      `${API_BASE_URL}/auth/refresh`,
-      { refreshToken },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 10000,
+  /** ============ Refresh centralisé avec queue ============ */
+  private async getOrRefreshToken(): Promise<string> {
+    const current = this.getStoredAccessToken();
+
+    // Petite sécurité : si on a encore un token en local, on tente direct son usage
+    if (current && current !== "null" && current !== "undefined") {
+      return current;
+    }
+
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (
+      !refreshToken ||
+      refreshToken === "null" ||
+      refreshToken === "undefined"
+    ) {
+      throw new Error("Aucun refresh token disponible");
+    }
+
+    if (this.isRefreshing) {
+      // On s’abonne pour être notifié quand le refresh en cours se termine
+      return new Promise<string>((resolve, reject) => {
+        this.refreshQueue.push(resolve);
+        this.rejectQueue.push(reject);
+      });
+    }
+
+    this.isRefreshing = true;
+
+    try {
+      console.log("🔄 Tentative de refresh du token...");
+
+      // ⚠️ Utiliser axios “brut” pour éviter les intercepteurs (et boucles)
+      const refreshResponse = await axios.post(
+        `${API_BASE_URL}/auth/refresh`,
+        { refreshToken },
+        {
+          headers: { "Content-Type": "application/json" },
+          timeout: 10000,
+        }
+      );
+
+      // Le backend renvoie ApiResponse<AuthResponse>
+      // -> { success, message, data: { access_token, refresh_token, token_type, ... }, timestamp }
+      const authData = refreshResponse?.data?.data as {
+        access_token: string;
+        refresh_token?: string;
+        token_type?: string; // ex: "Bearer"
+      };
+
+      if (!authData?.access_token) {
+        throw new Error("Réponse de refresh invalide (pas d'access_token)");
       }
-    );
+
+      const newAccess = authData.access_token;
+      const newRefresh = authData.refresh_token;
+      const scheme = authData.token_type || "Bearer";
+
+      // Sauvegarder
+      localStorage.setItem("auth_token", newAccess);
+      if (newRefresh) {
+        localStorage.setItem("refresh_token", newRefresh);
+      }
+
+      // Mettre à jour defaults pour les prochaines requêtes
+      this.client.defaults.headers.common[
+        "Authorization"
+      ] = `${scheme} ${newAccess}`;
+
+      console.log("✅ Token rafraîchi avec succès");
+
+      // Réveiller la queue
+      this.refreshQueue.forEach((res) => res(newAccess));
+      this.refreshQueue = [];
+      this.rejectQueue = [];
+
+      return newAccess;
+    } catch (err) {
+      // Réveiller la queue en erreur
+      this.rejectQueue.forEach((rej) => rej(err));
+      this.refreshQueue = [];
+      this.rejectQueue = [];
+      throw err;
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  /** ============ Helpers ============ */
+  private getStoredAccessToken(): string | null {
+    const t = localStorage.getItem("auth_token");
+    if (!t || t === "null" || t === "undefined") return null;
+    return t;
   }
 
   private clearAuthAndRedirect() {
@@ -155,7 +253,7 @@ class ApiClient {
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
 
-    // Rediriger vers la page de connexion seulement si on n'y est pas déjà
+    // Rediriger vers la page de connexion seulement si on n’y est pas déjà
     if (!window.location.pathname.includes("/auth")) {
       const currentPath = window.location.pathname;
       const redirectParam =
@@ -166,6 +264,7 @@ class ApiClient {
     }
   }
 
+  /** ============ Méthodes HTTP ============ */
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<T>(url, config);
     return response.data;
@@ -189,7 +288,7 @@ class ApiClient {
     return response.data;
   }
 
-  // ✅ AJOUT : Méthode PATCH manquante
+  // ✅ Méthode PATCH
   async patch<T>(
     url: string,
     data?: unknown,
@@ -216,9 +315,9 @@ class ApiClient {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const progress = (progressEvent.loaded / progressEvent.total) * 100;
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) {
+          const progress = (e.loaded / e.total) * 100;
           onProgress(progress);
         }
       },
@@ -227,7 +326,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Méthode utilitaire pour tester la connexion
   async testConnection(): Promise<boolean> {
     try {
       await this.get("/health");
