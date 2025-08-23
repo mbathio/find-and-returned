@@ -1,4 +1,4 @@
-// src/lib/api.ts - VERSION CORRIGÉE AVEC REFRESH TOKEN
+// src/lib/api.ts - VERSION CORRIGÉE AVEC MÉTHODE PATCH
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8081/api";
 
@@ -186,6 +186,16 @@ class ApiClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.put<T>(url, data, config);
+    return response.data;
+  }
+
+  // ✅ AJOUT : Méthode PATCH manquante
+  async patch<T>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<T> {
+    const response = await this.client.patch<T>(url, data, config);
     return response.data;
   }
 

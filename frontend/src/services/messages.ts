@@ -1,4 +1,4 @@
-// src/services/messages.ts - VERSION CORRIGÉE
+// src/services/messages.ts - VERSION CORRIGÉE POUR REACT QUERY V5
 import { apiClient } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth";
@@ -75,7 +75,7 @@ class MessagesService {
       page: page.toString(),
       pageSize: pageSize.toString(),
     });
-    
+
     if (status) {
       params.append("status", status);
     }
@@ -99,7 +99,9 @@ class MessagesService {
   }
 
   async closeThread(id: string): Promise<Thread> {
-    const response = await apiClient.patch<ApiResponse<Thread>>(`/threads/${id}/close`);
+    const response = await apiClient.patch<ApiResponse<Thread>>(
+      `/threads/${id}/close`
+    );
     return response.data;
   }
 
@@ -128,11 +130,15 @@ class MessagesService {
   }
 
   async markThreadAsRead(threadId: string): Promise<void> {
-    await apiClient.patch<ApiResponse<void>>(`/messages/thread/${threadId}/read`);
+    await apiClient.patch<ApiResponse<void>>(
+      `/messages/thread/${threadId}/read`
+    );
   }
 
   async getUnreadCount(): Promise<number> {
-    const response = await apiClient.get<ApiResponse<number>>("/messages/unread-count");
+    const response = await apiClient.get<ApiResponse<number>>(
+      "/messages/unread-count"
+    );
     return response.data;
   }
 }
@@ -185,8 +191,8 @@ export const useSendMessage = () => {
     mutationFn: messagesService.sendMessage,
     onSuccess: (data) => {
       // Invalider les messages du thread
-      queryClient.invalidateQueries({ 
-        queryKey: ["messages", data.thread_id] 
+      queryClient.invalidateQueries({
+        queryKey: ["messages", data.thread_id],
       });
       // Invalider la liste des threads
       queryClient.invalidateQueries({ queryKey: ["threads"] });
@@ -200,8 +206,8 @@ export const useMarkAsRead = () => {
   return useMutation({
     mutationFn: messagesService.markThreadAsRead,
     onSuccess: (_, threadId) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ["messages", threadId] 
+      queryClient.invalidateQueries({
+        queryKey: ["messages", threadId],
       });
       queryClient.invalidateQueries({ queryKey: ["threads"] });
       queryClient.invalidateQueries({ queryKey: ["unreadCount"] });
@@ -209,10 +215,10 @@ export const useMarkAsRead = () => {
   });
 };
 
-// ✅ CORRECTION : Hook qui ne se déclenche que si l'utilisateur est authentifié
+// ✅ CORRECTION : Hook compatible React Query v5
 export const useUnreadCount = () => {
   const isAuth = authService.isAuthenticated();
-  
+
   return useQuery({
     queryKey: ["unreadCount"],
     queryFn: messagesService.getUnreadCount,
@@ -220,6 +226,6 @@ export const useUnreadCount = () => {
     staleTime: 10 * 1000, // 10 secondes
     refetchInterval: isAuth ? 30 * 1000 : false, // ✅ Pas de refetch automatique si non authentifié
     retry: false, // ✅ Pas de retry sur erreur pour éviter les boucles
-    suspense: false, // ✅ IMPORTANT : Désactiver suspense pour éviter les warnings
+    // ✅ SUPPRIMÉ: suspense (n'existe plus dans React Query v5)
   });
 };

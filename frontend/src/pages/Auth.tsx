@@ -1,4 +1,4 @@
-// src/pages/Auth.tsx - CORRECTION POUR UTILISER LE CONTEXTE
+// src/pages/Auth.tsx - CORRECTION AVEC TYPES D'ERREUR PROPRES
 import { Helmet } from "react-helmet-async";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -18,16 +18,21 @@ import {
   LoginRequest,
   RegisterRequest,
 } from "@/services/auth";
-import { useAuth } from "@/contexts/AuthContext"; // ✅ AJOUT DU CONTEXTE
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+
+// ✅ CORRECTION : Définir le type d'erreur proper
+interface AuthError {
+  message?: string;
+  status?: number;
+}
 
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
 
-  // ✅ CORRECTION : Utiliser le contexte d'authentification
   const { login: authLogin } = useAuth();
 
   // États pour les formulaires
@@ -54,10 +59,7 @@ const Auth = () => {
     try {
       console.log("🚀 Tentative de connexion:", loginData);
 
-      // ✅ CORRECTION : Récupérer la réponse de la mutation
       const authResponse = await loginMutation.mutateAsync(loginData);
-
-      // ✅ CORRECTION : Utiliser le contexte pour mettre à jour l'état global
       authLogin(authResponse.user);
 
       toast({
@@ -65,11 +67,14 @@ const Auth = () => {
         description: "Vous êtes maintenant connecté.",
       });
       navigate(redirectTo);
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ Erreur de connexion:", error);
+
+      // ✅ CORRECTION : Gestion d'erreur avec type guard
+      const authError = error as AuthError;
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Vérifiez vos identifiants.",
+        description: authError.message || "Vérifiez vos identifiants.",
         variant: "destructive",
       });
     }
@@ -120,10 +125,7 @@ const Auth = () => {
 
       console.log("📦 Données nettoyées à envoyer:", cleanedData);
 
-      // ✅ CORRECTION : Récupérer la réponse de la mutation
       const authResponse = await registerMutation.mutateAsync(cleanedData);
-
-      // ✅ CORRECTION : Utiliser le contexte pour mettre à jour l'état global
       authLogin(authResponse.user);
 
       toast({
@@ -131,11 +133,14 @@ const Auth = () => {
         description: "Votre compte a été créé avec succès.",
       });
       navigate(redirectTo);
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ Erreur d'inscription:", error);
+
+      // ✅ CORRECTION : Gestion d'erreur avec type guard
+      const authError = error as AuthError;
       toast({
         title: "Erreur d'inscription",
-        description: error.message || "Une erreur est survenue.",
+        description: authError.message || "Une erreur est survenue.",
         variant: "destructive",
       });
     }
