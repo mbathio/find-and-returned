@@ -1,17 +1,16 @@
+// backend/src/main/java/com/retrouvtout/security/JwtTokenProvider.java
 package com.retrouvtout.security;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.util.Date;
 
 /**
- * Fournisseur de tokens JWT pour l'authentification
+ * ✅ FOURNISSEUR JWT CORRIGÉ - Gère la création et validation des tokens JWT
  */
 @Component
 public class JwtTokenProvider {
@@ -25,155 +24,195 @@ public class JwtTokenProvider {
     @Value("${app.jwt.refresh-expiration}")
     private long refreshTokenExpirationInMs;
 
-    private static final String ISSUER = "retrouvtout-api";
-    private static final String AUDIENCE = "retrouvtout-app";
-
     /**
-     * Générer un token d'accès
+     * ✅ Générer un token d'accès JWT
      */
     public String generateToken(String userId) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        try {
+            Date now = new Date();
+            Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
-        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
 
-        return JWT.create()
-                .withIssuer(ISSUER)
-                .withAudience(AUDIENCE)
-                .withSubject(userId)
-                .withIssuedAt(now)
-                .withExpiresAt(expiryDate)
-                .withClaim("type", "access")
-                .sign(algorithm);
+            String token = Jwts.builder()
+                .setSubject(userId) // ✅ L'ID utilisateur comme subject
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(key, SignatureAlgorithm.HS512)
+                .compact();
+
+            System.out.println("✅ Token JWT généré pour utilisateur: " + userId);
+            System.out.println("✅ Expiration: " + expiryDate);
+            
+            return token;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la génération du token: " + e.getMessage());
+            throw new RuntimeException("Impossible de générer le token JWT", e);
+        }
     }
 
     /**
-     * Générer un token de rafraîchissement
+     * ✅ Générer un refresh token JWT (plus longue durée)
      */
     public String generateRefreshToken(String userId) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + refreshTokenExpirationInMs);
+        try {
+            Date now = new Date();
+            Date expiryDate = new Date(now.getTime() + refreshTokenExpirationInMs);
 
-        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
 
-        return JWT.create()
-                .withIssuer(ISSUER)
-                .withAudience(AUDIENCE)
-                .withSubject(userId)
-                .withIssuedAt(now)
-                .withExpiresAt(expiryDate)
-                .withClaim("type", "refresh")
-                .sign(algorithm);
+            String token = Jwts.builder()
+                .setSubject(userId)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .claim("type", "refresh") // ✅ Marquer comme refresh token
+                .signWith(key, SignatureAlgorithm.HS512)
+                .compact();
+
+            System.out.println("✅ Refresh token généré pour utilisateur: " + userId);
+            
+            return token;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la génération du refresh token: " + e.getMessage());
+            throw new RuntimeException("Impossible de générer le refresh token", e);
+        }
     }
 
     /**
-     * Générer un token de réinitialisation de mot de passe
-     */
-    public String generatePasswordResetToken(String userId) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + (60 * 60 * 1000)); // 1 heure
-
-        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
-
-        return JWT.create()
-                .withIssuer(ISSUER)
-                .withAudience(AUDIENCE)
-                .withSubject(userId)
-                .withIssuedAt(now)
-                .withExpiresAt(expiryDate)
-                .withClaim("type", "password_reset")
-                .sign(algorithm);
-    }
-
-    /**
-     * Générer un token de vérification d'email
-     */
-    public String generateEmailVerificationToken(String userId) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 24 heures
-
-        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
-
-        return JWT.create()
-                .withIssuer(ISSUER)
-                .withAudience(AUDIENCE)
-                .withSubject(userId)
-                .withIssuedAt(now)
-                .withExpiresAt(expiryDate)
-                .withClaim("type", "email_verification")
-                .sign(algorithm);
-    }
-
-    /**
-     * Extraire l'ID utilisateur du token
+     * ✅ Extraire l'ID utilisateur depuis le token JWT
      */
     public String getUserIdFromToken(String token) {
         try {
-            DecodedJWT decodedJWT = verifyToken(token);
-            return decodedJWT.getSubject();
-        } catch (JWTVerificationException e) {
-            throw new IllegalArgumentException("Token invalide", e);
-        }
-    }
+            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+            
+            Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
 
-    /**
-     * Obtenir la date d'expiration du token
-     */
-    public Date getExpirationFromToken(String token) {
-        try {
-            DecodedJWT decodedJWT = verifyToken(token);
-            return decodedJWT.getExpiresAt();
-        } catch (JWTVerificationException e) {
-            throw new IllegalArgumentException("Token invalide", e);
-        }
-    }
-
-    /**
-     * Valider un token
-     */
-    public boolean validateToken(String token) {
-        try {
-            verifyToken(token);
-            return true;
-        } catch (JWTVerificationException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Vérifier et décoder un token
-     */
-    private DecodedJWT verifyToken(String token) throws JWTVerificationException {
-        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
-        JWTVerifier verifier = JWT.require(algorithm)
-                .withIssuer(ISSUER)
-                .withAudience(AUDIENCE)
-                .build();
-
-        return verifier.verify(token);
-    }
-
-    /**
-     * Obtenir le type de token
-     */
-    public String getTokenType(String token) {
-        try {
-            DecodedJWT decodedJWT = verifyToken(token);
-            return decodedJWT.getClaim("type").asString();
-        } catch (JWTVerificationException e) {
-            throw new IllegalArgumentException("Token invalide", e);
-        }
-    }
-
-    /**
-     * Vérifier si le token est du type spécifié
-     */
-    public boolean isTokenOfType(String token, String type) {
-        try {
-            String tokenType = getTokenType(token);
-            return type.equals(tokenType);
+            String userId = claims.getSubject();
+            
+            if (userId == null || userId.trim().isEmpty()) {
+                System.err.println("❌ Subject (userId) manquant dans le token");
+                throw new IllegalArgumentException("Token invalide: subject manquant");
+            }
+            
+            System.out.println("✅ UserID extrait du token: " + userId);
+            return userId;
+            
+        } catch (ExpiredJwtException e) {
+            System.err.println("❌ Token expiré: " + e.getMessage());
+            throw new RuntimeException("Token expiré", e);
+        } catch (UnsupportedJwtException e) {
+            System.err.println("❌ Token non supporté: " + e.getMessage());
+            throw new RuntimeException("Token non supporté", e);
+        } catch (MalformedJwtException e) {
+            System.err.println("❌ Token malformé: " + e.getMessage());
+            throw new RuntimeException("Token malformé", e);
+        } catch (SignatureException e) {
+            System.err.println("❌ Signature invalide: " + e.getMessage());
+            throw new RuntimeException("Signature de token invalide", e);
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ Token vide: " + e.getMessage());
+            throw new RuntimeException("Token vide", e);
         } catch (Exception e) {
-            return false;
+            System.err.println("❌ Erreur lors de l'extraction de l'utilisateur: " + e.getMessage());
+            throw new RuntimeException("Erreur lors de l'analyse du token", e);
+        }
+    }
+
+    /**
+     * ✅ Valider le token JWT
+     */
+    public boolean validateToken(String authToken) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+            
+            Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(authToken);
+            
+            System.out.println("✅ Token validé avec succès");
+            return true;
+            
+        } catch (ExpiredJwtException e) {
+            System.err.println("❌ Token expiré: " + e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            System.err.println("❌ Token non supporté: " + e.getMessage());
+        } catch (MalformedJwtException e) {
+            System.err.println("❌ Token malformé: " + e.getMessage());
+        } catch (SignatureException e) {
+            System.err.println("❌ Signature invalide: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ Argument invalide: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("❌ Erreur de validation: " + e.getMessage());
+        }
+        
+        return false;
+    }
+
+    /**
+     * ✅ Obtenir la date d'expiration du token
+     */
+    public Date getExpirationDateFromToken(String token) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+            
+            Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+            return claims.getExpiration();
+            
+        } catch (Exception e) {
+            System.err.println("❌ Impossible d'obtenir l'expiration: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * ✅ Vérifier si le token est expiré
+     */
+    public boolean isTokenExpired(String token) {
+        Date expiration = getExpirationDateFromToken(token);
+        if (expiration == null) {
+            return true;
+        }
+        return expiration.before(new Date());
+    }
+
+    /**
+     * ✅ Générer un token de vérification d'email (24h de validité)
+     */
+    public String generateEmailVerificationToken(String userId) {
+        try {
+            Date now = new Date();
+            Date expiryDate = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 24 heures
+
+            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+
+            String token = Jwts.builder()
+                .setSubject(userId)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .claim("type", "email_verification") // ✅ Marquer comme token de vérification
+                .signWith(key, SignatureAlgorithm.HS512)
+                .compact();
+
+            System.out.println("✅ Token de vérification email généré pour utilisateur: " + userId);
+            
+            return token;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la génération du token de vérification: " + e.getMessage());
+            throw new RuntimeException("Impossible de générer le token de vérification", e);
         }
     }
 }

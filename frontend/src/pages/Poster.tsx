@@ -1,6 +1,6 @@
-// src/pages/Poster.tsx - VERSION CORRIGÉE
+// src/pages/Poster.tsx - VERSION CORRIGÉE AVEC IMPORT
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
+import { useState, useTransition } from "react"; // ✅ Ajout de useTransition
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -22,13 +22,17 @@ import { fr } from "date-fns/locale";
 import { Calendar as CalendarIcon, Upload, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { useCreateListing, useUploadImage, CreateListingRequest } from "@/services/listings";
+import {
+  useCreateListing,
+  useUploadImage,
+  CreateListingRequest,
+} from "@/services/listings";
 import { useNavigate } from "react-router-dom";
 import { authService } from "@/services/auth";
 
 const Poster = () => {
   const navigate = useNavigate();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition(); // ✅ Maintenant correctement importé
   const createListingMutation = useCreateListing();
   const uploadImageMutation = useUploadImage();
 
@@ -48,13 +52,19 @@ const Poster = () => {
 
   // Vérifier l'authentification
   const isAuthenticated = authService.isAuthenticated();
-  
-const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validation du fichier
       const maxSize = 10 * 1024 * 1024; // 10MB
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
 
       if (file.size > maxSize) {
         toast({
@@ -74,7 +84,7 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         return;
       }
 
-      // ✅ CORRECTION : Entourer dans startTransition
+      // ✅ Utilisation de startTransition
       startTransition(() => {
         setSelectedFile(file);
         const url = URL.createObjectURL(file);
@@ -82,7 +92,6 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
       });
     }
   };
-
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +107,13 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
 
     // Validation des champs requis
-    if (!formData.title || !formData.category || !formData.locationText || !date || !formData.description) {
+    if (
+      !formData.title ||
+      !formData.category ||
+      !formData.locationText ||
+      !date ||
+      !formData.description
+    ) {
       toast({
         title: "Champs manquants",
         description: "Veuillez remplir tous les champs obligatoires.",
@@ -141,12 +156,12 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
 
       // Redirection vers la page de l'annonce
       navigate(`/annonces/${newListing.id}`);
-
     } catch (error: any) {
       console.error("Erreur lors de la publication:", error);
       toast({
         title: "Erreur de publication",
-        description: error.message || "Une erreur est survenue lors de la publication.",
+        description:
+          error.message || "Une erreur est survenue lors de la publication.",
         variant: "destructive",
       });
     }
@@ -156,7 +171,7 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // ✅ CORRECTION : Entourer dans startTransition
+          // ✅ Utilisation de startTransition
           startTransition(() => {
             setFormData({
               ...formData,
@@ -313,7 +328,9 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
                       onSelect={setDate}
                       initialFocus
                       locale={fr}
-                      disabled={(date) => date > new Date() || date < new Date("2020-01-01")}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("2020-01-01")
+                      }
                     />
                   </PopoverContent>
                 </Popover>
@@ -326,17 +343,17 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
                 <label className="mb-2 block text-sm font-medium">
                   Photo de l'objet
                 </label>
-                <Input 
-                  type="file" 
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" 
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                   onChange={onFile}
                   disabled={uploadImageMutation.isPending}
                 />
                 {uploadImageMutation.isPending && (
                   <div className="mt-2">
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full transition-all duration-300" 
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
@@ -372,17 +389,21 @@ const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
             </div>
 
             <div className="md:col-span-2 flex justify-end gap-3">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="outline"
                 onClick={() => navigate("/annonces")}
               >
                 Annuler
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 variant="hero"
-                disabled={createListingMutation.isPending || uploadImageMutation.isPending}
+                disabled={
+                  createListingMutation.isPending ||
+                  uploadImageMutation.isPending ||
+                  isPending
+                }
               >
                 {createListingMutation.isPending ? (
                   <>

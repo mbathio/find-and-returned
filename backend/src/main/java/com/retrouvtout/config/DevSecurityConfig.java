@@ -1,5 +1,9 @@
+// backend/src/main/java/com/retrouvtout/config/DevSecurityConfig.java - CORRIGÉ
 package com.retrouvtout.config;
 
+import com.retrouvtout.security.JwtAuthenticationFilter;
+import com.retrouvtout.security.JwtAuthenticationEntryPoint;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -10,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -17,13 +22,19 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 /**
- * ✅ CONFIGURATION DE SÉCURITÉ SIMPLIFIÉE POUR LE DÉVELOPPEMENT
- * Configuration ultra-permissive pour éviter les blocages en dev
+ * ✅ CONFIGURATION DE SÉCURITÉ DEV CORRIGÉE
+ * Utilise JWT pour les endpoints protégés mais plus permissive sur les erreurs
  */
 @Configuration
 @EnableWebSecurity
 @Profile("dev")
 public class DevSecurityConfig {
+
+    @Autowired(required = false)
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired(required = false)  
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     /**
      * ✅ Bean PasswordEncoder OBLIGATOIRE
@@ -34,69 +45,62 @@ public class DevSecurityConfig {
     }
 
     /**
-     * ✅ Configuration de sécurité ULTRA-PERMISSIVE pour le développement
+     * ✅ Configuration de sécurité DEV avec JWT mais permissive
      */
     @Bean
     @Order(1)
     public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
-        System.out.println("🔧 Configuration de sécurité DEV - Mode permissif");
+        System.out.println("🔧 Configuration de sécurité DEV - Mode permissif AVEC JWT");
         
-        return http
+        HttpSecurity httpSecurity = http
             // ✅ Désactiver CSRF complètement
             .csrf(csrf -> csrf.disable())
             
             // ✅ Configuration CORS ultra-permissive
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             
-            // ✅ Autoriser ABSOLUMENT TOUT en développement
-            .authorizeHttpRequests(authz -> authz
-                // Health checks
-                .requestMatchers("/", "/health", "/actuator/**").permitAll()
-                
-                // API d'authentification - TOUT AUTORISER
-                .requestMatchers("/api/auth/**").permitAll()
-                
-                // Tests de DB
-                .requestMatchers("/api/db-test/**").permitAll()
-                
-                // API de test
-                .requestMatchers("/api/test/**").permitAll()
-                .requestMatchers("/api/ping").permitAll()
-                .requestMatchers("/api/cors-test").permitAll()
-                
-                // Tous les endpoints API (permissif en dev)
-                .requestMatchers("/api/**").permitAll()
-                
-                // Swagger/OpenAPI
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
-                
-                // Fichiers statiques
-                .requestMatchers("/files/**", "/uploads/**", "/static/**").permitAll()
-                
-                // Chrome DevTools et autres
-                .requestMatchers("/.well-known/**").permitAll()
-                .requestMatchers("/favicon.ico").permitAll()
-                
-                // AUTORISER TOUT LE RESTE
-                .anyRequest().permitAll()
-            )
+            // ✅ Point d'entrée pour l'authentification (plus permissif en dev)
+            .exceptionHandling(exception -> {
+                if (jwtAuthenticationEntryPoint != null) {
+                    exception.authenticationEntryPoint(jwtAuthenticationEntryPoint);
+                }
+            })
             
-            // ✅ Session stateless pour les API REST
+            // ✅ Session stateless pour JWT
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             
-            // ✅ Désactiver toutes les protections en dev
-            .headers(headers -> headers
-                .frameOptions().disable()
-                .contentTypeOptions().disable()
-                .httpStrictTransportSecurity().disable())
-            
-            // ✅ Pas d'authentification de base
-            .httpBasic().disable()
-            .formLogin().disable()
-            .logout().disable()
-            
-            .build();
+            // ✅ Configuration des autorisations - AVEC authentification pour certains endpoints
+            .authorizeHttpRequests(authz -> authz
+                // Endpoints complètement publics
+                .requestMatchers("/", "/health", "/actuator/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll() // Login/register
+                .requestMatchers("/api/test/**", "/api/ping", "/api/cors-test").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                .requestMatchers("/files/**", "/uploads/**", "/static/**").permitAll()
+                .requestMatchers("/.well-known/**", "/favicon.ico").permitAll()
+                
+                // ✅ Endpoints qui NÉCESSITENT l'authentification JWT
+                .requestMatchers("/api/users/me").authenticated() // ✅ IMPORTANT!
+                .requestMatchers("/api/messages/**").authenticated()
+                .requestMatchers("/api/threads/**").authenticated()
+                
+                // ✅ Tous les autres endpoints API permis en dev (pour éviter les blocages)
+                .requestMatchers("/api/**").permitAll()
+                
+                // Tout le reste permis
+                .anyRequest().permitAll()
+            );
+
+        // ✅ CRUCIAL: Ajouter le filtre JWT SEULEMENT s'il existe
+        if (jwtAuthenticationFilter != null) {
+            httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            System.out.println("✅ Filtre JWT ajouté à la chaîne de sécurité");
+        } else {
+            System.out.println("⚠️ JwtAuthenticationFilter non trouvé - JWT désactivé");
+        }
+        
+        return httpSecurity.build();
     }
 
     /**

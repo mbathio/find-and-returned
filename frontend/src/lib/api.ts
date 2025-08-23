@@ -1,8 +1,8 @@
-// src/lib/api.ts - VERSION CORRIGÉE AVEC DEBUG
+// src/lib/api.ts - VERSION CORRIGÉE AVEC REFRESH TOKEN
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8081/api"; // ✅ Port corrigé 8081
+  import.meta.env.VITE_API_URL || "http://localhost:8081/api";
 
-console.log("🔧 API_BASE_URL configuré:", API_BASE_URL); // ✅ Debug
+console.log("🔧 API_BASE_URL configuré:", API_BASE_URL);
 
 class ApiError extends Error {
   constructor(
@@ -15,7 +15,6 @@ class ApiError extends Error {
   }
 }
 
-// Configuration Axios avec intercepteurs
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 
 class ApiClient {
@@ -42,14 +41,13 @@ class ApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // ✅ Debug amélioré
         if (import.meta.env.DEV) {
           console.log(
             `🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${
               config.url
             }`
           );
-          console.log(`📦 Request data:`, config.data);
+          if (config.data) console.log(`📦 Request data:`, config.data);
         }
 
         return config;
@@ -60,10 +58,9 @@ class ApiClient {
       }
     );
 
-    // Response interceptor pour gérer les erreurs
+    // Response interceptor pour gérer les erreurs et refresh token
     this.client.interceptors.response.use(
       (response) => {
-        // ✅ Debug amélioré
         if (import.meta.env.DEV) {
           console.log(
             `✅ API Response: ${response.status} ${response.config.url}`
@@ -73,7 +70,6 @@ class ApiClient {
         return response;
       },
       async (error) => {
-        // ✅ Debug amélioré
         if (import.meta.env.DEV) {
           console.error(
             `❌ API Error: ${error.response?.status || "Network"} ${
@@ -86,21 +82,46 @@ class ApiClient {
 
         const originalRequest = error.config;
 
+        // ✅ CORRECTION : Gestion du refresh token avec la bonne structure de données
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
             const refreshToken = localStorage.getItem("refresh_token");
             if (refreshToken) {
-              const response = await this.refreshAuthToken(refreshToken);
-              localStorage.setItem("auth_token", response.data.access_token);
+              console.log("🔄 Tentative de refresh du token...");
+
+              const refreshResponse = await this.refreshAuthToken(refreshToken);
+
+              // ✅ CORRECTION : Accès correct aux données dans ApiResponse<AuthResponse>
+              const authData = refreshResponse.data.data; // data.data car ApiResponse<AuthResponse>
+              const newAccessToken = authData.accessToken; // camelCase comme défini dans AuthResponse
+              const newRefreshToken = authData.refreshToken;
+
+              console.log("✅ Token rafraîchi avec succès");
+
+              // Sauvegarder les nouveaux tokens
+              localStorage.setItem("auth_token", newAccessToken);
+              if (newRefreshToken) {
+                localStorage.setItem("refresh_token", newRefreshToken);
+              }
+
+              // Mettre à jour l'header pour la requête originale
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+              // Mettre à jour l'header par défaut pour les futures requêtes
+              this.client.defaults.headers.common[
+                "Authorization"
+              ] = `Bearer ${newAccessToken}`;
+
+              // Réessayer la requête originale
               return this.client(originalRequest);
             }
           } catch (refreshError) {
-            // Rediriger vers login
-            localStorage.removeItem("auth_token");
-            localStorage.removeItem("refresh_token");
-            window.location.href = "/auth";
+            console.error("❌ Échec du refresh token:", refreshError);
+            // Nettoyer les tokens et rediriger
+            this.clearAuthAndRedirect();
+            return Promise.reject(refreshError);
           }
         }
 
@@ -116,7 +137,33 @@ class ApiClient {
   }
 
   private async refreshAuthToken(refreshToken: string) {
-    return this.client.post("/auth/refresh", { refreshToken });
+    // ✅ Faire la requête de refresh sans intercepteur pour éviter la boucle
+    return axios.post(
+      `${API_BASE_URL}/auth/refresh`,
+      { refreshToken },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      }
+    );
+  }
+
+  private clearAuthAndRedirect() {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+
+    // Rediriger vers la page de connexion seulement si on n'y est pas déjà
+    if (!window.location.pathname.includes("/auth")) {
+      const currentPath = window.location.pathname;
+      const redirectParam =
+        currentPath !== "/"
+          ? `?redirect=${encodeURIComponent(currentPath)}`
+          : "";
+      window.location.href = `/auth${redirectParam}`;
+    }
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
