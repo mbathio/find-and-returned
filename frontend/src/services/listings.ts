@@ -73,9 +73,9 @@ export interface ApiResponse<T> {
 }
 
 class ListingsService {
-  // ✅ CORRECTION: Utiliser "listings" sans le slash initial
-  // L'apiClient ajoute déjà le préfixe /api automatiquement
-  private readonly baseUrl = "listings";
+  // ✅ CORRECTION IMPORTANTE: Enlever le préfixe "api/"
+  // L'apiClient ajoute déjà le préfixe /api automatiquement via API_BASE_URL
+  private readonly baseUrl = "listings"; // ✅ SANS "api/" au début
 
   async getListings(
     params: ListingsSearchParams = {}
@@ -104,11 +104,11 @@ class ListingsService {
   }
 
   async createListing(data: CreateListingRequest): Promise<Listing> {
-    console.log("Creating listing with data:", data);
-    console.log("URL will be:", this.baseUrl); // Debug
+    console.log("🚀 Creating listing with data:", data);
+    console.log("🔗 URL will be:", `${this.baseUrl}`); // listings -> /api/listings
 
     const response = await apiClient.post<ApiResponse<Listing>>(
-      this.baseUrl,
+      this.baseUrl, // ✅ "listings" -> URL finale: /api/listings
       data
     );
     return response.data;
@@ -133,8 +133,9 @@ class ListingsService {
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<{ url: string }> {
+    // ✅ CORRECTION: Utiliser le bon endpoint d'upload
     const response = await apiClient.uploadFile<ApiResponse<{ url: string }>>(
-      "upload/image", // ✅ Sans slash initial non plus
+      "upload/image", // ✅ Sans préfixe "api/" -> URL finale: /api/upload/image
       file,
       onProgress
     );
@@ -175,7 +176,7 @@ export const useCreateListing = () => {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
     },
     onError: (error) => {
-      console.error("Create listing error:", error);
+      console.error("❌ Create listing error:", error);
     },
   });
 };

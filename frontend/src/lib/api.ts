@@ -1,6 +1,8 @@
-// ✅ FICHIER 4: src/lib/api.ts (Frontend - avec withCredentials)
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8081/api";
+// ✅ FICHIER CORRIGÉ: src/lib/api.ts (Frontend - Configuration API_BASE_URL)
+
+// ✅ CORRECTION CRITIQUE: Enlever /api du base URL
+// Le problème était ici - on avait une double addition de /api
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8081"; // ✅ SANS /api à la fin
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 
@@ -25,9 +27,9 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: API_BASE_URL, // ✅ Maintenant: "http://localhost:8081" sans /api
       timeout: 10000,
-      withCredentials: true, // ✅ AJOUTÉ : Active les credentials pour toutes les requêtes
+      withCredentials: true,
       headers: {
         "Content-Type": "application/json",
       },
@@ -162,13 +164,14 @@ class ApiClient {
     try {
       console.log("🔄 Tentative de refresh du token...");
 
+      // ✅ CORRECTION: Utiliser l'URL complète pour le refresh
       const refreshResponse = await axios.post(
-        `${API_BASE_URL}/auth/refresh`,
+        `${API_BASE_URL}/api/auth/refresh`, // ✅ URL complète avec /api/auth/refresh
         { refreshToken },
         {
           headers: { "Content-Type": "application/json" },
           timeout: 10000,
-          withCredentials: true, // ✅ AJOUTÉ aussi pour le refresh
+          withCredentials: true,
         }
       );
 
@@ -233,8 +236,9 @@ class ApiClient {
     }
   }
 
+  // ✅ CORRECTION: Maintenant toutes ces méthodes ajoutent automatiquement /api/
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<T>(url, config);
+    const response = await this.client.get<T>(`/api/${url}`, config);
     return response.data;
   }
 
@@ -243,7 +247,7 @@ class ApiClient {
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await this.client.post<T>(url, data, config);
+    const response = await this.client.post<T>(`/api/${url}`, data, config);
     return response.data;
   }
 
@@ -252,7 +256,7 @@ class ApiClient {
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await this.client.put<T>(url, data, config);
+    const response = await this.client.put<T>(`/api/${url}`, data, config);
     return response.data;
   }
 
@@ -261,12 +265,12 @@ class ApiClient {
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await this.client.patch<T>(url, data, config);
+    const response = await this.client.patch<T>(`/api/${url}`, data, config);
     return response.data;
   }
 
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<T>(url, config);
+    const response = await this.client.delete<T>(`/api/${url}`, config);
     return response.data;
   }
 
@@ -278,7 +282,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await this.client.post<T>(url, formData, {
+    const response = await this.client.post<T>(`/api/${url}`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
