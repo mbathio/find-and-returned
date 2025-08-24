@@ -1,4 +1,4 @@
-// src/services/auth.ts - CORRECTION méthode getStoredUser publique
+// src/services/auth.ts - VERSION CORRIGÉE - URLs sans double préfixe
 import { apiClient } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -46,8 +46,10 @@ class AuthService {
   login = async (credentials: LoginRequest): Promise<AuthResponse> => {
     console.log("🚀 AuthService.login - Tentative de connexion");
 
+    // ✅ CORRECTION : URL directe sans préfixe
+    // "auth/login" → "http://localhost:8081/api/auth/login" ✅
     const res = await apiClient.post<ApiResponse<AuthResponse>>(
-      "/auth/login",
+      "auth/login",
       credentials
     );
 
@@ -62,8 +64,9 @@ class AuthService {
   register = async (userData: RegisterRequest): Promise<AuthResponse> => {
     console.log("🚀 AuthService.register - Tentative d'inscription");
 
+    // ✅ CORRECTION : URL directe sans préfixe
     const res = await apiClient.post<ApiResponse<AuthResponse>>(
-      "/auth/register",
+      "auth/register",
       userData
     );
 
@@ -76,8 +79,9 @@ class AuthService {
   };
 
   refreshToken = async (refreshToken: string): Promise<AuthResponse> => {
+    // ✅ CORRECTION : URL directe sans préfixe
     const res = await apiClient.post<ApiResponse<AuthResponse>>(
-      "/auth/refresh",
+      "auth/refresh",
       { refreshToken }
     );
 
@@ -90,7 +94,8 @@ class AuthService {
     const token = localStorage.getItem("auth_token");
     if (token) {
       try {
-        await apiClient.post("/auth/logout", {});
+        // ✅ CORRECTION : URL directe sans préfixe
+        await apiClient.post("auth/logout", {});
       } catch (error) {
         console.error("Logout error:", error);
       }
@@ -104,7 +109,9 @@ class AuthService {
       "🔍 AuthService.getCurrentUser - Récupération utilisateur actuel"
     );
 
-    const res = await apiClient.get<ApiResponse<User>>("/users/me");
+    // ✅ CORRECTION : URL directe sans préfixe
+    // "users/me" → "http://localhost:8081/api/users/me" ✅
+    const res = await apiClient.get<ApiResponse<User>>("users/me");
 
     console.log("✅ AuthService.getCurrentUser - Utilisateur récupéré:", res);
 
@@ -133,7 +140,7 @@ class AuthService {
     localStorage.removeItem("user");
   };
 
-  // ✅ CORRECTION : Rendre getStoredUser publique
+  // Rendre getStoredUser publique
   getStoredUser = (): User | null => {
     const userStr = localStorage.getItem("user");
     return userStr ? JSON.parse(userStr) : null;

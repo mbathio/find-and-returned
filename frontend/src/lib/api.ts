@@ -1,8 +1,21 @@
-// src/lib/api.ts - Configuration API définitivement corrigée
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
+// src/lib/api.ts - VERSION DÉFINITIVE CORRIGÉE - Gestion propre des URLs
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
+
+// ✅ CORRECTION DÉFINITIVE : Fonction pour nettoyer les URLs
+const getApiBaseUrl = (): string => {
+  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
+
+  // Si l'URL contient déjà /api, on l'utilise telle quelle
+  if (baseUrl.endsWith("/api")) {
+    return baseUrl;
+  }
+
+  // Sinon, on ajoute /api
+  return `${baseUrl}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiError extends Error {
   constructor(
@@ -25,13 +38,15 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: API_BASE_URL, // ✅ URL propre, sans double /api
       timeout: 10000,
       withCredentials: true,
       headers: {
         "Content-Type": "application/json",
       },
     });
+
+    console.log("🔧 API Client initialized with baseURL:", API_BASE_URL);
 
     const bootToken = this.getStoredAccessToken();
     if (bootToken) {
@@ -63,9 +78,12 @@ class ApiClient {
             }`
           );
           if (config.headers?.Authorization) {
+            const authHeader = config.headers.Authorization;
+            const authString =
+              typeof authHeader === "string" ? authHeader : String(authHeader);
             console.log(
               "👉 Authorization header:",
-              config.headers.Authorization
+              authString.substring(0, 20) + "..."
             );
           }
           if (config.data) console.log(`📦 Request data:`, config.data);
@@ -162,8 +180,9 @@ class ApiClient {
     try {
       console.log("🔄 Tentative de refresh du token...");
 
+      // ✅ Utiliser axios avec URL complète pour le refresh pour éviter les interceptors
       const refreshResponse = await axios.post(
-        `${API_BASE_URL}/api/auth/refresh`,
+        `${API_BASE_URL}/auth/refresh`,
         { refreshToken },
         {
           headers: { "Content-Type": "application/json" },
@@ -233,14 +252,10 @@ class ApiClient {
     }
   }
 
-  // SOLUTION RADICALE: Nettoyer complètement les URLs
+  // ✅ CORRECTION : URLs nettoyées pour éviter les doubles slashes
   private cleanUrl(url: string): string {
-    // Supprimer tous les préfixes /api existants
-    let cleanedUrl = url.replace(/^\/api\/+/g, "");
-    cleanedUrl = cleanedUrl.replace(/^api\/+/g, "");
-
-    // Assurer qu'on a un seul /api au début
-    return `/api/${cleanedUrl}`;
+    // Supprimer les slashes multiples et s'assurer qu'on commence par /
+    return ("/" + url).replace(/\/+/g, "/");
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
@@ -313,7 +328,7 @@ class ApiClient {
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.get("health");
+      await this.get("/health");
       return true;
     } catch {
       return false;
