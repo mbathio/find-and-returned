@@ -1,3 +1,5 @@
+// backend/src/main/java/com/retrouvtout/service/ListingService.java - VERSION CORRIGÉE COMPILATION
+
 package com.retrouvtout.service;
 
 import com.retrouvtout.dto.request.CreateListingRequest;
@@ -20,14 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Service pour la gestion des annonces conforme au cahier des charges
- * Section 3.2 - Gestion des annonces d'objets retrouvés
- * CORRIGÉ - Suppression des méthodes non existantes
- */
 @Service
 @Transactional
 public class ListingService {
@@ -46,6 +44,133 @@ public class ListingService {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.notificationService = notificationService;
+    }
+
+    /**
+     * ✅ CORRECTION COMPILATION : Créer une annonce avec gestion complète des données
+     */
+    public ListingResponse createListing(CreateListingRequest request, String userId) {
+        System.out.println("🔧 CREATE LISTING - DÉBUT");
+        System.out.println("  - UserId: " + userId);
+        System.out.println("  - Request data: " + request);
+        
+        try {
+            // 1. ✅ Récupérer l'utilisateur
+            User finderUser = userRepository.findByIdAndActiveTrue(userId)
+                .orElseThrow(() -> {
+                    System.err.println("❌ Utilisateur non trouvé: " + userId);
+                    return new ResourceNotFoundException("Utilisateur", "id", userId);
+                });
+            System.out.println("✅ Utilisateur trouvé: " + finderUser.getName());
+
+            // 2. ✅ Conversion et validation de la catégorie
+            Listing.ListingCategory category;
+            try {
+                category = Listing.ListingCategory.fromValue(request.getCategory());
+                System.out.println("✅ Catégorie convertie: " + category.name() + " (" + category.getValue() + ")");
+            } catch (Exception e) {
+                System.err.println("❌ Erreur conversion catégorie: " + e.getMessage());
+                throw new IllegalArgumentException("Catégorie invalide: " + request.getCategory());
+            }
+
+            // 3. ✅ CORRECTION : Parsing de la date foundAt depuis le frontend (String -> LocalDateTime)
+            LocalDateTime foundAt;
+            try {
+                if (request.getFoundAt() != null && !request.getFoundAt().trim().isEmpty()) {
+                    // ✅ CORRECTION : request.getFoundAt() est un String, pas un LocalDateTime
+                    String foundAtStr = request.getFoundAt().trim();
+                    foundAt = LocalDateTime.parse(foundAtStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    System.out.println("✅ Date parsée: " + foundAt);
+                } else {
+                    // Fallback si pas de date fournie
+                    foundAt = LocalDateTime.now();
+                    System.out.println("⚠️ Date non fournie, utilisation de maintenant: " + foundAt);
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Erreur parsing date: " + e.getMessage());
+                System.err.println("📍 Date reçue: '" + request.getFoundAt() + "'");
+                throw new IllegalArgumentException("Format de date invalide. Utilisez le format YYYY-MM-DDTHH:mm:ss");
+            }
+
+            // 4. ✅ Création de l'entité Listing avec TOUS les champs
+            Listing listing = new Listing();
+            listing.setId(java.util.UUID.randomUUID().toString()); // ID unique
+            listing.setFinderUser(finderUser); // ✅ Utilisateur obligatoire
+            listing.setTitle(request.getTitle().trim()); // ✅ Titre obligatoire (String.trim())
+            listing.setCategory(category); // ✅ Catégorie convertie
+            listing.setLocationText(request.getLocationText().trim()); // ✅ Lieu obligatoire (String.trim())
+            listing.setFoundAt(foundAt); // ✅ Date obligatoire (JAMAIS NULL)
+            listing.setDescription(request.getDescription().trim()); // ✅ Description obligatoire (String.trim())
+            
+            // ✅ CORRECTION : Champs optionnels avec conversion correcte
+            if (request.getLatitude() != null) {
+                // ✅ CORRECTION : request.getLatitude() est déjà un BigDecimal ou Number
+                if (request.getLatitude() instanceof BigDecimal) {
+                    listing.setLatitude((BigDecimal) request.getLatitude());
+                } else {
+                    // Si c'est un Number (Double, Float, etc.)
+                    listing.setLatitude(BigDecimal.valueOf(((Number) request.getLatitude()).doubleValue()));
+                }
+            }
+            
+            if (request.getLongitude() != null) {
+                // ✅ CORRECTION : request.getLongitude() est déjà un BigDecimal ou Number
+                if (request.getLongitude() instanceof BigDecimal) {
+                    listing.setLongitude((BigDecimal) request.getLongitude());
+                } else {
+                    // Si c'est un Number (Double, Float, etc.)
+                    listing.setLongitude(BigDecimal.valueOf(((Number) request.getLongitude()).doubleValue()));
+                }
+            }
+            
+            listing.setImageUrl(request.getImageUrl());
+            
+            // Champs par défaut
+            listing.setStatus(Listing.ListingStatus.ACTIVE);
+            listing.setViewsCount(0L);
+            listing.setIsModerated(false); // Modération manuelle
+            
+            // Dates d'audit (normalement gérées par @PrePersist mais on s'assure)
+            LocalDateTime now = LocalDateTime.now();
+            listing.setCreatedAt(now);
+            listing.setUpdatedAt(now);
+
+            System.out.println("✅ Entité Listing créée avec tous les champs:");
+            System.out.println("  - ID: " + listing.getId());
+            System.out.println("  - Title: " + listing.getTitle());
+            System.out.println("  - Category: " + listing.getCategory());
+            System.out.println("  - FoundAt: " + listing.getFoundAt());
+            System.out.println("  - Location: " + listing.getLocationText());
+
+            // 5. ✅ Sauvegarde en base
+            Listing savedListing = listingRepository.save(listing);
+            System.out.println("✅ Annonce sauvée avec ID: " + savedListing.getId());
+
+            // 6. ✅ Vérification post-sauvegarde
+            if (savedListing.getFoundAt() == null) {
+                System.err.println("❌ ATTENTION: foundAt est NULL après sauvegarde !");
+                throw new RuntimeException("Erreur de sauvegarde: foundAt ne doit pas être null");
+            }
+
+            // 7. ✅ Conversion en DTO avec vérification
+            ListingResponse response = modelMapper.mapListingToListingResponse(savedListing);
+            System.out.println("✅ Mapping réussi - Response ID: " + response.getId());
+
+            // 8. ✅ Déclencher les notifications (optionnel, ne pas faire échouer)
+            try {
+                triggerNotificationsForNewListing(savedListing);
+            } catch (Exception notifError) {
+                System.err.println("⚠️ Erreur notifications (non bloquante): " + notifError.getMessage());
+            }
+
+            System.out.println("✅ CREATE LISTING - TERMINÉ AVEC SUCCÈS");
+            return response;
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans createListing: " + e.getMessage());
+            e.printStackTrace();
+            throw e; // Relancer l'exception pour qu'elle soit traitée par le contrôleur
+        }
     }
 
     /**
@@ -104,7 +229,15 @@ public class ListingService {
         Page<Listing> listings = listingRepository.findAll(spec, pageable);
         
         List<ListingResponse> listingResponses = listings.getContent().stream()
-            .map(modelMapper::mapListingToListingResponse)
+            .map(listing -> {
+                try {
+                    return modelMapper.mapListingToListingResponse(listing);
+                } catch (Exception e) {
+                    System.err.println("❌ Erreur mapping listing ID " + listing.getId() + ": " + e.getMessage());
+                    return null; // Ou créer un DTO minimal
+                }
+            })
+            .filter(response -> response != null) // Filtrer les nulls
             .collect(Collectors.toList());
 
         return modelMapper.createPagedResponse(
@@ -124,33 +257,6 @@ public class ListingService {
             .orElseThrow(() -> new ResourceNotFoundException("Annonce", "id", id));
         
         return modelMapper.mapListingToListingResponse(listing);
-    }
-
-    /**
-     * Créer une nouvelle annonce - Section 3.2
-     */
-     public ListingResponse createListing(CreateListingRequest request, String userId) {
-        System.out.println("🔧 CREATE LISTING:");
-        System.out.println("  - Catégorie reçue: '" + request.getCategory() + "'");
-        
-        // ✅ Conversion avec gestion d'erreur
-        Listing.ListingCategory category;
-        try {
-            category = Listing.ListingCategory.fromValue(request.getCategory());
-            System.out.println("  - Catégorie convertie: " + category.name() + " (" + category.getValue() + ")");
-        } catch (Exception e) {
-            System.err.println("❌ Erreur conversion catégorie: " + e.getMessage());
-            throw new IllegalArgumentException("Catégorie invalide: " + request.getCategory());
-        }
-        
-        Listing listing = new Listing();
-        // ... autres champs ...
-        listing.setCategory(category); // ✅ Le converter s'occupera de sauvegarder la bonne valeur
-        
-        Listing saved = listingRepository.save(listing);
-        System.out.println("✅ Annonce sauvée avec catégorie: " + saved.getCategory().getValue());
-        
-        return modelMapper.mapListingToListingResponse(saved);
     }
 
     /**
@@ -255,18 +361,14 @@ public class ListingService {
 
     /**
      * Déclencher les notifications pour une nouvelle annonce - Section 3.3
-     * SIMPLIFIÉ - notification générale sans ciblage spécifique
      */
     private void triggerNotificationsForNewListing(Listing listing) {
         try {
-            // Rechercher tous les utilisateurs propriétaires actifs
-            // Requête simplifiée pour éviter l'erreur findByRole
             List<User> allUsers = userRepository.findAll();
             List<User> interestedUsers = allUsers.stream()
                 .filter(user -> user.getRole() == User.UserRole.PROPRIETAIRE && user.getActive())
                 .collect(Collectors.toList());
             
-            // Pour chaque utilisateur propriétaire, envoyer une notification
             for (User user : interestedUsers) {
                 if (user.getEmailVerified()) {
                     notificationService.notifyObjectFound(user, listing);

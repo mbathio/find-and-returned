@@ -1,4 +1,5 @@
-// CreateListingRequest.java
+// backend/src/main/java/com/retrouvtout/dto/request/CreateListingRequest.java - VERSION CORRIGÉE
+
 package com.retrouvtout.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
@@ -6,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 public class CreateListingRequest {
     
@@ -21,11 +21,13 @@ public class CreateListingRequest {
     @Size(max = 255, message = "Le lieu ne peut pas dépasser 255 caractères")
     private String locationText;
     
+    // ✅ CORRECTION : Utiliser BigDecimal directement (compatible avec le frontend qui envoie des numbers)
     private BigDecimal latitude;
     private BigDecimal longitude;
     
-    @NotNull(message = "La date de découverte est obligatoire")
-    private LocalDateTime foundAt;
+    // ✅ CORRECTION : foundAt est un String ISO depuis le frontend (YYYY-MM-DDTHH:mm:ss)
+    @NotBlank(message = "La date de découverte est obligatoire")
+    private String foundAt; // ISO string depuis le frontend
     
     @NotBlank(message = "La description est obligatoire")
     private String description;
@@ -51,12 +53,27 @@ public class CreateListingRequest {
     public BigDecimal getLongitude() { return longitude; }
     public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
     
-    public LocalDateTime getFoundAt() { return foundAt; }
-    public void setFoundAt(LocalDateTime foundAt) { this.foundAt = foundAt; }
+    // ✅ CORRECTION : foundAt est un String
+    public String getFoundAt() { return foundAt; }
+    public void setFoundAt(String foundAt) { this.foundAt = foundAt; }
     
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    @Override
+    public String toString() {
+        return "CreateListingRequest{" +
+                "title='" + title + '\'' +
+                ", category='" + category + '\'' +
+                ", locationText='" + locationText + '\'' +
+                ", latitude=" + latitude +
+                ", longitude=" + longitude +
+                ", foundAt='" + foundAt + '\'' +
+                ", description='" + description + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
+                '}';
+    }
 }
