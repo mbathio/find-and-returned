@@ -1,5 +1,4 @@
-# ✅ Configuration simplifiée pour résoudre les problèmes d'auth
-
+// ✅ FICHIER 3: backend/src/main/resources/application.yml
 spring:
   application:
     name: retrouvtout-backend
@@ -7,7 +6,9 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
-  # ✅ Base de données - Configuration simplifiée
+  main:
+    allow-bean-definition-overriding: true
+
   datasource:
     url: ${DB_URL:jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:retrouvtout}
@@ -19,7 +20,6 @@ spring:
       connection-timeout: 20000
       idle-timeout: 300000
 
-  # ✅ JPA/Hibernate - Configuration de base
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
@@ -30,27 +30,23 @@ spring:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: false
 
-  # ✅ Sérialisation JSON simplifiée
   jackson:
     serialization:
       write-dates-as-timestamps: false
     default-property-inclusion: NON_NULL
 
-  # ✅ Upload fichiers
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
       max-request-size: 15MB
 
-  # ✅ Email désactivé en dev
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
 
-# ✅ Configuration serveur simplifiée
 server:
   port: ${SERVER_PORT:8081}
   error:
@@ -58,92 +54,58 @@ server:
     include-binding-errors: always
     include-stacktrace: on_param
 
-# ✅ Logging pour debug d'auth
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:WARN}
     com.retrouvtout: ${LOG_LEVEL_APP:INFO}
     org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
     org.springframework.web: ${LOG_LEVEL_WEB:INFO}
-  pattern:
-    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"
 
-# ✅ Configuration application
 app:
-  # Frontend
   frontend:
     url: ${FRONTEND_URL:http://localhost:8080}
 
-  # JWT simplifié
   jwt:
     secret: ${JWT_SECRET:dev-secret-key-for-development-only-not-for-production-use}
     expiration: ${JWT_EXPIRATION:86400000}
     refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
-  # CORS ultra-permissif en dev
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:8080}
+    allowed-origins: http://localhost:8080,http://localhost:3000,http://localhost:5173
     allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS,HEAD
     allowed-headers: "*"
     allow-credentials: true
     max-age: 3600
 
-  # Upload
   upload:
     dir: ${UPLOAD_DIR:./uploads-dev}
     max-file-size: 10485760
     allowed-extensions: jpg,jpeg,png,gif,webp
 
-  # Notifications désactivées en dev
   notifications:
     email:
-      enabled: ${EMAIL_NOTIFICATIONS_ENABLED:false}
+      enabled: false
     sms:
-      enabled: ${SMS_NOTIFICATIONS_ENABLED:false}
+      enabled: false
     push:
-      enabled: ${PUSH_NOTIFICATIONS_ENABLED:false}
-
-  # Sécurité relâchée en dev
-  security:
-    password:
-      min-length: ${PASSWORD_MIN_LENGTH:6}
+      enabled: false
 
 ---
-# ✅ Profil développement
 spring:
   config:
     activate:
       on-profile: dev
 
-  # Cache simple (pas Redis)
   cache:
     type: simple
 
-  # DevTools
   devtools:
     restart:
       enabled: true
     livereload:
       enabled: true
 
-# Logging détaillé en dev
 logging:
   level:
     com.retrouvtout: DEBUG
     org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-
-# Configuration dev spécifique
-app:
-  jwt:
-    secret: dev-secret-key-not-for-production
-    
-  notifications:
-    email:
-      enabled: false
-      from: dev@retrouvtout.com
-      
-  security:
-    password:
-      min-length: 6

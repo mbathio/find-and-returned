@@ -1,8 +1,6 @@
-// src/lib/api.ts
+// ✅ FICHIER 4: src/lib/api.ts (Frontend - avec withCredentials)
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8081/api";
-
-console.log("🔧 API_BASE_URL configuré:", API_BASE_URL);
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 
@@ -17,27 +15,24 @@ class ApiError extends Error {
   }
 }
 
-/** Champs utilitaires ajoutés par nous sur la config axios */
 type RetriableConfig = AxiosRequestConfig & { _retry?: boolean };
 
 class ApiClient {
   private client: AxiosInstance;
-
-  /** Gestion de rafraîchissement (anti-boucle / anti-spam) */
   private isRefreshing = false;
   private refreshQueue: Array<(token: string) => void> = [];
-  private rejectQueue: Array<(err: any) => void> = [];
+  private rejectQueue: Array<(err: unknown) => void> = [];
 
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
       timeout: 10000,
+      withCredentials: true, // ✅ AJOUTÉ : Active les credentials pour toutes les requêtes
       headers: {
         "Content-Type": "application/json",
       },
     });
 
-    // ✅ Si on a déjà un token, on initialise le header par défaut au boot
     const bootToken = this.getStoredAccessToken();
     if (bootToken) {
       this.client.defaults.headers.common[
@@ -48,9 +43,7 @@ class ApiClient {
     this.setupInterceptors();
   }
 
-  /** ============ Interceptors ============ */
   private setupInterceptors() {
-    // ➤ Request: injecter l'Authorization si présent
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getStoredAccessToken();
@@ -69,14 +62,11 @@ class ApiClient {
               config.url
             }`
           );
-          // Log du header d’auth (utile pour déboguer les 401)
           if (config.headers?.Authorization) {
             console.log(
               "👉 Authorization header:",
               config.headers.Authorization
             );
-          } else {
-            console.log("👉 Authorization header: (absent)");
           }
           if (config.data) console.log(`📦 Request data:`, config.data);
         }
@@ -89,7 +79,6 @@ class ApiClient {
       }
     );
 
-    // ➤ Response: gérer 401 + refresh avec queue
     this.client.interceptors.response.use(
       (response) => {
         if (import.meta.env.DEV) {
@@ -113,25 +102,18 @@ class ApiClient {
           console.error(`📦 Error response:`, error.response?.data);
         }
 
-        // Si 401 → tenter refresh (une seule fois par requête)
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
             const refreshedToken = await this.getOrRefreshToken();
-
-            // Mettre à jour l'entête pour la requête originale
             originalRequest.headers = originalRequest.headers || {};
             (
-              originalRequest.headers as any
+              originalRequest.headers as Record<string, string>
             ).Authorization = `Bearer ${refreshedToken}`;
-
-            // Mettre à jour le default pour les futures
             this.client.defaults.headers.common[
               "Authorization"
             ] = `Bearer ${refreshedToken}`;
-
-            // Réessayer la requête originale
             return this.client(originalRequest);
           } catch (refreshError) {
             console.error("❌ Échec du refresh token:", refreshError);
@@ -140,25 +122,21 @@ class ApiClient {
           }
         }
 
-        // Pour les autres cas, lever une ApiError propre
         throw new ApiError(
           error.response?.status || 500,
-          // @ts-ignore
+          // @ts-expect-error: error shape varies
           error.response?.data?.message ||
             error.message ||
             "Une erreur est survenue",
-          // @ts-ignore
+          // @ts-expect-error: response type mismatch
           error.response
         );
       }
     );
   }
 
-  /** ============ Refresh centralisé avec queue ============ */
   private async getOrRefreshToken(): Promise<string> {
     const current = this.getStoredAccessToken();
-
-    // Petite sécurité : si on a encore un token en local, on tente direct son usage
     if (current && current !== "null" && current !== "undefined") {
       return current;
     }
@@ -173,7 +151,6 @@ class ApiClient {
     }
 
     if (this.isRefreshing) {
-      // On s’abonne pour être notifié quand le refresh en cours se termine
       return new Promise<string>((resolve, reject) => {
         this.refreshQueue.push(resolve);
         this.rejectQueue.push(reject);
@@ -185,22 +162,20 @@ class ApiClient {
     try {
       console.log("🔄 Tentative de refresh du token...");
 
-      // ⚠️ Utiliser axios “brut” pour éviter les intercepteurs (et boucles)
       const refreshResponse = await axios.post(
         `${API_BASE_URL}/auth/refresh`,
         { refreshToken },
         {
           headers: { "Content-Type": "application/json" },
           timeout: 10000,
+          withCredentials: true, // ✅ AJOUTÉ aussi pour le refresh
         }
       );
 
-      // Le backend renvoie ApiResponse<AuthResponse>
-      // -> { success, message, data: { access_token, refresh_token, token_type, ... }, timestamp }
       const authData = refreshResponse?.data?.data as {
         access_token: string;
         refresh_token?: string;
-        token_type?: string; // ex: "Bearer"
+        token_type?: string;
       };
 
       if (!authData?.access_token) {
@@ -211,27 +186,23 @@ class ApiClient {
       const newRefresh = authData.refresh_token;
       const scheme = authData.token_type || "Bearer";
 
-      // Sauvegarder
       localStorage.setItem("auth_token", newAccess);
       if (newRefresh) {
         localStorage.setItem("refresh_token", newRefresh);
       }
 
-      // Mettre à jour defaults pour les prochaines requêtes
       this.client.defaults.headers.common[
         "Authorization"
       ] = `${scheme} ${newAccess}`;
 
       console.log("✅ Token rafraîchi avec succès");
 
-      // Réveiller la queue
       this.refreshQueue.forEach((res) => res(newAccess));
       this.refreshQueue = [];
       this.rejectQueue = [];
 
       return newAccess;
     } catch (err) {
-      // Réveiller la queue en erreur
       this.rejectQueue.forEach((rej) => rej(err));
       this.refreshQueue = [];
       this.rejectQueue = [];
@@ -241,7 +212,6 @@ class ApiClient {
     }
   }
 
-  /** ============ Helpers ============ */
   private getStoredAccessToken(): string | null {
     const t = localStorage.getItem("auth_token");
     if (!t || t === "null" || t === "undefined") return null;
@@ -253,7 +223,6 @@ class ApiClient {
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
 
-    // Rediriger vers la page de connexion seulement si on n’y est pas déjà
     if (!window.location.pathname.includes("/auth")) {
       const currentPath = window.location.pathname;
       const redirectParam =
@@ -264,7 +233,6 @@ class ApiClient {
     }
   }
 
-  /** ============ Méthodes HTTP ============ */
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<T>(url, config);
     return response.data;
@@ -288,7 +256,6 @@ class ApiClient {
     return response.data;
   }
 
-  // ✅ Méthode PATCH
   async patch<T>(
     url: string,
     data?: unknown,
