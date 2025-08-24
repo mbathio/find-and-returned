@@ -28,6 +28,7 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\converter\ListingCategoryConverter.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\SmsService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\ThreadService.java
+C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\config\CorsConfig.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\entity\ListingImage.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\exception\AppException.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\security\oauth2\user\GoogleOAuth2UserInfo.java
@@ -56,6 +57,7 @@ C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\re
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\LoginRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\service\MessageService.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\util\AppConstants.java
+C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\controller\AuthDebugController.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\dto\request\CreateModerationFlagRequest.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\repository\OAuthAccountRepository.java
 C:\Users\HP\OneDrive\Desktop\find-and-returned-main\backend\src\main\java\com\retrouvtout\controller\AuthController.java

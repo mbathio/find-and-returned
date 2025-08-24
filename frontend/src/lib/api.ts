@@ -1,8 +1,6 @@
-// ✅ FICHIER CORRIGÉ: src/lib/api.ts (Frontend - Configuration API_BASE_URL)
+// src/lib/api.ts - Configuration API définitivement corrigée
 
-// ✅ CORRECTION CRITIQUE: Enlever /api du base URL
-// Le problème était ici - on avait une double addition de /api
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8081"; // ✅ SANS /api à la fin
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 
@@ -27,7 +25,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL, // ✅ Maintenant: "http://localhost:8081" sans /api
+      baseURL: API_BASE_URL,
       timeout: 10000,
       withCredentials: true,
       headers: {
@@ -164,9 +162,8 @@ class ApiClient {
     try {
       console.log("🔄 Tentative de refresh du token...");
 
-      // ✅ CORRECTION: Utiliser l'URL complète pour le refresh
       const refreshResponse = await axios.post(
-        `${API_BASE_URL}/api/auth/refresh`, // ✅ URL complète avec /api/auth/refresh
+        `${API_BASE_URL}/api/auth/refresh`,
         { refreshToken },
         {
           headers: { "Content-Type": "application/json" },
@@ -236,9 +233,18 @@ class ApiClient {
     }
   }
 
-  // ✅ CORRECTION: Maintenant toutes ces méthodes ajoutent automatiquement /api/
+  // SOLUTION RADICALE: Nettoyer complètement les URLs
+  private cleanUrl(url: string): string {
+    // Supprimer tous les préfixes /api existants
+    let cleanedUrl = url.replace(/^\/api\/+/g, "");
+    cleanedUrl = cleanedUrl.replace(/^api\/+/g, "");
+
+    // Assurer qu'on a un seul /api au début
+    return `/api/${cleanedUrl}`;
+  }
+
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<T>(`/api/${url}`, config);
+    const response = await this.client.get<T>(this.cleanUrl(url), config);
     return response.data;
   }
 
@@ -247,7 +253,11 @@ class ApiClient {
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await this.client.post<T>(`/api/${url}`, data, config);
+    const response = await this.client.post<T>(
+      this.cleanUrl(url),
+      data,
+      config
+    );
     return response.data;
   }
 
@@ -256,7 +266,7 @@ class ApiClient {
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await this.client.put<T>(`/api/${url}`, data, config);
+    const response = await this.client.put<T>(this.cleanUrl(url), data, config);
     return response.data;
   }
 
@@ -265,12 +275,16 @@ class ApiClient {
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response = await this.client.patch<T>(`/api/${url}`, data, config);
+    const response = await this.client.patch<T>(
+      this.cleanUrl(url),
+      data,
+      config
+    );
     return response.data;
   }
 
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<T>(`/api/${url}`, config);
+    const response = await this.client.delete<T>(this.cleanUrl(url), config);
     return response.data;
   }
 
@@ -282,7 +296,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await this.client.post<T>(`/api/${url}`, formData, {
+    const response = await this.client.post<T>(this.cleanUrl(url), formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -299,7 +313,7 @@ class ApiClient {
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.get("/health");
+      await this.get("health");
       return true;
     } catch {
       return false;

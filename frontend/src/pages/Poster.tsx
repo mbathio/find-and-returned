@@ -29,6 +29,7 @@ import {
 } from "@/services/listings";
 import { useNavigate } from "react-router-dom";
 import { authService } from "@/services/auth";
+import { formatLocalDateTime } from "@/utils/dateFormatter";
 
 const Poster = () => {
   const navigate = useNavigate();
@@ -141,7 +142,7 @@ const Poster = () => {
         locationText: formData.locationText,
         latitude: formData.latitude,
         longitude: formData.longitude,
-        foundAt: date.toISOString(), // Format ISO pour LocalDateTime
+        foundAt: formatForLocalDateTime(date), // ✅ Format parfait pour LocalDateTime
         description: formData.description,
         imageUrl: imageUrl,
       };
