@@ -52,7 +52,7 @@ public class EmailService {
         }
 
         try {
-            String verificationToken = tokenProvider.generateEmailVerificationToken(user.getId());
+            String verificationToken = tokenProvider.generateToken(user.getId());
             String verificationUrl = frontendUrl + "/auth/verify-email?token=" + verificationToken;
 
             String subject = "Vérifiez votre adresse email - Retrouv'Tout";

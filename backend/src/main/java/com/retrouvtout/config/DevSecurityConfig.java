@@ -1,4 +1,5 @@
-// backend/src/main/java/com/retrouvtout/config/DevSecurityConfig.java - CORRIGÉ
+// backend/src/main/java/com/retrouvtout/config/DevSecurityConfig.java - CORRECTION FINALE CORS
+
 package com.retrouvtout.config;
 
 import com.retrouvtout.security.JwtAuthenticationFilter;
@@ -19,11 +20,11 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * ✅ CONFIGURATION DE SÉCURITÉ DEV CORRIGÉE
- * Utilise JWT pour les endpoints protégés mais plus permissive sur les erreurs
+ * ✅ CONFIGURATION DE SÉCURITÉ DEV CORRIGÉE - CORS FIXED
  */
 @Configuration
 @EnableWebSecurity
@@ -45,76 +46,19 @@ public class DevSecurityConfig {
     }
 
     /**
-     * ✅ Configuration de sécurité DEV avec JWT mais permissive
-     */
-    @Bean
-    @Order(1)
-    public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
-        System.out.println("🔧 Configuration de sécurité DEV - Mode permissif AVEC JWT");
-        
-        HttpSecurity httpSecurity = http
-            // ✅ Désactiver CSRF complètement
-            .csrf(csrf -> csrf.disable())
-            
-            // ✅ Configuration CORS ultra-permissive
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // ✅ Point d'entrée pour l'authentification (plus permissif en dev)
-            .exceptionHandling(exception -> {
-                if (jwtAuthenticationEntryPoint != null) {
-                    exception.authenticationEntryPoint(jwtAuthenticationEntryPoint);
-                }
-            })
-            
-            // ✅ Session stateless pour JWT
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // ✅ Configuration des autorisations - AVEC authentification pour certains endpoints
-            .authorizeHttpRequests(authz -> authz
-                // Endpoints complètement publics
-                .requestMatchers("/", "/health", "/actuator/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll() // Login/register
-                .requestMatchers("/api/test/**", "/api/ping", "/api/cors-test").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
-                .requestMatchers("/files/**", "/uploads/**", "/static/**").permitAll()
-                .requestMatchers("/.well-known/**", "/favicon.ico").permitAll()
-                
-                // ✅ Endpoints qui NÉCESSITENT l'authentification JWT
-                .requestMatchers("/api/users/me").authenticated() // ✅ IMPORTANT!
-                .requestMatchers("/api/messages/**").authenticated()
-                .requestMatchers("/api/threads/**").authenticated()
-                
-                // ✅ Tous les autres endpoints API permis en dev (pour éviter les blocages)
-                .requestMatchers("/api/**").permitAll()
-                
-                // Tout le reste permis
-                .anyRequest().permitAll()
-            );
-
-        // ✅ CRUCIAL: Ajouter le filtre JWT SEULEMENT s'il existe
-        if (jwtAuthenticationFilter != null) {
-            httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-            System.out.println("✅ Filtre JWT ajouté à la chaîne de sécurité");
-        } else {
-            System.out.println("⚠️ JwtAuthenticationFilter non trouvé - JWT désactivé");
-        }
-        
-        return httpSecurity.build();
-    }
-
-    /**
-     * ✅ Configuration CORS ULTRA-PERMISSIVE pour le développement
+     * ✅ CONFIGURATION CORS CORRIGÉE - Plus de "*" avec allowCredentials
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        System.out.println("🔧 Configuration CORS - Mode ultra-permissif");
+        System.out.println("🔧 Configuration CORS DEV - CORRIGÉE pour allowCredentials");
         
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // ✅ Autoriser TOUTES les origines
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedOrigins(List.of(
+        // ✅ CRITIQUE: Utiliser allowedOriginPatterns au lieu de allowedOrigins avec "*"
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        
+        // ✅ OU utiliser des origines spécifiques (recommandé pour production)
+        configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:8080",
             "http://localhost:3000", 
             "http://localhost:5173",
@@ -123,14 +67,14 @@ public class DevSecurityConfig {
             "http://127.0.0.1:5173"
         ));
         
-        // ✅ Autoriser TOUTES les méthodes HTTP
-        configuration.setAllowedMethods(List.of("*"));
+        // ✅ TOUTES les méthodes HTTP
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
         
-        // ✅ Autoriser TOUS les headers
-        configuration.setAllowedHeaders(List.of("*"));
+        // ✅ TOUS les headers
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         
-        // ✅ Headers exposés pour les API
-        configuration.setExposedHeaders(List.of(
+        // ✅ Headers exposés pour JWT
+        configuration.setExposedHeaders(Arrays.asList(
             "Authorization", 
             "Cache-Control", 
             "Content-Type",
@@ -142,16 +86,86 @@ public class DevSecurityConfig {
             "Access-Control-Allow-Headers"
         ));
         
-        // ✅ Autoriser les credentials
+        // ✅ CRITIQUE: Permettre les credentials pour JWT
         configuration.setAllowCredentials(true);
         
-        // ✅ Cache CORS pendant 1 heure
+        // ✅ Cache de 1 heure
         configuration.setMaxAge(3600L);
 
-        // ✅ Appliquer à TOUTES les routes
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         
         return source;
+    }
+
+    /**
+     * ✅ Configuration de sécurité DEV avec CORS fixé
+     */
+    @Bean
+    @Order(1)
+    public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
+        System.out.println("🔧 Configuration de sécurité DEV - JWT avec CORS corrigé");
+        
+        HttpSecurity httpSecurity = http
+            // ✅ Désactiver CSRF complètement
+            .csrf(csrf -> csrf.disable())
+            
+            // ✅ Configuration CORS avec notre bean
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            
+            // ✅ Point d'entrée pour l'authentification
+            .exceptionHandling(exception -> {
+                if (jwtAuthenticationEntryPoint != null) {
+                    exception.authenticationEntryPoint(jwtAuthenticationEntryPoint);
+                }
+            })
+            
+            // ✅ Session stateless pour JWT
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            
+            // ✅ Configuration des autorisations
+            .authorizeHttpRequests(authz -> authz
+                // Endpoints complètement publics
+                .requestMatchers("/", "/health", "/actuator/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/test/**", "/api/ping", "/api/cors-test").permitAll()
+                .requestMatchers("/api/debug/**", "/api/db-test/**").permitAll()
+                .requestMatchers("/api/auth-debug/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                .requestMatchers("/files/**", "/uploads/**", "/static/**").permitAll()
+                .requestMatchers("/.well-known/**", "/favicon.ico").permitAll()
+                
+                // Endpoints publics en lecture seule
+                .requestMatchers("GET", "/api/listings").permitAll()
+                .requestMatchers("GET", "/api/listings/{id}").permitAll()
+                
+                // ✅ CRITIQUE: Endpoints qui NÉCESSITENT l'authentification JWT
+                .requestMatchers("/api/users/me").authenticated()
+                .requestMatchers("PUT", "/api/users/me").authenticated()
+                .requestMatchers("POST", "/api/listings").authenticated() // ✅ Création d'annonce
+                .requestMatchers("PUT", "/api/listings/**").authenticated()
+                .requestMatchers("DELETE", "/api/listings/**").authenticated()
+                .requestMatchers("/api/messages/**").authenticated()
+                .requestMatchers("/api/threads/**").authenticated()
+                .requestMatchers("POST", "/api/upload/**").authenticated()
+                .requestMatchers("/api/notifications/**").authenticated()
+                
+                // Tous les autres endpoints API permis en dev
+                .requestMatchers("/api/**").permitAll()
+                
+                // Tout le reste permis
+                .anyRequest().permitAll()
+            );
+
+        // ✅ CRUCIAL: Ajouter le filtre JWT
+        if (jwtAuthenticationFilter != null) {
+            httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            System.out.println("✅ Filtre JWT ajouté à la chaîne de sécurité");
+        } else {
+            System.out.println("❌ JwtAuthenticationFilter non trouvé");
+        }
+        
+        return httpSecurity.build();
     }
 }

@@ -1,4 +1,4 @@
-# backend/src/main/resources/application-dev.yml - VERSION CORRIGÉE
+# backend/src/main/resources/application-dev.yml - CORS CORRIGÉ
 
 spring:
   config:
@@ -19,12 +19,12 @@ spring:
       max-lifetime: 1200000
       connection-test-query: SELECT 1
 
-  # Configuration JPA/Hibernate pour MariaDB
+  # Configuration JPA/Hibernate
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
-      ddl-auto: update # ✅ CORRECTION : update au lieu de create-drop
-    show-sql: false # ✅ Désactiver pour réduire le bruit
+      ddl-auto: update
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
@@ -43,44 +43,16 @@ spring:
           use_query_cache: false
     open-in-view: false
 
-  # ✅ CORRECTION : Configuration Redis désactivée pour le développement
-  data:
-    redis:
-      repositories:
-        enabled: false
-
-  # ✅ CORRECTION : Désactiver Flyway pour le développement
-  flyway:
-    enabled: false
-
   # Configuration cache simple (pas Redis)
   cache:
     type: simple
 
-  # Configuration email pour le développement (MailHog ou désactivé)
+  # Configuration email désactivée en dev
   mail:
     host: localhost
     port: 1025
     username:
     password:
-    properties:
-      mail:
-        smtp:
-          auth: false
-          starttls:
-            enable: false
-          connectiontimeout: 5000
-          timeout: 3000
-          writetimeout: 5000
-    default-encoding: UTF-8
-
-  # Configuration multipart (upload fichiers)
-  servlet:
-    multipart:
-      enabled: true
-      max-file-size: 10MB
-      max-request-size: 15MB
-      location: ${java.io.tmpdir}
 
   # Configuration Jackson
   jackson:
@@ -92,66 +64,12 @@ spring:
     default-property-inclusion: NON_NULL
     time-zone: UTC
 
-  # DevTools pour le rechargement automatique
+  # DevTools
   devtools:
     restart:
       enabled: true
-      exclude: static/**,public/**,templates/**
     livereload:
       enabled: true
-      port: 35729
-
-  # Configuration SQL
-  sql:
-    init:
-      mode: never
-
-# Configuration logging pour le développement
-logging:
-  level:
-    root: WARN # ✅ Réduire le niveau pour moins de bruit
-    com.retrouvtout: INFO # ✅ Seulement INFO pour notre app
-    org.springframework.web: WARN
-    org.springframework.security: WARN
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql.BasicBinder: WARN
-    org.mariadb.jdbc: WARN
-    org.springframework.data: WARN
-    org.springframework.orm: WARN
-    org.springframework.transaction: WARN
-  pattern:
-    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"
-  file:
-    name: logs/retrouvtout-dev.log
-    max-size: 10MB
-    max-history: 3
-
-# Configuration Management/Actuator
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-      base-path: /actuator
-  endpoint:
-    health:
-      show-details: always
-      show-components: always
-
-# Configuration OpenAPI/Swagger
-springdoc:
-  api-docs:
-    path: /api-docs
-    enabled: true
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operations-sorter: method
-    tags-sorter: alpha
-    try-it-out-enabled: true
-    display-request-duration: true
-    doc-expansion: none
-    default-model-expand-depth: 3
 
 # Configuration serveur
 server:
@@ -160,16 +78,18 @@ server:
     include-message: always
     include-binding-errors: always
     include-stacktrace: on_param
-    include-exception: false # ✅ Ne pas exposer les stack traces
-  compression:
-    enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
-  servlet:
-    context-path: # ✅ Pas de context-path pour éviter les problèmes d'URL
-    session:
-      timeout: 30m
 
-# Configuration application spécifique
+# Configuration logging pour debug
+logging:
+  level:
+    root: WARN
+    com.retrouvtout: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"
+
+# ✅ CONFIGURATION APPLICATION CORRIGÉE
 app:
   frontend:
     url: http://localhost:8080
@@ -179,6 +99,7 @@ app:
     expiration: 86400000
     refresh-expiration: 604800000
 
+  # ✅ CORS CORRIGÉ : Plus de "*" avec credentials
   cors:
     allowed-origins: http://localhost:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:8080,http://127.0.0.1:3000,http://127.0.0.1:5173
     allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS,HEAD
@@ -195,45 +116,7 @@ app:
   notifications:
     email:
       enabled: false
-      from: dev@retrouvtout.com
-      from-name: "Retrouv'Tout Dev"
     sms:
       enabled: false
-      twilio:
-        account-sid:
-        auth-token:
-        from-number:
     push:
       enabled: false
-      vapid-public-key:
-      vapid-private-key:
-
-  moderation:
-    auto-approve: true
-    max-listings-per-day: 100
-    profanity-filter: false
-
-  geocoding:
-    enabled: false
-    provider: nominatim
-    api-key:
-
-  alerts:
-    max-per-user: 50
-    check-interval: 300000
-    enabled: true
-
-  security:
-    rate-limit:
-      enabled: false
-    password:
-      min-length: 6
-      require-special-chars: false
-
-# Variables d'environnement par défaut pour le développement
-DB_URL: jdbc:mariadb://localhost:3306/retrouvtout_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-DB_USERNAME: retrouvtout
-DB_PASSWORD: password123
-JWT_SECRET: dev-secret-key-not-for-production
-FRONTEND_URL: http://localhost:8080
-UPLOAD_DIR: ./uploads-dev
