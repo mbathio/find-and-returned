@@ -1,4 +1,4 @@
-// src/services/listings.ts - VERSION CORRIGÉE - URLs sans double préfixe
+// src/services/listings.ts - VERSION ROBUSTE - Problème URL undefined résolu
 import { apiClient } from "@/lib/api";
 import {
   useQuery,
@@ -72,12 +72,11 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
-class ListingsService {
-  // ✅ CORRECTION IMPORTANTE: URLs relatives SANS préfixe
-  // apiClient.baseURL = "http://localhost:8081/api"
-  // Donc "listings" → "http://localhost:8081/api/listings" ✅
-  private readonly baseUrl = "listings";
+// ✅ CONSTANTES POUR ÉVITER LE PROBLÈME UNDEFINED
+const LISTINGS_ENDPOINT = "listings";
+const UPLOAD_ENDPOINT = "upload/image";
 
+class ListingsService {
   async getListings(
     params: ListingsSearchParams = {}
   ): Promise<ListingsResponse> {
@@ -89,9 +88,9 @@ class ListingsService {
       }
     });
 
-    const url = `${this.baseUrl}${
-      searchParams.toString() ? `?${searchParams.toString()}` : ""
-    }`;
+    const url = searchParams.toString()
+      ? `${LISTINGS_ENDPOINT}?${searchParams.toString()}`
+      : LISTINGS_ENDPOINT;
 
     if (import.meta.env.DEV) {
       console.log("🔍 Fetching listings with URL:", url);
@@ -103,18 +102,18 @@ class ListingsService {
   }
 
   async getListing(id: string): Promise<Listing> {
-    const response = await apiClient.get<ApiResponse<Listing>>(
-      `${this.baseUrl}/${id}`
-    );
+    const url = `${LISTINGS_ENDPOINT}/${id}`;
+    const response = await apiClient.get<ApiResponse<Listing>>(url);
     return response.data;
   }
 
   async createListing(data: CreateListingRequest): Promise<Listing> {
     console.log("🚀 Creating listing with data:", data);
-    console.log("🔗 URL finale:", `${this.baseUrl}`); // listings → /api/listings ✅
+    console.log("🔗 URL finale (endpoint):", LISTINGS_ENDPOINT);
 
+    // ✅ UTILISATION DIRECTE DE LA CONSTANTE
     const response = await apiClient.post<ApiResponse<Listing>>(
-      this.baseUrl, // ✅ "listings" → URL finale: http://localhost:8081/api/listings
+      LISTINGS_ENDPOINT, // ✅ Garantit que ce ne sera jamais undefined
       data
     );
     return response.data;
@@ -124,27 +123,25 @@ class ListingsService {
     id: string,
     data: Partial<CreateListingRequest>
   ): Promise<Listing> {
-    const response = await apiClient.put<ApiResponse<Listing>>(
-      `${this.baseUrl}/${id}`,
-      data
-    );
+    const url = `${LISTINGS_ENDPOINT}/${id}`;
+    const response = await apiClient.put<ApiResponse<Listing>>(url, data);
     return response.data;
   }
 
   async deleteListing(id: string): Promise<void> {
-    await apiClient.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
+    const url = `${LISTINGS_ENDPOINT}/${id}`;
+    await apiClient.delete<ApiResponse<void>>(url);
   }
 
   async uploadImage(
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<{ url: string }> {
-    // ✅ CORRECTION CRITIQUE: URL directe SANS préfixe
-    // "upload/image" → "http://localhost:8081/api/upload/image" ✅
-    console.log("📤 Uploading image, URL finale: upload/image");
+    console.log("📤 Uploading image, URL finale (endpoint):", UPLOAD_ENDPOINT);
 
+    // ✅ UTILISATION DIRECTE DE LA CONSTANTE
     const response = await apiClient.uploadFile<ApiResponse<{ url: string }>>(
-      "upload/image", // ✅ URL directe → http://localhost:8081/api/upload/image
+      UPLOAD_ENDPOINT, // ✅ Garantit que ce ne sera jamais undefined
       file,
       onProgress
     );
@@ -152,6 +149,7 @@ class ListingsService {
   }
 }
 
+// ✅ INSTANCE UNIQUE DU SERVICE
 export const listingsService = new ListingsService();
 
 // Hooks React Query pour les listings
