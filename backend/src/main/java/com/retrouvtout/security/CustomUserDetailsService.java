@@ -49,7 +49,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     /**
-     * Convertit le rôle de l'utilisateur en autorités Spring Security
+     * ✅ CORRECTION : Convertit le rôle de l'utilisateur en autorités Spring Security avec MIXTE
      * UNIQUEMENT les rôles conformes au cahier des charges
      */
     private Collection<? extends GrantedAuthority> mapRolesToAuthorities(User.UserRole role) {
@@ -58,13 +58,17 @@ public class CustomUserDetailsService implements UserDetailsService {
         // Ajouter le rôle de base pour tous les utilisateurs authentifiés
         authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         
-        // Ajouter des rôles spécifiques selon le type d'utilisateur
-        // STRICTEMENT conforme au cahier des charges - Section 3.1
+        // ✅ CORRECTION : Ajouter des rôles spécifiques selon le type d'utilisateur avec MIXTE
         switch (role) {
             case RETROUVEUR:
                 authorities.add(new SimpleGrantedAuthority("ROLE_FINDER"));
                 break;
             case PROPRIETAIRE:
+                authorities.add(new SimpleGrantedAuthority("ROLE_OWNER"));
+                break;
+            case MIXTE:
+                // ✅ MIXTE a les deux rôles
+                authorities.add(new SimpleGrantedAuthority("ROLE_FINDER"));
                 authorities.add(new SimpleGrantedAuthority("ROLE_OWNER"));
                 break;
         }

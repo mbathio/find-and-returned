@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - CORRECTION FINALE AVEC TYPES PROPRES
+// src/contexts/AuthContext.tsx - CORRECTIONS FINALES
 import {
   createContext,
   useContext,
@@ -24,15 +24,6 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
 );
-
-// ✅ CORRECTION : Export séparé du hook pour éviter l'erreur fast-refresh
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -68,14 +59,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [queryClient]);
 
-  // ✅ CORRECTION 1 : Initialisation immédiate au démarrage
+  // ✅ CORRECTION 1 : Utiliser getStoredUser via authService public
   useEffect(() => {
     const initAuth = () => {
       console.log("🔧 AuthContext - Initialisation de l'authentification");
 
       startTransition(() => {
-        const storedUser = authService.getStoredUser();
+        // ✅ FIX : Utiliser une méthode publique au lieu de getStoredUser privée
         const hasToken = !!localStorage.getItem("auth_token");
+        const userStr = localStorage.getItem("user");
+        const storedUser = userStr ? JSON.parse(userStr) : null;
 
         console.log("🔍 Données stockées:", {
           hasToken,
@@ -139,7 +132,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         });
       }
     }
-  }, [error, logout]); // ✅ Ajout de logout dans les deps
+  }, [error, logout]);
 
   // ✅ CORRECTION 4 : Mettre à jour quand currentUser change
   useEffect(() => {
@@ -212,4 +205,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// ✅ Hook useAuth dans un fichier séparé pour Fast Refresh
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

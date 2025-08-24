@@ -1,3 +1,4 @@
+
 package com.retrouvtout.config;
 
 import com.retrouvtout.security.JwtAuthenticationEntryPoint;
@@ -8,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,36 +24,33 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
- * Configuration de sécurité Spring Security conforme au cahier des charges
+ * ✅ CONFIGURATION SÉCURITÉ UNIFIÉE - Dev et Prod
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
-@Profile("!dev")  // Production uniquement
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final JwtTokenProvider tokenProvider;
+    private final CorsConfigurationSource corsConfigurationSource;
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000}")
-    private String allowedOrigins;
+    @Value("${spring.profiles.active:prod}")
+    private String activeProfile;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService customUserDetailsService,
                          JwtAuthenticationEntryPoint unauthorizedHandler,
-                         JwtTokenProvider tokenProvider) {
+                         JwtTokenProvider tokenProvider,
+                         CorsConfigurationSource corsConfigurationSource) {
         this.customUserDetailsService = customUserDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
         this.tokenProvider = tokenProvider;
+        this.corsConfigurationSource = corsConfigurationSource;
     }
 
     @Bean
@@ -73,63 +70,64 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOriginPatterns(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setExposedHeaders(Arrays.asList(
-            "Authorization", "Cache-Control", "Content-Type"
-        ));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-
-        return source;
-    }
-
-    @Bean
-    @Order(100)
-    public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+    @Order(1)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        System.out.println("🔧 Security Configuration for profile: " + activeProfile);
+        
+        HttpSecurity httpSecurity = http
+            // ✅ CORS : Une seule source de configuration
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/", "/health", "/actuator/**").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/api-docs/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/listings").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/listings/{id}").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/listings").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/listings/**").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/api/listings/**").authenticated()
-                .requestMatchers("/api/users/me").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
-                .requestMatchers("/api/threads/**").authenticated()
-                .requestMatchers("/api/messages/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/upload/**").authenticated()
-                .requestMatchers("/api/files/**").permitAll()
-                .requestMatchers("/api/notifications/**").authenticated()
-                .requestMatchers("/ws/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .headers(headers -> headers
+            .authorizeHttpRequests(authz -> {
+                // Endpoints publics communs
+                authz.requestMatchers("/", "/health", "/actuator/**").permitAll()
+                     .requestMatchers("/api/auth/**").permitAll()
+                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
+                     .requestMatchers("/files/**", "/uploads/**", "/static/**").permitAll()
+                     .requestMatchers("/.well-known/**", "/favicon.ico").permitAll();
+
+                // Mode développement : plus permissif
+                if ("dev".equals(activeProfile)) {
+                    authz.requestMatchers("/api/test/**", "/api/ping", "/api/cors-test").permitAll()
+                         .requestMatchers("/api/debug/**", "/api/db-test/**").permitAll()
+                         .requestMatchers("/api/auth-debug/**").permitAll()
+                         .requestMatchers("/api/**").permitAll()
+                         .anyRequest().permitAll();
+                } else {
+                    // Mode production : sécurisé
+                    authz.requestMatchers(HttpMethod.GET, "/api/listings").permitAll()
+                         .requestMatchers(HttpMethod.GET, "/api/listings/{id}").permitAll()
+                         .requestMatchers(HttpMethod.POST, "/api/listings").authenticated()
+                         .requestMatchers(HttpMethod.PUT, "/api/listings/**").authenticated()
+                         .requestMatchers(HttpMethod.DELETE, "/api/listings/**").authenticated()
+                         .requestMatchers("/api/users/me").authenticated()
+                         .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
+                         .requestMatchers("/api/threads/**").authenticated()
+                         .requestMatchers("/api/messages/**").authenticated()
+                         .requestMatchers(HttpMethod.POST, "/api/upload/**").authenticated()
+                         .requestMatchers("/api/files/**").permitAll()
+                         .requestMatchers("/api/notifications/**").authenticated()
+                         .requestMatchers("/ws/**").permitAll()
+                         .anyRequest().authenticated();
+                }
+            });
+
+        // Headers de sécurité (surtout en production)
+        if (!"dev".equals(activeProfile)) {
+            httpSecurity.headers(headers -> headers
                 .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
                 .contentTypeOptions(Customizer.withDefaults())
                 .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                     .maxAgeInSeconds(31536000)
-                    .includeSubDomains(true))
-            );
+                    .includeSubDomains(true)));
+        }
 
-        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        httpSecurity.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
+        return httpSecurity.build();
     }
 }

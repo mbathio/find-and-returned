@@ -1,50 +1,48 @@
 package com.retrouvtout.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * ✅ CORS CONFIGURATION FINALE CORRIGÉE
+ * ✅ CONFIGURATION CORS UNIFIÉE - Une seule source de vérité
  */
 @Configuration
-@Profile("dev")
-public class CorsConfig implements WebMvcConfigurer {
+public class CorsConfig {
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        System.out.println("🔧 CORS Global Configuration - FIXED");
-        
-        registry.addMapping("/**")
-                .allowedOriginPatterns("*") // ✅ Compatible avec allowCredentials
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD")
-                .allowedHeaders("*")
-                .exposedHeaders("Authorization", "Cache-Control", "Content-Type")
-                .allowCredentials(true)
-                .maxAge(3600);
-    }
+    @Value("${app.cors.allowed-origins:http://localhost:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:8080,http://127.0.0.1:3000,http://127.0.0.1:5173}")
+    private String allowedOrigins;
+
+    @Value("${app.cors.dev-mode:false}")
+    private boolean devMode;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        System.out.println("🔧 CORS Bean Configuration - FIXED");
+        System.out.println("🔧 CORS Unified Configuration");
         
         CorsConfiguration config = new CorsConfiguration();
         
-        // ✅ SOLUTION DÉFINITIVE : allowedOriginPatterns avec wildcard
-        config.setAllowedOriginPatterns(List.of("*"));
+        // ✅ SOLUTION : setAllowedOriginPatterns pour plus de flexibilité
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        config.setAllowedOriginPatterns(origins);
         
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
-        config.setExposedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
+        config.setExposedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
+
+        // En mode dev, on peut être plus permissif
+        if (devMode) {
+            config.addAllowedOriginPattern("http://localhost:*");
+            config.addAllowedOriginPattern("http://127.0.0.1:*");
+        }
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

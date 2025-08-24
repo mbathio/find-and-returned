@@ -1,4 +1,4 @@
-// src/services/auth.ts
+// src/services/auth.ts - CORRECTION méthode getStoredUser publique
 import { apiClient } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -73,7 +73,6 @@ class AuthService {
     this.saveAuthData(authData);
 
     return authData;
-    // PS: si l'API n'authentifie pas à l'inscription, adapte en conséquence
   };
 
   refreshToken = async (refreshToken: string): Promise<AuthResponse> => {
@@ -134,7 +133,8 @@ class AuthService {
     localStorage.removeItem("user");
   };
 
-  private getStoredUser = (): User | null => {
+  // ✅ CORRECTION : Rendre getStoredUser publique
+  getStoredUser = (): User | null => {
     const userStr = localStorage.getItem("user");
     return userStr ? JSON.parse(userStr) : null;
   };
