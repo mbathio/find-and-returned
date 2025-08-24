@@ -156,12 +156,14 @@ const Poster = () => {
 
       // Redirection vers la page de l'annonce
       navigate(`/annonces/${newListing.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur lors de la publication:", error);
       toast({
         title: "Erreur de publication",
         description:
-          error.message || "Une erreur est survenue lors de la publication.",
+          typeof error === "object" && error !== null && "message" in error
+            ? String((error as { message?: string }).message)
+            : "Une erreur est survenue lors de la publication.",
         variant: "destructive",
       });
     }

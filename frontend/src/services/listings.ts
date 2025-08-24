@@ -11,7 +11,13 @@ import {
 export interface Listing {
   id: string;
   title: string;
-  category: "cles" | "electronique" | "bagagerie" | "documents" | "vetements" | "autre";
+  category:
+    | "cles"
+    | "electronique"
+    | "bagagerie"
+    | "documents"
+    | "vetements"
+    | "autre";
   locationText: string;
   latitude?: number;
   longitude?: number;
@@ -67,7 +73,9 @@ export interface ApiResponse<T> {
 }
 
 class ListingsService {
-  private readonly baseUrl = "/listings";
+  // ✅ CORRECTION: Utiliser "listings" sans le slash initial
+  // L'apiClient ajoute déjà le préfixe /api automatiquement
+  private readonly baseUrl = "listings";
 
   async getListings(
     params: ListingsSearchParams = {}
@@ -83,18 +91,26 @@ class ListingsService {
     const url = `${this.baseUrl}${
       searchParams.toString() ? `?${searchParams.toString()}` : ""
     }`;
-    
+
     const response = await apiClient.get<ApiResponse<ListingsResponse>>(url);
     return response.data;
   }
 
   async getListing(id: string): Promise<Listing> {
-    const response = await apiClient.get<ApiResponse<Listing>>(`${this.baseUrl}/${id}`);
+    const response = await apiClient.get<ApiResponse<Listing>>(
+      `${this.baseUrl}/${id}`
+    );
     return response.data;
   }
 
   async createListing(data: CreateListingRequest): Promise<Listing> {
-    const response = await apiClient.post<ApiResponse<Listing>>(this.baseUrl, data);
+    console.log("Creating listing with data:", data);
+    console.log("URL will be:", this.baseUrl); // Debug
+
+    const response = await apiClient.post<ApiResponse<Listing>>(
+      this.baseUrl,
+      data
+    );
     return response.data;
   }
 
@@ -102,7 +118,10 @@ class ListingsService {
     id: string,
     data: Partial<CreateListingRequest>
   ): Promise<Listing> {
-    const response = await apiClient.put<ApiResponse<Listing>>(`${this.baseUrl}/${id}`, data);
+    const response = await apiClient.put<ApiResponse<Listing>>(
+      `${this.baseUrl}/${id}`,
+      data
+    );
     return response.data;
   }
 
@@ -115,7 +134,7 @@ class ListingsService {
     onProgress?: (progress: number) => void
   ): Promise<{ url: string }> {
     const response = await apiClient.uploadFile<ApiResponse<{ url: string }>>(
-      "/upload/image",
+      "upload/image", // ✅ Sans slash initial non plus
       file,
       onProgress
     );
@@ -154,6 +173,9 @@ export const useCreateListing = () => {
     mutationFn: listingsService.createListing,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
+    },
+    onError: (error) => {
+      console.error("Create listing error:", error);
     },
   });
 };
