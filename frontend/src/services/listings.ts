@@ -1,4 +1,4 @@
-// src/services/listings.ts - VERSION CORRIGÉE
+// src/services/listings.ts - VERSION CORRIGÉE - URLs sans double préfixe
 import { apiClient } from "@/lib/api";
 import {
   useQuery,
@@ -73,9 +73,10 @@ export interface ApiResponse<T> {
 }
 
 class ListingsService {
-  // ✅ CORRECTION IMPORTANTE: Enlever le préfixe "api/"
-  // L'apiClient ajoute déjà le préfixe /api automatiquement via API_BASE_URL
-  private readonly baseUrl = "listings"; // ✅ SANS "api/" au début
+  // ✅ CORRECTION IMPORTANTE: URLs relatives SANS préfixe
+  // apiClient.baseURL = "http://localhost:8081/api"
+  // Donc "listings" → "http://localhost:8081/api/listings" ✅
+  private readonly baseUrl = "listings";
 
   async getListings(
     params: ListingsSearchParams = {}
@@ -92,6 +93,11 @@ class ListingsService {
       searchParams.toString() ? `?${searchParams.toString()}` : ""
     }`;
 
+    if (import.meta.env.DEV) {
+      console.log("🔍 Fetching listings with URL:", url);
+      console.log("🔍 Search params:", params);
+    }
+
     const response = await apiClient.get<ApiResponse<ListingsResponse>>(url);
     return response.data;
   }
@@ -105,10 +111,10 @@ class ListingsService {
 
   async createListing(data: CreateListingRequest): Promise<Listing> {
     console.log("🚀 Creating listing with data:", data);
-    console.log("🔗 URL will be:", `${this.baseUrl}`); // listings -> /api/listings
+    console.log("🔗 URL finale:", `${this.baseUrl}`); // listings → /api/listings ✅
 
     const response = await apiClient.post<ApiResponse<Listing>>(
-      this.baseUrl, // ✅ "listings" -> URL finale: /api/listings
+      this.baseUrl, // ✅ "listings" → URL finale: http://localhost:8081/api/listings
       data
     );
     return response.data;
@@ -133,9 +139,12 @@ class ListingsService {
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<{ url: string }> {
-    // ✅ CORRECTION: Utiliser le bon endpoint d'upload
+    // ✅ CORRECTION CRITIQUE: URL directe SANS préfixe
+    // "upload/image" → "http://localhost:8081/api/upload/image" ✅
+    console.log("📤 Uploading image, URL finale: upload/image");
+
     const response = await apiClient.uploadFile<ApiResponse<{ url: string }>>(
-      "upload/image", // ✅ Sans préfixe "api/" -> URL finale: /api/upload/image
+      "upload/image", // ✅ URL directe → http://localhost:8081/api/upload/image
       file,
       onProgress
     );
