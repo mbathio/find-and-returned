@@ -1,4 +1,4 @@
-// src/services/listings.ts - VERSION ROBUSTE - Problème URL undefined résolu
+// src/services/listings.ts - VERSION AVEC LOGS DE DEBUG DÉTAILLÉS
 import { apiClient } from "@/lib/api";
 import {
   useQuery,
@@ -7,7 +7,6 @@ import {
   UseQueryOptions,
 } from "@tanstack/react-query";
 
-// Interface conforme au backend ListingResponse
 export interface Listing {
   id: string;
   title: string;
@@ -21,7 +20,7 @@ export interface Listing {
   locationText: string;
   latitude?: number;
   longitude?: number;
-  foundAt: string; // ISO string
+  foundAt: string;
   description: string;
   imageUrl?: string;
   status: "active" | "resolved";
@@ -30,19 +29,17 @@ export interface Listing {
   updatedAt: string;
 }
 
-// Interface conforme au backend CreateListingRequest
 export interface CreateListingRequest {
   title: string;
   category: string;
   locationText: string;
   latitude?: number;
   longitude?: number;
-  foundAt: string; // LocalDateTime ISO string
+  foundAt: string;
   description: string;
   imageUrl?: string;
 }
 
-// Paramètres de recherche conformes à l'API backend
 export interface ListingsSearchParams {
   q?: string;
   category?: string;
@@ -50,13 +47,12 @@ export interface ListingsSearchParams {
   lat?: number;
   lng?: number;
   radius_km?: number;
-  date_from?: string; // YYYY-MM-DD
-  date_to?: string; // YYYY-MM-DD
+  date_from?: string;
+  date_to?: string;
   page?: number;
   page_size?: number;
 }
 
-// Interface conforme au backend PagedResponse
 export interface ListingsResponse {
   items: Listing[];
   total: number;
@@ -64,15 +60,13 @@ export interface ListingsResponse {
   totalPages: number;
 }
 
-// Interface conforme au backend ApiResponse
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
-  timestamp: string;
+  timestamp?: string;
 }
 
-// ✅ CONSTANTES POUR ÉVITER LE PROBLÈME UNDEFINED
 const LISTINGS_ENDPOINT = "listings";
 const UPLOAD_ENDPOINT = "upload/image";
 
@@ -80,6 +74,9 @@ class ListingsService {
   async getListings(
     params: ListingsSearchParams = {}
   ): Promise<ListingsResponse> {
+    console.log("🔍 ListingsService.getListings - DÉBUT");
+    console.log("🔍 Paramètres reçus:", params);
+
     const searchParams = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -92,13 +89,69 @@ class ListingsService {
       ? `${LISTINGS_ENDPOINT}?${searchParams.toString()}`
       : LISTINGS_ENDPOINT;
 
-    if (import.meta.env.DEV) {
-      console.log("🔍 Fetching listings with URL:", url);
-      console.log("🔍 Search params:", params);
-    }
+    console.log("🔍 URL construite:", url);
 
-    const response = await apiClient.get<ApiResponse<ListingsResponse>>(url);
-    return response.data;
+    try {
+      console.log("🔍 Appel apiClient.get...");
+      const response = await apiClient.get<ApiResponse<ListingsResponse>>(url);
+
+      console.log("🔍 Response RAW (ce que retourne apiClient.get):");
+      console.log("🔍 - Type:", typeof response);
+      console.log("🔍 - Valeur:", response);
+      console.log("🔍 - JSON stringifié:", JSON.stringify(response, null, 2));
+
+      // Vérifier si response a une propriété 'data'
+      if (response && typeof response === "object") {
+        console.log("🔍 Properties de response:", Object.keys(response));
+
+        if ("data" in response) {
+          console.log("🔍 response.data existe:");
+          console.log("🔍 - Type de response.data:", typeof response.data);
+          console.log("🔍 - Valeur de response.data:", response.data);
+          console.log(
+            "🔍 - JSON stringifié de response.data:",
+            JSON.stringify(response.data, null, 2)
+          );
+
+          if (
+            response.data &&
+            typeof response.data === "object" &&
+            "items" in response.data
+          ) {
+            console.log("🔍 response.data.items existe:", response.data.items);
+            console.log(
+              "🔍 Nombre d'items:",
+              Array.isArray(response.data.items)
+                ? response.data.items.length
+                : "pas un array"
+            );
+          } else {
+            console.log("❌ response.data n'a pas de propriété 'items'");
+          }
+
+          return response.data as ListingsResponse;
+        } else {
+          console.log("❌ response n'a pas de propriété 'data'");
+          // Peut-être que response EST déjà la ListingsResponse ?
+          if ("items" in response) {
+            console.log("✅ response a directement une propriété 'items'");
+            return response as ListingsResponse;
+          }
+        }
+      }
+
+      console.log("❌ Structure de response inattendue");
+      throw new Error("Structure de réponse inattendue");
+    } catch (error) {
+      console.error("❌ Erreur dans getListings:");
+      console.error("❌ Type d'erreur:", typeof error);
+      console.error("❌ Erreur:", error);
+      if (error instanceof Error) {
+        console.error("❌ Message:", error.message);
+        console.error("❌ Stack:", error.stack);
+      }
+      throw error;
+    }
   }
 
   async getListing(id: string): Promise<Listing> {
@@ -108,12 +161,8 @@ class ListingsService {
   }
 
   async createListing(data: CreateListingRequest): Promise<Listing> {
-    console.log("🚀 Creating listing with data:", data);
-    console.log("🔗 URL finale (endpoint):", LISTINGS_ENDPOINT);
-
-    // ✅ UTILISATION DIRECTE DE LA CONSTANTE
     const response = await apiClient.post<ApiResponse<Listing>>(
-      LISTINGS_ENDPOINT, // ✅ Garantit que ce ne sera jamais undefined
+      LISTINGS_ENDPOINT,
       data
     );
     return response.data;
@@ -137,11 +186,8 @@ class ListingsService {
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<{ url: string }> {
-    console.log("📤 Uploading image, URL finale (endpoint):", UPLOAD_ENDPOINT);
-
-    // ✅ UTILISATION DIRECTE DE LA CONSTANTE
     const response = await apiClient.uploadFile<ApiResponse<{ url: string }>>(
-      UPLOAD_ENDPOINT, // ✅ Garantit que ce ne sera jamais undefined
+      UPLOAD_ENDPOINT,
       file,
       onProgress
     );
@@ -149,18 +195,29 @@ class ListingsService {
   }
 }
 
-// ✅ INSTANCE UNIQUE DU SERVICE
 export const listingsService = new ListingsService();
 
-// Hooks React Query pour les listings
 export const useListings = (
   params: ListingsSearchParams = {},
   options?: Omit<UseQueryOptions<ListingsResponse>, "queryKey" | "queryFn">
 ) => {
   return useQuery({
     queryKey: ["listings", params],
-    queryFn: () => listingsService.getListings(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    queryFn: async () => {
+      console.log("🔍 useListings queryFn - DÉBUT");
+      try {
+        const result = await listingsService.getListings(params);
+        console.log("🔍 useListings queryFn - RÉSULTAT:");
+        console.log("🔍 - Type:", typeof result);
+        console.log("🔍 - Valeur:", result);
+        console.log("🔍 - JSON stringifié:", JSON.stringify(result, null, 2));
+        return result;
+      } catch (error) {
+        console.error("❌ useListings queryFn - ERREUR:", error);
+        throw error;
+      }
+    },
+    staleTime: 2 * 60 * 1000,
     ...options,
   });
 };
@@ -170,7 +227,7 @@ export const useListing = (id: string) => {
     queryKey: ["listing", id],
     queryFn: () => listingsService.getListing(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

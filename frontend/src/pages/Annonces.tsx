@@ -1,4 +1,4 @@
-// src/pages/Annonces.tsx - VERSION CORRIGÉE sans valeurs vides dans Select
+// src/pages/Annonces.tsx - VERSION AVEC LOGS DE DEBUG
 import { Helmet } from "react-helmet-async";
 import { Input } from "@/components/ui/input";
 import {
@@ -54,6 +54,12 @@ const Annonces = () => {
   );
 
   // Query pour charger les annonces
+  console.log("🔍 COMPOSANT ANNONCES - Paramètres pour useListings:", {
+    ...filters,
+    date_from: dateFrom ? format(dateFrom, "yyyy-MM-dd") : undefined,
+    date_to: dateTo ? format(dateTo, "yyyy-MM-dd") : undefined,
+  });
+
   const {
     data: listingsData,
     isLoading,
@@ -63,6 +69,28 @@ const Annonces = () => {
     date_from: dateFrom ? format(dateFrom, "yyyy-MM-dd") : undefined,
     date_to: dateTo ? format(dateTo, "yyyy-MM-dd") : undefined,
   });
+
+  // 🔍 LOGS DE DEBUG DÉTAILLÉS
+  console.log("🔍 COMPOSANT ANNONCES - État actuel:");
+  console.log("🔍 - isLoading:", isLoading);
+  console.log("🔍 - error:", error);
+  console.log("🔍 - listingsData (type):", typeof listingsData);
+  console.log("🔍 - listingsData (valeur):", listingsData);
+  console.log("🔍 - listingsData JSON:", JSON.stringify(listingsData, null, 2));
+
+  if (listingsData) {
+    console.log("🔍 COMPOSANT ANNONCES - Analyse listingsData:");
+    console.log("🔍 - Propriétés disponibles:", Object.keys(listingsData));
+    console.log("🔍 - listingsData.items:", listingsData.items);
+    console.log("🔍 - listingsData.items (type):", typeof listingsData.items);
+    console.log(
+      "🔍 - listingsData.items est un Array?:",
+      Array.isArray(listingsData.items)
+    );
+    console.log("🔍 - listingsData.items?.length:", listingsData.items?.length);
+    console.log("🔍 - listingsData.total:", listingsData.total);
+    console.log("🔍 - listingsData.totalPages:", listingsData.totalPages);
+  }
 
   // Mettre à jour l'URL quand les filtres changent
   useEffect(() => {
@@ -100,9 +128,7 @@ const Annonces = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ✅ CORRECTION : Gestion propre du changement de catégorie
   const handleCategoryChange = (value: string) => {
-    // Si la valeur est "all" ou vide, on met une chaîne vide
     const categoryValue = value === "all" ? "" : value;
     setFilters((prev) => ({ ...prev, category: categoryValue }));
   };
@@ -161,7 +187,6 @@ const Annonces = () => {
             </div>
 
             <div className="md:col-span-1">
-              {/* ✅ CORRECTION : Select sans valeur vide */}
               <Select
                 value={filters.category || "all"}
                 onValueChange={handleCategoryChange}
@@ -170,7 +195,6 @@ const Annonces = () => {
                   <SelectValue placeholder="Catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* ✅ Utilisation d'une valeur "all" au lieu de chaîne vide */}
                   <SelectItem value="all">Toutes les catégories</SelectItem>
                   <SelectItem value="cles">Clés</SelectItem>
                   <SelectItem value="electronique">Électronique</SelectItem>
@@ -251,6 +275,13 @@ const Annonces = () => {
             <p className="text-destructive">
               Erreur lors du chargement des annonces. Veuillez réessayer.
             </p>
+            {/* Debug info pour l'erreur */}
+            <details className="mt-4 text-left">
+              <summary className="cursor-pointer">Détails de l'erreur</summary>
+              <pre className="mt-2 p-2 bg-gray-100 text-xs">
+                {JSON.stringify(error, null, 2)}
+              </pre>
+            </details>
           </CardContent>
         </Card>
       )}
@@ -343,6 +374,23 @@ const Annonces = () => {
             <Button asChild variant="hero">
               <a href="/poster">Publier la première annonce</a>
             </Button>
+
+            {/* 🔍 DEBUG INFO - À supprimer après résolution */}
+            <details className="mt-4 text-left">
+              <summary className="cursor-pointer text-sm">Debug Info</summary>
+              <div className="mt-2 p-2 bg-gray-100 text-xs">
+                <p>
+                  <strong>isLoading:</strong> {String(isLoading)}
+                </p>
+                <p>
+                  <strong>error:</strong> {error ? String(error) : "null"}
+                </p>
+                <p>
+                  <strong>listingsData:</strong>
+                </p>
+                <pre>{JSON.stringify(listingsData, null, 2)}</pre>
+              </div>
+            </details>
           </CardContent>
         </Card>
       )}
